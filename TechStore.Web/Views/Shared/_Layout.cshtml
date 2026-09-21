@@ -1,0 +1,180 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TechStore Siêu Thị Công Nghệ Chính Hãng</title>
+    <!-- Tailwind CSS CDN & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bestbuy: {
+                            blue: '#0046be',
+                            darkblue: '#002e7a',
+                            yellow: '#fff200',
+                            gray: '#f0f2f5'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-[#f4f6f9] text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+    <!-- Top Announcement Bar -->
+    <div class="bg-bestbuy-darkblue text-white text-xs py-1.5 px-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Hàng chính hãng 100% bảo hành toàn quốc
+                </span>
+                <span class="hidden md:inline text-slate-300">|</span>
+                <span class="hidden md:inline text-slate-300">Giao nhanh miễn phí đơn từ 1.000.000đ</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="/Admin/Order" class="hover:text-bestbuy-yellow transition-colors font-medium">Kênh Quản Trị</a>
+                <a href="/about" class="hover:text-slate-200 transition-colors">Về TechStore</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Best Buy Style Header -->
+    <header class="bg-bestbuy-blue text-white sticky top-0 z-40 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <!-- Brand Logo -->
+            <a href="/" class="flex items-center gap-2 shrink-0 group">
+                <div class="w-10 h-10 rounded-xl bg-bestbuy-yellow text-slate-900 flex items-center justify-center font-black text-xl shadow-sm group-hover:scale-105 transition-transform">
+                    T
+                </div>
+                <div>
+                    <span class="text-2xl font-black tracking-tight block leading-none text-white">TechStore</span>
+                    <span class="text-[10px] font-bold text-bestbuy-yellow uppercase tracking-widest block mt-0.5">Electronics</span>
+                </div>
+            </a>
+
+            <!-- Search Bar Typeahead -->
+            <form action="/products" method="get" class="flex-1 max-w-2xl relative hidden sm:block">
+                <div class="relative">
+                    <input type="text" name="q" value="@ViewBag.SearchQuery" 
+                           placeholder="Tìm iPhone 16 Pro Max, MacBook M4, Galaxy S25..." 
+                           class="w-full bg-white text-slate-900 text-sm rounded-full pl-5 pr-12 py-2.5 outline-none focus:ring-2 focus:ring-bestbuy-yellow placeholder-slate-400 font-medium shadow-inner" />
+                    <button type="submit" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-bestbuy-blue text-white flex items-center justify-center hover:bg-bestbuy-darkblue transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Actions: Hotline & Cart Drawer Toggle Button -->
+            <div class="flex items-center gap-3 shrink-0">
+                <div class="hidden lg:flex items-center gap-2 pr-2 border-r border-blue-400/40 text-xs">
+                    <span class="p-2 bg-blue-700/60 rounded-full">
+                        <svg class="w-4 h-4 text-bestbuy-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                    </span>
+                    <div>
+                        <p class="text-[11px] text-blue-200">Hotline tư vấn</p>
+                        <strong class="font-bold text-sm">1800 6868</strong>
+                    </div>
+                </div>
+
+                <!-- Nút Giỏ hàng mở Slide-over Drawer -->
+                <button onclick="toggleCartDrawer()" class="relative flex items-center gap-2.5 px-4 py-2 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-900 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                    <span class="hidden sm:inline">Giỏ Hàng</span>
+                    <span id="cartBadgeCount" class="w-5 h-5 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-bold">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Categories Bar -->
+        <nav class="bg-bestbuy-darkblue/90 border-t border-blue-500/30 text-xs font-semibold">
+            <div class="max-w-7xl mx-auto px-4 flex items-center gap-6 overflow-x-auto py-2.5 no-scrollbar">
+                <a href="/products" class="text-bestbuy-yellow flex items-center gap-1.5 whitespace-nowrap hover:underline">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    <span>Tất Cả Sản Phẩm</span>
+                </a>
+                <a href="/category/dien-thoai" class="text-white hover:text-bestbuy-yellow transition-colors whitespace-nowrap">Điện Thoại Smartphone</a>
+                <a href="/category/laptop" class="text-white hover:text-bestbuy-yellow transition-colors whitespace-nowrap">Laptop & MacBook</a>
+                <a href="/category/tablet" class="text-white hover:text-bestbuy-yellow transition-colors whitespace-nowrap">Máy Tính Bảng / iPad</a>
+                <a href="/category/am-thanh" class="text-white hover:text-bestbuy-yellow transition-colors whitespace-nowrap">Tai Nghe & Âm Thanh</a>
+                <a href="/category/tivi-man-hinh" class="text-white hover:text-bestbuy-yellow transition-colors whitespace-nowrap">Tivi & Màn Hình</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1">
+        @RenderBody()
+    </main>
+
+    <!-- Slide-over Cart Drawer Component -->
+    @await Html.PartialAsync("_CartDrawer")
+
+    <!-- Best Buy Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-16 text-slate-600 text-sm">
+        <div class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-bestbuy-blue text-bestbuy-yellow flex items-center justify-center font-black">T</div>
+                    <span class="font-extrabold text-slate-900 text-lg">TechStore</span>
+                </div>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Hệ thống bán lẻ thiết bị công nghệ chính hãng hàng đầu theo tiêu chuẩn chuỗi cửa hàng Best Buy. Cam kết 100% thiết bị mới, bảo hành chính hãng.
+                </p>
+                <div class="text-xs font-semibold text-slate-700">
+                    Hotline: <span class="text-blue-600">1800 6868</span> (Miễn phí)
+                </div>
+            </div>
+
+            <div>
+                <h4 class="font-bold text-slate-900 mb-3 text-xs uppercase tracking-wider">Hỗ Trợ Khách Hàng</h4>
+                <ul class="space-y-2 text-xs">
+                    <li><a href="/checkout" class="hover:text-blue-600">Hướng dẫn thanh toán VietQR</a></li>
+                    <li><a href="#" class="hover:text-blue-600">Chính sách giao hàng toàn quốc</a></li>
+                    <li><a href="#" class="hover:text-blue-600">Quy chế đổi trả 30 ngày</a></li>
+                    <li><a href="#" class="hover:text-blue-600">Tra cứu bảo hành điện tử</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="font-bold text-slate-900 mb-3 text-xs uppercase tracking-wider">Danh Mục Nổi Bật</h4>
+                <ul class="space-y-2 text-xs">
+                    <li><a href="/category/dien-thoai" class="hover:text-blue-600">Apple iPhone 16 Series</a></li>
+                    <li><a href="/category/dien-thoai" class="hover:text-blue-600">Samsung Galaxy AI Flagship</a></li>
+                    <li><a href="/category/laptop" class="hover:text-blue-600">Apple MacBook M4 Pro</a></li>
+                    <li><a href="/category/am-thanh" class="hover:text-blue-600">Tai nghe chống ồn Sony Hi-Res</a></li>
+                </ul>
+            </div>
+
+            <div class="space-y-3">
+                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Thanh Toán Linh Hoạt</h4>
+                <p class="text-xs text-slate-500">Chấp nhận thanh toán khi nhận hàng (COD) và Chuyển khoản tức thì chuẩn VietQR NAPAS 247.</p>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 text-[11px] font-bold bg-slate-100 text-slate-800 rounded border border-slate-200">COD</span>
+                    <span class="px-2.5 py-1 text-[11px] font-bold bg-blue-50 text-blue-700 rounded border border-blue-200">VietQR NAPAS</span>
+                    <span class="px-2.5 py-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 rounded border border-emerald-200">MBBank</span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-slate-50 border-t border-slate-100 py-4 text-center text-xs text-slate-400">
+            &copy; @DateTime.UtcNow.Year TechStore eCommerce Solution .NET 10 LTS. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- Cart Drawer Script -->
+    <script src="~/js/cart_drawer.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

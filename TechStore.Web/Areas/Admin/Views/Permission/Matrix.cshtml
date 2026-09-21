@@ -1,0 +1,468 @@
+﻿@model TechStore.Web.Areas.Admin.Controllers.PermissionMatrixViewModel
+@{
+    ViewData["Title"] = "Ma Trận Phân Quyền Động (RBAC & Sub-Admins)";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    bool isSuperAdminRole = Model.CurrentRole?.NormalizedName == "SUPERADMIN";
+    bool isRoleTab = Model.ActiveTab != "user";
+    int totalPermissions = Model.GroupedPermissions.Values.Sum(v => v.Count);
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between pb-4 border-b border-slate-200 gap-4">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <span class="p-2.5 bg-blue-50 text-blue-600 rounded-xl shadow-sm border border-blue-100">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                </span>
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight">Ma Trận Phân Quyền Động</h1>
+                    <p class="text-xs text-slate-500 font-medium mt-0.5">Admin tổng phân bổ quyền hạn theo Vai trò hoặc điều chỉnh đặc cách cho từng Admin nhỏ.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Switcher Navigation -->
+        <div class="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
+            <button type="button" onclick="switchTab('role')"
+                    class="px-4 py-2 rounded-lg transition-all @(isRoleTab ? "bg-white text-blue-600 shadow-sm" : "text-slate-600 hover:text-slate-900")">
+                1. Phân Quyền Theo Vai Trò
+            </button>
+            <button type="button" onclick="switchTab('user')"
+                    class="px-4 py-2 rounded-lg transition-all @(!isRoleTab ? "bg-white text-blue-600 shadow-sm" : "text-slate-600 hover:text-slate-900")">
+                2. Phân Quyền Cho Từng Admin Nhỏ
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Thông báo Thành công/Thất bại -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+            <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+            <svg class="w-4 h-4 text-rose-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    @if (isRoleTab)
+    {
+        <!-- TAB 1: MA TRẬN THEO VAI TRÒ -->
+        <div class="space-y-4">
+            <!-- Control Bar: Chọn Vai Trò & Thao Tác Lưu -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <label for="roleSelector" class="text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Chọn Vai Trò:</label>
+                    <select id="roleSelector" onchange="switchRole(this.value)" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm font-bold rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-inner">
+                        @foreach (var r in Model.Roles)
+                        {
+                            <option value="@r.RoleId" selected="@(r.RoleId == Model.CurrentRoleId)">
+                                @r.RoleName — @r.Description
+                            </option>
+                        }
+                    </select>
+
+                    <div class="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-xs font-bold">
+                        <span>Đã gán:</span>
+                        <span id="roleCountBadge" class="font-extrabold text-blue-900">
+                            @(isSuperAdminRole ? totalPermissions : Model.AssignedPermissionIds.Count) / @totalPermissions
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5">
+                    @if (!isSuperAdminRole)
+                    {
+                        <button type="button" onclick="toggleSelectAllRole(true)" class="px-3 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                            Chọn Tất Cả
+                        </button>
+                        <button type="button" onclick="toggleSelectAllRole(false)" class="px-3 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                            Bỏ Chọn
+                        </button>
+                    }
+
+                    <button id="btnSaveRoleMatrix" onclick="saveRoleMatrix()"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        <span>LƯU MA TRẬN VAI TRÒ</span>
+                    </button>
+                </div>
+            </div>
+
+            @if (isSuperAdminRole)
+            {
+                <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+                    <svg class="w-5 h-5 text-amber-600 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                    <p class="text-xs text-amber-900 leading-relaxed">
+                        <strong>Chú ý bảo mật:</strong> Vai trò <span class="font-bold underline">SuperAdmin</span> là cấp tài khoản quản trị tối cao của toàn hệ thống TechStore. Nhóm này mặc định sở hữu 100% toàn quyền và không thể bị sửa đổi hoặc hạn chế.
+                    </p>
+                </div>
+            }
+
+            <!-- Grid Bảng Ma Trận Phân Quyền Theo Phân Hệ -->
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <table class="w-full text-left text-xs text-slate-600">
+                    <thead class="bg-slate-50 text-slate-700 uppercase font-extrabold text-[11px] tracking-wider border-b border-slate-200">
+                        <tr>
+                            <th class="py-4 px-6 w-1/4">Phân Hệ Quản Trị (Module)</th>
+                            <th class="py-4 px-6 w-7/12">Danh Sách Quyền Hạn Chi Tiết (Actions)</th>
+                            <th class="py-4 px-6 text-center w-2/12">Thao Tác Nhanh</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach (var group in Model.GroupedPermissions)
+                        {
+                            var moduleId = group.Key.ToLower();
+                            <tr class="hover:bg-slate-50/75 transition-colors">
+                                <td class="py-4 px-6 align-top">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                        <span class="font-extrabold text-slate-900 text-sm">@group.Key</span>
+                                    </div>
+                                    <span class="text-[11px] text-slate-400 mt-1 block">@group.Value.Count quyền khả dụng</span>
+                                </td>
+                                <td class="py-4 px-6">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                                        @foreach (var perm in group.Value)
+                                        {
+                                            var isChecked = Model.AssignedPermissionIds.Contains(perm.PermissionId) || isSuperAdminRole;
+                                            <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all select-none">
+                                                <input type="checkbox"
+                                                       name="rolePermissionIds"
+                                                       value="@perm.PermissionId"
+                                                       data-module="@moduleId"
+                                                       class="perm-checkbox mt-0.5 w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                @(isChecked ? "checked" : "")
+                                                @(isSuperAdminRole ? "disabled" : "") />
+                                                <div class="min-w-0">
+                                                    <div class="font-bold text-slate-900 text-xs truncate">@perm.Action</div>
+                                                    <div class="text-[10px] text-blue-600 font-mono">@perm.PermissionCode</div>
+                                                    <div class="text-[11px] text-slate-400 leading-tight mt-0.5">@perm.Description</div>
+                                                </div>
+                                            </label>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="py-4 px-6 text-center align-middle">
+                                    <button type="button"
+                                            onclick="toggleModulePermissions('@moduleId')"
+                                            class="px-3 py-1.5 text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap"
+                                        @(isSuperAdminRole ? "disabled" : "")>
+                                        Đảo chọn
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- TAB 2: MA TRẬN CHO TỪNG ADMIN NHỎ (USER OVERRIDE) -->
+        <div class="space-y-4">
+            <!-- Control Bar: Chọn Admin Nhỏ, Thêm Admin Nhỏ & Nút Lưu -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <label for="subAdminSelector" class="text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Chọn Admin Nhỏ:</label>
+                    <select id="subAdminSelector" onchange="switchSubAdmin(this.value)" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm font-bold rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500 shadow-inner">
+                        @foreach (var u in Model.SubAdmins)
+                        {
+                            var roleName = u.UserRoles.FirstOrDefault()?.Role.RoleName ?? "Chưa gán vai trò";
+                            <option value="@u.UserId" selected="@(u.UserId == Model.CurrentUserId)">
+                                @u.FullName (@u.Username) — Vai trò: @roleName
+                            </option>
+                        }
+                    </select>
+
+                    <button type="button" onclick="openCreateSubAdminModal()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition-all">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                        <span>+ Thêm Admin Nhỏ</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="btnSaveUserMatrix" onclick="saveUserMatrix()"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-md transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        <span>LƯU ĐẶC CÁCH QUYỀN CHO ADMIN NÀY</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Giải thích quy tắc 3 trạng thái -->
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1">
+                <p class="font-bold text-slate-900">Cơ chế kiểm soát 3 trạng thái cho từng chức năng:</p>
+                <div class="flex flex-wrap gap-4 pt-1">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-300"></span> <strong>Kế thừa:</strong> Nhận quyền tự động theo vai trò hiện tại của nhân viên.</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> <strong>Đặc cách Cấp (+):</strong> Cấp thêm quyền cho riêng tài khoản này (dù vai trò không có).</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500"></span> <strong>Đặc cách Chặn (-):</strong> Tước bỏ/cấm can thiệp chức năng này (dù vai trò có cấp).</span>
+                </div>
+            </div>
+
+            <!-- Grid Chi Tiết Phân Quyền Cá Nhân -->
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <table class="w-full text-left text-xs text-slate-600">
+                    <thead class="bg-slate-50 text-slate-700 uppercase font-extrabold text-[11px] tracking-wider border-b border-slate-200">
+                        <tr>
+                            <th class="py-4 px-6 w-1/4">Phân Hệ Quản Trị</th>
+                            <th class="py-4 px-6 w-3/4">Tùy Biến Trạng Thái Từng Chức Năng (Quyền)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach (var group in Model.GroupedPermissions)
+                        {
+                            <tr class="hover:bg-slate-50/75 transition-colors">
+                                <td class="py-4 px-6 align-top">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                        <span class="font-extrabold text-slate-900 text-sm">@group.Key</span>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-6">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        @foreach (var perm in group.Value)
+                                        {
+                                            bool isInherited = Model.UserInheritedRolePermissionIds.Contains(perm.PermissionId);
+                                            bool isCustomGranted = Model.UserGrantedCustomPermissionIds.Contains(perm.PermissionId);
+                                            bool isCustomDenied = Model.UserDeniedCustomPermissionIds.Contains(perm.PermissionId);
+
+                                            string selectedState = isCustomGranted ? "grant" : (isCustomDenied ? "deny" : "inherit");
+
+                                            <div class="p-3 rounded-xl border border-slate-200 bg-white space-y-2">
+                                                <div class="flex items-start justify-between gap-1">
+                                                    <div>
+                                                        <div class="font-bold text-slate-900 text-xs">@perm.Action</div>
+                                                        <div class="text-[10px] text-blue-600 font-mono">@perm.PermissionCode</div>
+                                                    </div>
+                                                    <span class="text-[10px] px-1.5 py-0.5 rounded font-bold @(isInherited ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-500")">
+                                                        @(isInherited ? "Role có" : "Role không")
+                                                    </span>
+                                                </div>
+
+                                                <!-- 3-State Radio Selector -->
+                                                <div class="flex items-center justify-between text-[11px] font-semibold bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                                                    <label class="flex items-center gap-1 cursor-pointer">
+                                                        <input type="radio" name="perm_state_@perm.PermissionId" value="inherit" @(selectedState == "inherit" ? "checked" : "") data-perm-id="@perm.PermissionId" class="user-perm-radio text-slate-600" />
+                                                        <span>Kế thừa</span>
+                                                    </label>
+                                                    <label class="flex items-center gap-1 cursor-pointer text-emerald-700">
+                                                        <input type="radio" name="perm_state_@perm.PermissionId" value="grant" @(selectedState == "grant" ? "checked" : "") data-perm-id="@perm.PermissionId" class="user-perm-radio text-emerald-600" />
+                                                        <span>Cấp (+)</span>
+                                                    </label>
+                                                    <label class="flex items-center gap-1 cursor-pointer text-rose-700">
+                                                        <input type="radio" name="perm_state_@perm.PermissionId" value="deny" @(selectedState == "deny" ? "checked" : "") data-perm-id="@perm.PermissionId" class="user-perm-radio text-rose-600" />
+                                                        <span>Chặn (-)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal Thêm Tài Khoản Admin Nhỏ Mới -->
+<div id="subAdminModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="text-base font-black text-slate-900">Thêm Admin Nhỏ / Quản Trị Viên Con</h3>
+            <button type="button" onclick="closeCreateSubAdminModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+        </div>
+
+        <form action="/Admin/Permission/CreateSubAdmin" method="post" class="space-y-3.5 text-xs font-semibold">
+            @Html.AntiForgeryToken()
+            <div>
+                <label class="block text-slate-700 mb-1">Họ Và Tên *</label>
+                <input type="text" name="FullName" required placeholder="VD: Nguyễn Văn Nam" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+                <label class="block text-slate-700 mb-1">Tên Đăng Nhập (Username) *</label>
+                <input type="text" name="Username" required placeholder="VD: staff_kho01" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+                <label class="block text-slate-700 mb-1">Mật Khẩu Khởi Tạo *</label>
+                <input type="password" name="Password" required placeholder="Nhập mật khẩu..." class="w-full text-xs border border-slate-300 rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+                <label class="block text-slate-700 mb-1">Email</label>
+                <input type="email" name="Email" placeholder="staff@techstore.vn" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+                <label class="block text-slate-700 mb-1">Gán Vai Trò Khởi Tạo *</label>
+                <select name="RoleId" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 font-bold bg-white">
+                    @foreach (var r in Model.Roles.Where(r => r.NormalizedName != "SUPERADMIN"))
+                    {
+                        <option value="@r.RoleId">@r.RoleName (@r.Description)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeCreateSubAdminModal()" class="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl">Hủy</button>
+                <button type="submit" class="px-5 py-2 text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl font-black shadow-md">Tạo Tài Khoản</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toastNotification" class="fixed bottom-6 right-6 hidden z-50 p-4 rounded-2xl shadow-xl border text-xs flex items-center gap-3 transition-all duration-300">
+    <span id="toastIcon"></span>
+    <span id="toastMessage" class="font-bold"></span>
+</div>
+
+<script>
+    function switchTab(tabName) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tabName);
+        window.location.href = url.toString();
+    }
+
+    function switchRole(roleId) {
+        window.location.href = `/Admin/Permission/Matrix?tab=role&roleId=${roleId}`;
+    }
+
+    function switchSubAdmin(userId) {
+        window.location.href = `/Admin/Permission/Matrix?tab=user&userId=${userId}`;
+    }
+
+    function toggleModulePermissions(moduleName) {
+        const checkboxes = document.querySelectorAll(`input[data-module="${moduleName}"]`);
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+    }
+
+    function toggleSelectAllRole(selectState) {
+        const checkboxes = document.querySelectorAll('input[name="rolePermissionIds"]');
+        checkboxes.forEach(cb => {
+            if (!cb.disabled) cb.checked = selectState;
+        });
+    }
+
+    // 1. Lưu Ma trận Quyền của Vai trò qua AJAX
+    async function saveRoleMatrix() {
+        const btnSave = document.getElementById('btnSaveRoleMatrix');
+        const originalText = btnSave.innerHTML;
+        btnSave.disabled = true;
+        btnSave.innerHTML = `<span>Đang lưu ma trận...</span>`;
+
+        try {
+            const roleId = parseInt(document.getElementById('roleSelector').value);
+            const checkboxes = document.querySelectorAll('input[name="rolePermissionIds"]:checked');
+            const permissionIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            const res = await fetch('/Admin/Permission/SaveMatrix', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({ roleId: roleId, permissionIds: permissionIds })
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                showToast(result.message, 'success');
+            } else {
+                showToast(result.message, 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Lỗi khi gửi yêu cầu lưu ma trận quyền.', 'error');
+        } finally {
+            btnSave.disabled = false;
+            btnSave.innerHTML = originalText;
+        }
+    }
+
+    // 2. Lưu Ma trận Quyền Đặc Cách của Admin Nhỏ qua AJAX
+    async function saveUserMatrix() {
+        const btnSave = document.getElementById('btnSaveUserMatrix');
+        const originalText = btnSave.innerHTML;
+        btnSave.disabled = true;
+        btnSave.innerHTML = `<span>Đang lưu đặc cách...</span>`;
+
+        try {
+            const userId = parseInt(document.getElementById('subAdminSelector').value);
+            const granted = [];
+            const denied = [];
+
+            document.querySelectorAll('.user-perm-radio:checked').forEach(radio => {
+                const permId = parseInt(radio.getAttribute('data-perm-id'));
+                if (radio.value === 'grant') granted.push(permId);
+                else if (radio.value === 'deny') denied.push(permId);
+            });
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            const res = await fetch('/Admin/Permission/SaveUserPermissions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    grantedPermissionIds: granted,
+                    deniedPermissionIds: denied
+                })
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                showToast(result.message, 'success');
+            } else {
+                showToast(result.message, 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Lỗi khi gửi yêu cầu lưu quyền nhân viên.', 'error');
+        } finally {
+            btnSave.disabled = false;
+            btnSave.innerHTML = originalText;
+        }
+    }
+
+    function openCreateSubAdminModal() {
+        document.getElementById('subAdminModal').classList.remove('hidden');
+    }
+
+    function closeCreateSubAdminModal() {
+        document.getElementById('subAdminModal').classList.add('hidden');
+    }
+
+    function showToast(message, type) {
+        const toast = document.getElementById('toastNotification');
+        const msg = document.getElementById('toastMessage');
+        const icon = document.getElementById('toastIcon');
+
+        msg.innerText = message;
+        if (type === 'success') {
+            toast.className = "fixed bottom-6 right-6 z-50 p-4 rounded-2xl shadow-xl border text-xs flex items-center gap-2.5 bg-emerald-50 border-emerald-200 text-emerald-800";
+            icon.innerHTML = `<svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>`;
+        } else {
+            toast.className = "fixed bottom-6 right-6 z-50 p-4 rounded-2xl shadow-xl border text-xs flex items-center gap-2.5 bg-rose-50 border-rose-200 text-rose-800";
+            icon.innerHTML = `<svg class="w-4 h-4 text-rose-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>`;
+        }
+
+        toast.classList.remove('hidden');
+        setTimeout(() => { toast.classList.add('hidden'); }, 4000);
+    }
+</script>

@@ -1,0 +1,98 @@
+﻿@model TechStore.Web.Controllers.LoginViewModel
+@{
+    ViewData["Title"] = "Đăng Nhập Tài Khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="max-w-md mx-auto px-4 py-16">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-6">
+        <!-- Logo & Header -->
+        <div class="text-center space-y-2">
+            <div class="w-12 h-12 mx-auto rounded-2xl bg-bestbuy-blue text-bestbuy-yellow flex items-center justify-center font-black text-2xl shadow-sm">
+                T
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Đăng Nhập TechStore</h1>
+            <p class="text-xs text-slate-500 font-medium">Truy cập để quản lý đơn hàng & đồng bộ giỏ hàng cá nhân</p>
+        </div>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl space-y-1">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <p>&bull; @error.ErrorMessage</p>
+                }
+            </div>
+        }
+
+        <form action="/auth/login@(ViewBag.ReturnUrl != null ? $"?returnUrl={ViewBag.ReturnUrl}" : "")" method="post" class="space-y-4">
+            @Html.AntiForgeryToken()
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tên Đăng Nhập hoặc Email *</label>
+                <input type="text" name="Username" value="@Model?.Username" required 
+                       class="w-full text-sm border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-bestbuy-blue" 
+                       placeholder="admin hoặc email..." />
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Mật Khẩu *</label>
+                    <a href="#" class="text-xs text-blue-600 hover:underline">Quên mật khẩu?</a>
+                </div>
+                <input type="password" name="Password" required 
+                       class="w-full text-sm border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-bestbuy-blue" 
+                       placeholder="Nhập mật khẩu..." />
+            </div>
+
+            <div class="flex items-center justify-between pt-1 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer text-slate-600 font-medium select-none">
+                    <input type="checkbox" name="RememberMe" value="true" class="rounded text-blue-600" />
+                    <span>Duy trì đăng nhập 14 ngày</span>
+                </label>
+            </div>
+
+            <button type="submit" class="w-full py-3.5 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-sm rounded-xl shadow-md transition-all active:scale-95">
+                ĐĂNG NHẬP NGAY
+            </button>
+        </form>
+
+        <!-- Tài khoản mẫu để test nhanh -->
+        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1">
+            <p class="font-bold text-slate-800">Tài khoản mẫu quản trị tối cao:</p>
+            <p>&bull; Username: <strong class="text-blue-600">admin</strong></p>
+            <p>&bull; Password: <strong class="text-slate-900">Admin@123</strong></p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Tự động kích hoạt đồng bộ LocalStorage giỏ hàng lên Database sau khi đăng nhập thành công
+        @if (TempData["TriggerCartSync"] != null)
+        {
+            <text>
+                (async function syncCartOnLogin() {
+                    const localCart = getStoredCart();
+                    if (localCart.length > 0) {
+                        try {
+                            const res = await fetch('/api/cart/sync', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(localCart)
+                            });
+                            const data = await res.json();
+                            if (data.success && data.mergedItems) {
+                                // Cập nhật lại LocalStorage đồng bộ theo danh sách Database trả về
+                                localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(data.mergedItems));
+                                updateCartBadge();
+                            }
+                        } catch (e) {
+                            console.error("Lỗi khi tự động gộp giỏ hàng:", e);
+                        }
+                    }
+                })();
+            </text>
+        }
+    </script>
+}

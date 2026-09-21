@@ -1,0 +1,133 @@
+﻿@model TechStore.Core.Entities.Product
+@{
+    ViewData["Title"] = Model.Name;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var variants = Model.Variants.Where(v => v.IsActive).ToList();
+    var defaultVariant = variants.FirstOrDefault();
+}
+
+<div class="max-w-7xl mx-auto px-4 py-6 space-y-8">
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+        <a href="/" class="hover:text-blue-600">Trang chủ</a>
+        <span>/</span>
+        <a href="/category/@Model.Category.Slug" class="hover:text-blue-600">@Model.Category.Name</a>
+        <span>/</span>
+        <span class="text-slate-800 font-bold truncate">@Model.Name</span>
+    </div>
+
+    <!-- Product Main Info Section -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Left: Image Gallery -->
+        <div class="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-100 relative">
+            <img id="mainProductImage" src="@Model.FeaturedImage" alt="@Model.Name" class="max-h-96 w-auto object-contain hover:scale-105 transition-transform duration-300" onerror="this.src='/assets/images/placeholder.png'" />
+            <span class="absolute top-4 left-4 px-3 py-1 text-xs font-black bg-blue-600 text-white rounded-lg shadow-sm">
+                Chính Hãng 100%
+            </span>
+        </div>
+
+        <!-- Right: Configurations & Variant Selection -->
+        <div class="space-y-5 flex flex-col justify-between">
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 text-xs font-bold bg-slate-100 text-slate-700 rounded-md border border-slate-200">
+                        @Model.Brand.Name
+                    </span>
+                    <span class="text-xs text-slate-400">Mã SP: #@Model.ProductId</span>
+                </div>
+
+                <h1 class="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">@Model.Name</h1>
+                <p class="text-xs text-slate-500 leading-relaxed">@Model.ShortDescription</p>
+
+                <!-- Giá bán thay đổi thời gian thực -->
+                <div class="p-4 bg-blue-50/60 rounded-2xl border border-blue-100 flex items-baseline gap-3">
+                    <span id="variantPrice" class="text-3xl font-black text-blue-600">
+                        @((defaultVariant?.SalePrice ?? 0).ToString("N0")) đ
+                    </span>
+                    <span id="variantOriginalPrice" class="text-sm text-slate-400 line-through">
+                        @((defaultVariant?.OriginalPrice ?? 0).ToString("N0")) đ
+                    </span>
+                </div>
+
+                <!-- Danh sách biến thể (Màu sắc, Dung lượng, RAM) -->
+                @if (variants.Any())
+                {
+                    <div class="space-y-2 pt-2">
+                        <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                            Chọn Phiên Bản & Cấu Hình:
+                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            @foreach (var v in variants)
+                            {
+                                <button type="button" 
+                                        onclick="selectVariant(@v.VariantId, '@v.VariantName', @v.SalePrice, @v.OriginalPrice, @v.StockQuantity, '@(string.IsNullOrEmpty(v.ThumbnailImage) ? Model.FeaturedImage : v.ThumbnailImage)')"
+                                        id="variantBtn_@v.VariantId"
+                                        class="variant-btn p-3 text-left border rounded-xl transition-all @(v.VariantId == defaultVariant?.VariantId ? "border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20" : "border-slate-200 hover:border-slate-300 bg-white")">
+                                    <div class="font-bold text-xs text-slate-900">@v.VariantName</div>
+                                    <div class="text-xs font-extrabold text-blue-600 mt-0.5">@v.SalePrice.ToString("N0") đ</div>
+                                    <div class="text-[10px] text-slate-400">SKU: @v.SKU</div>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Trạng thái tồn kho -->
+                <div class="text-xs font-semibold flex items-center gap-1.5 pt-1">
+                    <span>Tình trạng:</span>
+                    <span id="stockStatus" class="text-emerald-600 font-bold">
+                        @(defaultVariant != null && defaultVariant.StockQuantity > 0 ? $"Còn hàng ({defaultVariant.StockQuantity} sản phẩm)" : "Hết hàng")
+                    </span>
+                </div>
+            </div>
+
+            <!-- Nút Mua Ngay & Thêm Giỏ Hàng -->
+            <div class="pt-4 border-t border-slate-100 flex items-center gap-3">
+                <input type="hidden" id="selectedVariantId" value="@(defaultVariant?.VariantId ?? 0)" />
+                <button type="button" onclick="handleAddCurrentToCart(true)" class="flex-1 py-3.5 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-sm rounded-xl shadow-md active:scale-95 transition-all text-center">
+                    MUA NGAY (GIAO TẬN NƠI)
+                </button>
+                <button type="button" onclick="handleAddCurrentToCart(false)" class="px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                    <span>Thêm Vào Giỏ</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chi Tiết Sản Phẩm & Thông Số Kỹ Thuật -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-4">
+        <h3 class="text-lg font-black text-slate-900 pb-3 border-b border-slate-100">Mô Tả Chi Tiết Thiết Bị</h3>
+        <div class="prose max-w-none text-slate-700 text-sm leading-relaxed">
+            @Html.Raw(Model.FullDescription ?? Model.ShortDescription)
+        </div>
+    </div>
+</div>
+
+<script>
+    function selectVariant(id, name, salePrice, origPrice, stock, image) {
+        document.getElementById('selectedVariantId').value = id;
+        document.getElementById('variantPrice').innerText = salePrice.toLocaleString('vi-VN') + ' đ';
+        document.getElementById('variantOriginalPrice').innerText = origPrice.toLocaleString('vi-VN') + ' đ';
+        document.getElementById('stockStatus').innerText = stock > 0 ? `Còn hàng (${stock} sản phẩm)` : 'Hết hàng';
+        if (image) document.getElementById('mainProductImage').src = image;
+
+        document.querySelectorAll('.variant-btn').forEach(btn => {
+            btn.className = 'variant-btn p-3 text-left border rounded-xl transition-all border-slate-200 hover:border-slate-300 bg-white';
+        });
+        const activeBtn = document.getElementById('variantBtn_' + id);
+        if (activeBtn) {
+            activeBtn.className = 'variant-btn p-3 text-left border rounded-xl transition-all border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20';
+        }
+    }
+
+    function handleAddCurrentToCart(redirectToCheckout = false) {
+        const variantId = parseInt(document.getElementById('selectedVariantId').value);
+        if (variantId > 0) {
+            addToCart(variantId, 1, !redirectToCheckout);
+            if (redirectToCheckout) {
+                window.location.href = '/checkout';
+            }
+        }
+    }
+</script>

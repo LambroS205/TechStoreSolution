@@ -1,0 +1,235 @@
+﻿@{
+    ViewData["Title"] = "Thanh Toán Đơn Hàng - TechStore";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-black text-slate-900 mb-6">Thanh Toán Đơn Hàng</h1>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl mb-6">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <form action="/checkout/place-order" method="post" id="checkoutForm" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="CartItemsJson" id="checkoutCartItemsJson" value="[]" />
+
+        <!-- Cột 1 & 2: Thông tin giao hàng & Phương thức thanh toán -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Địa chỉ nhận hàng -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-900 text-sm uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">1</span>
+                    <span>Thông Tin Người Nhận Hàng</span>
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Họ và Tên *</label>
+                        <input type="text" name="CustomerName" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="VD: Nguyễn Văn A" />
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Số Điện Thoại *</label>
+                        <input type="tel" name="CustomerPhone" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="VD: 0909123456" />
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block font-semibold text-slate-700 mb-1">Email nhận hóa đơn điện tử</label>
+                        <input type="email" name="CustomerEmail" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="VD: nguyenvana@gmail.com" />
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tỉnh / Thành Phố *</label>
+                        <input type="text" name="Province" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="VD: TP. Hồ Chí Minh" />
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Quận / Huyện *</label>
+                        <input type="text" name="District" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="VD: Quận 1" />
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Phường / Xã *</label>
+                        <input type="text" name="Ward" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="VD: Phường Bến Nghé" />
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Địa chỉ chi tiết (Số nhà, tên đường) *</label>
+                        <input type="text" name="AddressDetail" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="VD: 123 Đường Lê Lợi" />
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block font-semibold text-slate-700 mb-1">Ghi chú đơn hàng (Tùy chọn)</label>
+                        <textarea name="OrderNotes" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Giao hàng giờ hành chính..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phương thức thanh toán (COD & VietQR) -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-900 text-sm uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">2</span>
+                    <span>Chọn Phương Thức Thanh Toán</span>
+                </h3>
+
+                <div class="space-y-3">
+                    <!-- Phương thức 1: VietQR -->
+                    <label class="flex items-start gap-3 p-4 border rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50/20 transition-all">
+                        <input type="radio" name="PaymentMethod" value="VietQR" checked class="mt-1 text-blue-600" />
+                        <div>
+                            <div class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                <span>Chuyển Khoản Ngân Hàng Tức Thì (VietQR NAPAS 247)</span>
+                                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded">Khuyên Dùng</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                                Quét mã QR thanh toán nhanh qua app của tất cả ngân hàng và ví điện tử. Không cần nhập số tài khoản thủ công.
+                            </p>
+                        </div>
+                    </label>
+
+                    <!-- Phương thức 2: COD -->
+                    <label class="flex items-start gap-3 p-4 border rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50/20 transition-all">
+                        <input type="radio" name="PaymentMethod" value="COD" class="mt-1 text-blue-600" />
+                        <div>
+                            <div class="font-bold text-slate-900 text-sm">Thanh Toán Khi Nhận Hàng (COD)</div>
+                            <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                                Bạn chỉ thanh toán tiền mặt cho nhân viên giao hàng sau khi đã nhận và kiểm tra thiết bị.
+                            </p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột 3: Tóm tắt đơn hàng & Mã giảm giá -->
+        <div class="space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-900 text-sm uppercase tracking-wider pb-2 border-b border-slate-100">
+                    Đơn Hàng Của Bạn
+                </h3>
+
+                <!-- Danh sách mặt hàng render qua JS -->
+                <div id="checkoutItemsList" class="space-y-3 divide-y divide-slate-100 max-h-60 overflow-y-auto">
+                    <!-- JS render -->
+                </div>
+
+                <!-- Nhập Coupon -->
+                <div class="pt-2 border-t border-slate-100 space-y-2">
+                    <label class="block text-xs font-semibold text-slate-700">Mã Giảm Giá (Coupon)</label>
+                    <div class="flex gap-2">
+                        <input type="text" name="CouponCode" id="checkoutCouponInput" class="flex-1 text-xs border border-slate-300 rounded-lg p-2.5 uppercase font-bold" placeholder="Mã giảm giá" />
+                        <button type="button" onclick="applyCheckoutCoupon()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg">Áp dụng</button>
+                    </div>
+                    <div id="checkoutCouponMsg" class="text-[11px] font-medium hidden"></div>
+                </div>
+
+                <!-- Bảng tính tiền -->
+                <div class="pt-3 border-t border-slate-100 space-y-2 text-xs text-slate-600">
+                    <div class="flex justify-between">
+                        <span>Tạm tính:</span>
+                        <strong id="checkoutSubTotal" class="text-slate-900">0 đ</strong>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Phí giao hàng:</span>
+                        <strong class="text-emerald-600">Miễn phí</strong>
+                    </div>
+                    <div id="checkoutDiscountRow" class="flex justify-between text-emerald-600 hidden">
+                        <span>Giảm giá:</span>
+                        <strong id="checkoutDiscountAmount">-0 đ</strong>
+                    </div>
+                    <div class="flex justify-between text-base pt-2 border-t border-slate-200">
+                        <strong class="text-slate-900">Tổng cộng:</strong>
+                        <strong id="checkoutFinalTotal" class="text-blue-600 font-black text-xl">0 đ</strong>
+                    </div>
+                </div>
+
+                <!-- Nút Xác nhận Đặt Hàng -->
+                <button type="submit" class="w-full py-3.5 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-sm rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95">
+                    XÁC NHẬN ĐẶT HÀNG
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    let currentSubTotal = 0;
+    let appliedDiscount = 0;
+
+    async function initCheckoutPage() {
+        const cart = getStoredCart();
+        document.getElementById('checkoutCartItemsJson').value = JSON.stringify(cart);
+
+        if (cart.length === 0) {
+            alert('Giỏ hàng trống! Vui lòng chọn sản phẩm.');
+            window.location.href = '/products';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/cart/details', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cart)
+            });
+            const data = await res.json();
+            currentSubTotal = data.subTotal;
+
+            const list = document.getElementById('checkoutItemsList');
+            let html = '';
+            data.items.forEach(i => {
+                html += `
+                    <div class="pt-2 first:pt-0 flex items-center justify-between gap-2 text-xs">
+                        <div class="truncate">
+                            <p class="font-bold text-slate-800 truncate">${i.productName}</p>
+                            <span class="text-slate-500">${i.variantName} x ${i.quantity}</span>
+                        </div>
+                        <strong class="text-slate-900 shrink-0">${i.lineTotal.toLocaleString('vi-VN')} đ</strong>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+
+            document.getElementById('checkoutSubTotal').innerText = currentSubTotal.toLocaleString('vi-VN') + ' đ';
+            updateTotals();
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function applyCheckoutCoupon() {
+        const code = document.getElementById('checkoutCouponInput').value.trim();
+        const msgEl = document.getElementById('checkoutCouponMsg');
+        if (!code) return;
+
+        try {
+            const res = await fetch('/api/cart/apply-coupon', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ couponCode: code, subTotal: currentSubTotal })
+            });
+            const data = await res.json();
+            msgEl.classList.remove('hidden');
+
+            if (data.success) {
+                appliedDiscount = data.discountAmount;
+                msgEl.className = 'text-[11px] font-bold text-emerald-600';
+                msgEl.innerText = data.message;
+                document.getElementById('checkoutDiscountRow').classList.remove('hidden');
+                document.getElementById('checkoutDiscountAmount').innerText = '-' + appliedDiscount.toLocaleString('vi-VN') + ' đ';
+                updateTotals();
+            } else {
+                appliedDiscount = 0;
+                msgEl.className = 'text-[11px] font-bold text-rose-600';
+                msgEl.innerText = data.message;
+                document.getElementById('checkoutDiscountRow').classList.add('hidden');
+                updateTotals();
+            }
+        } catch {
+            msgEl.innerText = 'Lỗi kết nối kiểm tra mã giảm giá!';
+        }
+    }
+
+    function updateTotals() {
+        const finalTotal = Math.max(currentSubTotal - appliedDiscount, 0);
+        document.getElementById('checkoutFinalTotal').innerText = finalTotal.toLocaleString('vi-VN') + ' đ';
+    }
+
+    document.addEventListener('DOMContentLoaded', initCheckoutPage);
+</script>

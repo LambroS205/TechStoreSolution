@@ -1,0 +1,114 @@
+﻿@model TechStore.Core.Entities.Order
+@{
+    ViewData["Title"] = "Đặt Hàng Thành Công - Mã Đơn " + Model.OrderCode;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    bool isVietQr = Model.PaymentMethod == "VietQR";
+}
+
+<div class="max-w-3xl mx-auto px-4 py-10 space-y-6">
+    <!-- Success Banner -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 text-center space-y-3">
+        <div class="w-16 h-16 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
+        </div>
+        <h1 class="text-2xl font-black text-slate-900">Đặt Hàng Thành Công!</h1>
+        <p class="text-sm text-slate-600">
+            Cảm ơn bạn <strong class="text-slate-900">@Model.CustomerName</strong>. Đơn hàng của bạn đã được ghi nhận vào hệ thống TechStore.
+        </p>
+        <div class="inline-block px-4 py-1.5 bg-slate-100 rounded-xl text-xs font-extrabold text-blue-600 tracking-wider">
+            MÃ ĐƠN HÀNG: @Model.OrderCode
+        </div>
+    </div>
+
+    @if (isVietQr)
+    {
+        <!-- Khối Thanh Toán Chuyển Khoản Tức Thì VietQR Chuẩn NAPAS 247 -->
+        <div class="bg-white rounded-3xl border-2 border-indigo-200 shadow-lg p-6 lg:p-8 space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-slate-100">
+                <div>
+                    <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-black uppercase">Thanh toán VietQR NAPAS 247</span>
+                    <h2 class="text-lg font-black text-slate-900 mt-1">Quét Mã QR Để Thanh Toán Ngay</h2>
+                </div>
+                <!-- Countdown Timer 15 phút -->
+                <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-xl text-xs font-bold">
+                    <span>Đơn hàng giữ trong:</span>
+                    <span id="countdownTimer" class="font-black text-sm text-amber-600">15:00</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <!-- Mã VietQR tự động sinh theo thông tin đơn hàng -->
+                <div class="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                    <img src="@ViewBag.VietQrUrl" alt="VietQR Payment" class="w-64 h-auto object-contain rounded-xl shadow-sm" />
+                    <p class="text-[11px] text-slate-400 mt-2 text-center">Mở ứng dụng Mobile Banking của bất kỳ ngân hàng nào để quét mã QR</p>
+                </div>
+
+                <!-- Thông tin chuyển khoản đối soát chi tiết -->
+                <div class="space-y-3 text-xs">
+                    <div class="p-3 bg-slate-50 rounded-xl space-y-1 border border-slate-200">
+                        <span class="text-slate-500">Ngân hàng thụ hưởng:</span>
+                        <div class="font-extrabold text-slate-900 text-sm">@ViewBag.BankName</div>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-xl space-y-1 border border-slate-200">
+                        <span class="text-slate-500">Số tài khoản nhận:</span>
+                        <div class="font-extrabold text-blue-600 text-base">@ViewBag.AccountNo</div>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-xl space-y-1 border border-slate-200">
+                        <span class="text-slate-500">Chủ tài khoản:</span>
+                        <div class="font-extrabold text-slate-900 uppercase">@ViewBag.AccountName</div>
+                    </div>
+                    <div class="p-3 bg-blue-50 rounded-xl space-y-1 border border-blue-200">
+                        <span class="text-slate-500">Số tiền cần chuyển chính xác:</span>
+                        <div class="font-black text-blue-700 text-lg">@Model.TotalAmount.ToString("N0") đ</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-xl space-y-1 border border-amber-200">
+                        <span class="text-amber-700 font-semibold">Nội dung chuyển khoản (bắt buộc):</span>
+                        <div class="font-black text-slate-900 text-sm">@Model.OrderCode</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Khối Đơn Hàng COD -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 space-y-3">
+            <h3 class="font-bold text-slate-900 text-base">Phương thức thanh toán: COD (Tiền mặt khi nhận hàng)</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Đơn hàng của bạn sẽ được nhân viên TechStore xác nhận và gửi đi trong vòng 24 giờ. Vui lòng chuẩn bị sẵn số tiền <strong class="text-blue-600">@Model.TotalAmount.ToString("N0") đ</strong> khi bưu tá đến giao.
+            </p>
+        </div>
+    }
+
+    <!-- Nút Tiếp Tục Mua Sắm -->
+    <div class="text-center pt-2">
+        <a href="/products" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all">
+            <span>Tiếp Tục Mua Sắm Tại TechStore</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+        </a>
+    </div>
+</div>
+
+<script>
+    // Xóa giỏ hàng LocalStorage sau khi đặt hàng thành công
+    localStorage.removeItem('techstore_cart');
+    localStorage.removeItem('techstore_coupon');
+    if (typeof updateCartBadge === 'function') updateCartBadge();
+
+    // Bộ đếm ngược 15 phút cho thanh toán VietQR
+    let timeLeft = 15 * 60;
+    const timerEl = document.getElementById('countdownTimer');
+    if (timerEl) {
+        const interval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                timerEl.innerText = 'Hết hạn';
+                return;
+            }
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerEl.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+</script>

@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="TechStore.Core/TechStore.Core.csproj" />
+  <Project Path="TechStore.Infrastructure/TechStore.Infrastructure.csproj" />
+  <Project Path="TechStore.Web/TechStore.Web.csproj" />
+</Solution>

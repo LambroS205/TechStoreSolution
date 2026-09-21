@@ -1,0 +1,159 @@
+﻿@model List<TechStore.Core.Entities.Order>
+@{
+    ViewData["Title"] = "Quản Lý Đơn Hàng & Duyệt VietQR";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    int pendingVietQr = ViewBag.PendingVietQrCount ?? 0;
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Top Statistics Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng Đơn Hàng</p>
+                <h3 class="text-2xl font-bold text-slate-900 mt-1">@Model.Count</h3>
+            </div>
+            <span class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            </span>
+        </div>
+
+        <!-- Card Chờ duyệt VietQR -->
+        <div class="bg-white p-5 rounded-xl border border-amber-200 shadow-sm flex items-center justify-between bg-amber-50/20">
+            <div>
+                <p class="text-xs font-semibold text-amber-700 uppercase tracking-wider">Chờ Duyệt VietQR</p>
+                <h3 class="text-2xl font-bold text-amber-600 mt-1">@pendingVietQr</h3>
+            </div>
+            <span class="p-3 bg-amber-100 text-amber-600 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Đang Xử Lý / Giao</p>
+                <h3 class="text-2xl font-bold text-slate-900 mt-1">@Model.Count(o => o.OrderStatus == "Processing" || o.OrderStatus == "Shipping")</h3>
+            </div>
+            <span class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" /></svg>
+            </span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hoàn Tất</p>
+                <h3 class="text-2xl font-bold text-emerald-600 mt-1">@Model.Count(o => o.OrderStatus == "Delivered")</h3>
+            </div>
+            <span class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </span>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                <tr>
+                    <th class="py-3.5 px-4">Mã Đơn Hàng</th>
+                    <th class="py-3.5 px-4">Khách Hàng</th>
+                    <th class="py-3.5 px-4">Tổng Tiền</th>
+                    <th class="py-3.5 px-4">Thanh Toán</th>
+                    <th class="py-3.5 px-4">Tiến Độ</th>
+                    <th class="py-3.5 px-4 text-center">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                @foreach (var o in Model)
+                {
+                    bool isPendingVietQr = o.PaymentMethod == "VietQR" && o.PaymentStatus == "Pending";
+                    <tr class="hover:bg-slate-50/70 transition-colors @(isPendingVietQr ? "bg-amber-50/30" : "")">
+                        <td class="py-4 px-4 font-bold text-slate-900">
+                            <div>@o.OrderCode</div>
+                            <span class="text-[11px] font-normal text-slate-400">@o.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="font-semibold text-slate-800">@o.CustomerName</div>
+                            <div class="text-xs text-slate-500">@o.CustomerPhone</div>
+                        </td>
+                        <td class="py-4 px-4 font-bold text-blue-600 text-base">
+                            @o.TotalAmount.ToString("N0") đ
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="inline-block px-2.5 py-1 text-xs font-bold rounded-lg @(o.PaymentMethod == "VietQR" ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-slate-100 text-slate-700")">
+                                @o.PaymentMethod
+                            </span>
+                            <div class="text-[11px] font-medium mt-1 @(o.PaymentStatus == "Paid" ? "text-emerald-600" : "text-amber-600")">
+                                @(o.PaymentStatus == "Paid" ? "Đã thanh toán" : "Chưa thanh toán")
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <form action="/Admin/Order/UpdateStatus" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="orderId" value="@o.OrderId" />
+                                <select name="newStatus" onchange="this.form.submit()" class="text-xs font-semibold bg-white border border-slate-300 rounded-lg p-1.5 focus:ring-blue-500">
+                                    <option value="Pending" selected="@(o.OrderStatus == "Pending")">Chờ xác nhận</option>
+                                    <option value="Processing" selected="@(o.OrderStatus == "Processing")">Đang đóng gói</option>
+                                    <option value="Shipping" selected="@(o.OrderStatus == "Shipping")">Đang giao hàng</option>
+                                    <option value="Delivered" selected="@(o.OrderStatus == "Delivered")">Đã giao thành công</option>
+                                    <option value="Cancelled" selected="@(o.OrderStatus == "Cancelled")">Đã hủy</option>
+                                </select>
+                            </form>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            @if (isPendingVietQr)
+                            {
+                                <button onclick="openVietQrConfirmModal(@o.OrderId, '@o.OrderCode', '@o.TotalAmount.ToString("N0")')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-sm">
+                                    Duyệt VietQR
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="text-xs text-slate-400 font-medium">Hoàn tất</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Xác Nhận Chuyển Khoản VietQR -->
+<div id="vietQrModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="text-base font-bold text-slate-900">Xác Nhận Tiền Về VietQR</h3>
+            <button onclick="closeVietQrModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+        </div>
+        <form action="/Admin/Order/VerifyVietQrPayment" method="post" class="space-y-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="vqrOrderId" name="orderId" value="" />
+            <div class="p-3.5 bg-slate-50 rounded-xl space-y-1.5 text-xs text-slate-600">
+                <div class="flex justify-between"><span>Đơn hàng:</span> <strong id="vqrOrderCode" class="text-slate-900 font-bold"></strong></div>
+                <div class="flex justify-between"><span>Số tiền cần khớp:</span> <strong id="vqrAmount" class="text-blue-600 font-bold"></strong></div>
+                <div class="flex justify-between"><span>Ngân hàng nhận:</span> <strong class="text-slate-900">MBBank - 0909123456</strong></div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Mã Giao Dịch Ngân Hàng (Tùy chọn)</label>
+                <input type="text" name="transactionRef" class="w-full text-sm border border-slate-300 rounded-lg p-2.5 focus:ring-blue-500" placeholder="VD: FT2609210088" />
+            </div>
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onclick="closeVietQrModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Đóng</button>
+                <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm">Xác Nhận Tiền Về</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openVietQrConfirmModal(id, code, amount) {
+        document.getElementById('vqrOrderId').value = id;
+        document.getElementById('vqrOrderCode').innerText = code;
+        document.getElementById('vqrAmount').innerText = amount + ' đ';
+        document.getElementById('vietQrModal').classList.remove('hidden');
+    }
+    function closeVietQrModal() {
+        document.getElementById('vietQrModal').classList.add('hidden');
+    }
+</script>

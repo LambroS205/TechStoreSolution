@@ -1,0 +1,166 @@
+﻿@model TechStore.Web.Controllers.ProductListViewModel
+@{
+    ViewData["Title"] = Model.CurrentCategory != null ? Model.CurrentCategory.Name : "Tất Cả Sản Phẩm Công Nghệ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Breadcrumbs -->
+    <div class="flex items-center gap-2 text-xs text-slate-500 mb-4 font-medium">
+        <a href="/" class="hover:text-blue-600">Trang chủ</a>
+        <span>/</span>
+        <a href="/products" class="hover:text-blue-600">Sản phẩm</a>
+        @if (Model.CurrentCategory != null)
+        {
+            <span>/</span>
+            <span class="text-slate-800 font-bold">@Model.CurrentCategory.Name</span>
+        }
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- 1. Left Sidebar: Bộ Lọc Thông Số Kỹ Thuật (Best Buy Filters) -->
+        <aside class="w-full lg:w-64 shrink-0 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-6 self-start">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-black text-slate-900 text-sm uppercase tracking-wider">Bộ Lọc Tìm Kiếm</h3>
+                <a href="/products" class="text-xs text-blue-600 font-bold hover:underline">Xóa lọc</a>
+            </div>
+
+            <!-- Lọc Danh mục -->
+            <div>
+                <h4 class="font-bold text-slate-800 text-xs mb-2">Danh Mục</h4>
+                <div class="space-y-1.5 text-xs">
+                    @foreach (var c in Model.Categories)
+                    {
+                        <a href="/category/@c.Slug" class="block px-2 py-1.5 rounded-lg @(Model.CurrentCategory?.CategoryId == c.CategoryId ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50")">
+                            @c.Name
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <!-- Lọc Thương hiệu -->
+            <div>
+                <h4 class="font-bold text-slate-800 text-xs mb-2">Thương Hiệu</h4>
+                <div class="space-y-1 text-xs">
+                    @foreach (var b in Model.Brands)
+                    {
+                        <label class="flex items-center gap-2 cursor-pointer py-1 text-slate-700 select-none">
+                            <input type="radio" name="brand_filter" value="@b.Slug" onchange="applyFilter('brand', this.value)" @(Model.SelectedBrand == b.Slug ? "checked" : "") class="text-blue-600 rounded" />
+                            <span>@b.Name</span>
+                        </label>
+                    }
+                </div>
+            </div>
+
+            <!-- Lọc Bộ Nhớ Lưu Trữ (Storage: 256GB, 512GB, 1TB) -->
+            <div>
+                <h4 class="font-bold text-slate-800 text-xs mb-2">Dung Lượng Bộ Nhớ</h4>
+                <div class="grid grid-cols-2 gap-1.5 text-xs">
+                    @foreach (var s in new[] { "256GB", "512GB", "1TB", "2TB" })
+                    {
+                        <button type="button" onclick="applyFilter('storage', '@s')" class="p-1.5 border rounded-lg font-semibold @(Model.SelectedStorage == s ? "bg-blue-600 text-white border-blue-600" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100")">
+                            @s
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Lọc Dung Lượng RAM (16GB, 24GB, 32GB) -->
+            <div>
+                <h4 class="font-bold text-slate-800 text-xs mb-2">Dung Lượng RAM</h4>
+                <div class="grid grid-cols-2 gap-1.5 text-xs">
+                    @foreach (var r in new[] { "16GB", "24GB", "32GB", "48GB" })
+                    {
+                        <button type="button" onclick="applyFilter('ram', '@r')" class="p-1.5 border rounded-lg font-semibold @(Model.SelectedRam == r ? "bg-blue-600 text-white border-blue-600" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100")">
+                            @r
+                        </button>
+                    }
+                </div>
+            </div>
+        </aside>
+
+        <!-- 2. Right Main: Grid Danh Sách Sản Phẩm -->
+        <div class="flex-1 space-y-4">
+            <!-- Header List & Sort Bar -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
+                <div>
+                    <h1 class="font-black text-slate-900 text-lg">
+                        @(Model.CurrentCategory?.Name ?? "Tất Cả Sản Phẩm")
+                    </h1>
+                    <p class="text-xs text-slate-500 font-medium">Hiển thị @Model.TotalItems sản phẩm phù hợp</p>
+                </div>
+
+                <!-- Dropdown Sắp xếp -->
+                <div class="flex items-center gap-2 text-xs">
+                    <span class="text-slate-500 font-semibold">Sắp xếp:</span>
+                    <select onchange="applyFilter('sort', this.value)" class="border border-slate-300 rounded-lg p-2 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="default" selected="@(Model.SelectedSort == "default")">Nổi bật nhất</option>
+                        <option value="price_asc" selected="@(Model.SelectedSort == "price_asc")">Giá tăng dần</option>
+                        <option value="price_desc" selected="@(Model.SelectedSort == "price_desc")">Giá giảm dần</option>
+                        <option value="newest" selected="@(Model.SelectedSort == "newest")">Mới ra mắt</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            @if (!Model.Products.Any())
+            {
+                <div class="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-3">
+                    <p class="text-slate-600 font-semibold text-sm">Không tìm thấy sản phẩm nào khớp với bộ lọc!</p>
+                    <a href="/products" class="inline-block px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg">Đặt lại bộ lọc</a>
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach (var p in Model.Products)
+                    {
+                        var minVariant = p.Variants.OrderBy(v => v.SalePrice).FirstOrDefault();
+                        decimal salePrice = minVariant?.SalePrice ?? 0;
+                        decimal origPrice = minVariant?.OriginalPrice ?? 0;
+
+                        <div class="bg-white rounded-2xl border border-slate-200 hover:border-blue-400 hover:shadow-lg transition-all p-4 flex flex-col justify-between group">
+                            <div>
+                                <div class="h-44 bg-slate-50 rounded-xl overflow-hidden flex items-center justify-center p-3 mb-3 relative">
+                                    <img src="@p.FeaturedImage" alt="@p.Name" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" onerror="this.src='/assets/images/placeholder.png'" />
+                                    <span class="absolute top-2 right-2 px-2 py-0.5 text-[10px] font-bold bg-white/90 text-slate-700 rounded-md border border-slate-200">
+                                        @p.Brand.Name
+                                    </span>
+                                </div>
+                                <a href="/product/@p.Slug" class="font-bold text-slate-900 text-sm line-clamp-2 hover:text-blue-600 leading-snug">
+                                    @p.Name
+                                </a>
+                                <p class="text-[11px] text-slate-500 mt-1 line-clamp-1 font-medium">@p.ShortDescription</p>
+                            </div>
+
+                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                <div>
+                                    <div class="text-base font-black text-blue-600">@salePrice.ToString("N0") đ</div>
+                                    @if (origPrice > salePrice)
+                                    {
+                                        <div class="text-xs text-slate-400 line-through">@origPrice.ToString("N0") đ</div>
+                                    }
+                                </div>
+                                @if (minVariant != null)
+                                {
+                                    <button onclick="addToCart(@minVariant.VariantId, 1, true)" class="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm active:scale-95">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    function applyFilter(key, value) {
+        const url = new URL(window.location.href);
+        url.searchParams.set(key, value);
+        url.searchParams.set('page', 1);
+        window.location.href = url.toString();
+    }
+</script>
