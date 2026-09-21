@@ -1,0 +1,251 @@
+@model List<TechStore.Core.Entities.Brand>
+@{
+    ViewData["Title"] = "Quản Lý Thương Hiệu";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string? search = ViewBag.Search as string;
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">&times;</button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">&times;</button>
+        </div>
+    }
+
+    <!-- Header Actions & Search -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-lg font-bold text-slate-900">Thương Hiệu Sản Phẩm</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Quản lý các đối tác sản xuất, logo thương hiệu và thiết bị phân phối</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <form method="get" action="/Admin/Brand" class="relative">
+                <input type="text" name="search" value="@search" placeholder="Tìm thương hiệu..." class="text-xs bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-2 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none w-48" />
+                <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </form>
+
+            <button type="button" onclick="openAddBrandModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <span>Thêm Thương Hiệu</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Brands Table -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                    <tr>
+                        <th class="py-3.5 px-4">Thương Hiệu</th>
+                        <th class="py-3.5 px-4">Đường Dẫn Slug</th>
+                        <th class="py-3.5 px-4">Mô Tả</th>
+                        <th class="py-3.5 px-4 text-center">Sản Phẩm</th>
+                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3.5 px-4 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-slate-400 text-xs">
+                                Không tìm thấy thương hiệu nào.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var brand in Model)
+                        {
+                            <tr class="hover:bg-slate-50/70 transition-colors">
+                                <td class="py-3.5 px-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-10 rounded-xl border border-slate-100 bg-slate-50 p-1 flex items-center justify-center shrink-0">
+                                            @if (!string.IsNullOrWhiteSpace(brand.LogoUrl))
+                                            {
+                                                <img src="@brand.LogoUrl" alt="@brand.Name" class="max-w-full max-h-full object-contain" onerror="this.src='/assets/images/placeholder.png'" />
+                                            }
+                                            else
+                                            {
+                                                <span class="font-bold text-xs text-blue-600">@brand.Name.Substring(0, 1).ToUpper()</span>
+                                            }
+                                        </div>
+                                        <div>
+                                            <span class="font-bold text-slate-900 text-xs block">@brand.Name</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-4 font-mono text-xs text-slate-500">
+                                    /@brand.Slug
+                                </td>
+                                <td class="py-3.5 px-4 text-xs text-slate-500 max-w-xs truncate">
+                                    @(string.IsNullOrWhiteSpace(brand.Description) ? "-" : brand.Description)
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <a href="/Admin/Product?brandId=@brand.BrandId" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors" title="Xem danh sách sản phẩm">
+                                        @brand.Products.Count SP
+                                    </a>
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <button type="button" onclick="toggleBrandActive(@brand.BrandId, this)" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none @(brand.IsActive ? "bg-blue-600" : "bg-slate-200")" role="switch">
+                                        <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out @(brand.IsActive ? "translate-x-4" : "translate-x-0")"></span>
+                                    </button>
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <button type="button" onclick="openEditBrandModal(@brand.BrandId, '@Html.Raw(brand.Name.Replace("'", "\\'"))', '@brand.Slug', '@Html.Raw((brand.Description ?? "").Replace("'", "\\'"))', '@brand.LogoUrl', @(brand.IsActive ? "true" : "false"))" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Chỉnh sửa">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        </button>
+                                        <form method="post" action="/Admin/Brand/Delete" onsubmit="return confirm('Bạn có chắc muốn xóa thương hiệu \'@brand.Name\'?');" class="inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@brand.BrandId" />
+                                            <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Xóa">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm / Sửa Thương Hiệu -->
+<div id="brandModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 id="brandModalTitle" class="text-base font-bold text-slate-900">Thêm Thương Hiệu Mới</h3>
+            <button type="button" onclick="closeBrandModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+        </div>
+
+        <form method="post" action="/Admin/Brand/Save" enctype="multipart/form-data" class="space-y-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="modalBrandId" name="BrandId" value="0" />
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tên Thương Hiệu <span class="text-rose-500">*</span></label>
+                <input type="text" id="modalBrandName" name="Name" required class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: Apple, Samsung, Sony..." oninput="autoGenBrandSlug(this.value)" />
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Đường Dẫn Slug (Tự động)</label>
+                <div class="flex items-center">
+                    <span class="px-2.5 py-2 bg-slate-100 border border-r-0 border-slate-300 rounded-l-xl text-xs text-slate-500">/brand/</span>
+                    <input type="text" id="modalBrandSlug" name="Slug" class="flex-1 text-xs font-mono border border-slate-300 rounded-r-xl p-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="apple" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Logo Thương Hiệu</label>
+                <input type="file" name="logoFile" accept="image/*" class="w-full text-xs file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 cursor-pointer" />
+                <input type="text" id="modalLogoUrl" name="LogoUrl" class="w-full text-xs border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-blue-500 outline-none mt-1.5" placeholder="Hoặc đường dẫn ảnh..." />
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Mô Tả Thương Hiệu</label>
+                <textarea id="modalBrandDescription" name="Description" rows="3" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Giới thiệu xuất xứ, triết lý sản phẩm..."></textarea>
+            </div>
+
+            <label class="flex items-center gap-2 cursor-pointer pt-1">
+                <input type="checkbox" id="modalBrandIsActive" name="IsActive" value="true" checked class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                <span class="text-xs font-bold text-slate-800">Kích Hoạt Kinh Doanh</span>
+            </label>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeBrandModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                    Hủy
+                </button>
+                <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-xs">
+                    Lưu Thương Hiệu
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function autoGenBrandSlug(name) {
+        if (!name) return;
+        const slug = name.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[đĐ]/g, 'd')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/[\s-]+/g, '-');
+        document.getElementById('modalBrandSlug').value = slug;
+    }
+
+    function openAddBrandModal() {
+        document.getElementById('brandModalTitle').innerText = 'Thêm Thương Hiệu Mới';
+        document.getElementById('modalBrandId').value = 0;
+        document.getElementById('modalBrandName').value = '';
+        document.getElementById('modalBrandSlug').value = '';
+        document.getElementById('modalLogoUrl').value = '';
+        document.getElementById('modalBrandDescription').value = '';
+        document.getElementById('modalBrandIsActive').checked = true;
+        document.getElementById('brandModal').classList.remove('hidden');
+    }
+
+    function openEditBrandModal(id, name, slug, desc, logo, isActive) {
+        document.getElementById('brandModalTitle').innerText = 'Chỉnh Sửa Thương Hiệu: ' + name;
+        document.getElementById('modalBrandId').value = id;
+        document.getElementById('modalBrandName').value = name;
+        document.getElementById('modalBrandSlug').value = slug;
+        document.getElementById('modalLogoUrl').value = logo || '';
+        document.getElementById('modalBrandDescription').value = desc || '';
+        document.getElementById('modalBrandIsActive').checked = isActive;
+        document.getElementById('brandModal').classList.remove('hidden');
+    }
+
+    function closeBrandModal() {
+        document.getElementById('brandModal').classList.add('hidden');
+    }
+
+    async function toggleBrandActive(id, btn) {
+        try {
+            const res = await fetch(`/Admin/Brand/ToggleStatus/${id}`, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                const circle = btn.querySelector('span');
+                if (data.isActive) {
+                    btn.classList.remove('bg-slate-200');
+                    btn.classList.add('bg-blue-600');
+                    circle.classList.remove('translate-x-0');
+                    circle.classList.add('translate-x-4');
+                } else {
+                    btn.classList.remove('bg-blue-600');
+                    btn.classList.add('bg-slate-200');
+                    circle.classList.remove('translate-x-4');
+                    circle.classList.add('translate-x-0');
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+</script>

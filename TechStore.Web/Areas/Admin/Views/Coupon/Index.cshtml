@@ -1,0 +1,330 @@
+@model List<TechStore.Core.Entities.Coupon>
+@{
+    ViewData["Title"] = "Quản Lý Mã Khuyến Mãi (Coupon)";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string? search = ViewBag.Search as string;
+    string status = ViewBag.Status as string ?? "All";
+    var now = DateTime.UtcNow;
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">&times;</button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">&times;</button>
+        </div>
+    }
+
+    <!-- Header Actions & Filters -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-lg font-bold text-slate-900">Mã Khuyến Mãi & Voucher</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Tạo các chương trình khuyến mãi, giảm giá trực tiếp hoặc theo phần trăm đơn hàng</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                <a href="/Admin/Coupon?status=All&search=@search" class="px-3 py-1.5 rounded-lg @(status == "All" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800") transition-all">Tất cả</a>
+                <a href="/Admin/Coupon?status=Active&search=@search" class="px-3 py-1.5 rounded-lg @(status == "Active" ? "bg-white text-emerald-600 shadow-xs" : "text-slate-500 hover:text-slate-800") transition-all">Đang chạy</a>
+                <a href="/Admin/Coupon?status=Expired&search=@search" class="px-3 py-1.5 rounded-lg @(status == "Expired" ? "bg-white text-rose-600 shadow-xs" : "text-slate-500 hover:text-slate-800") transition-all">Hết hạn/lượt</a>
+            </div>
+
+            <button type="button" onclick="openAddCouponModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <span>Tạo Mã Mới</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Coupons Table -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                    <tr>
+                        <th class="py-3.5 px-4">Mã Voucher</th>
+                        <th class="py-3.5 px-4">Loại & Mức Giảm</th>
+                        <th class="py-3.5 px-4">Đơn Tối Thiểu</th>
+                        <th class="py-3.5 px-4 text-center">Đã Dùng / Giới Hạn</th>
+                        <th class="py-3.5 px-4">Thời Gian Hiệu Lực</th>
+                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3.5 px-4 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-slate-400 text-xs">
+                                Chưa có mã giảm giá nào phù hợp.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var c in Model)
+                        {
+                            bool isExpired = c.EndDate < now;
+                            bool isOutOfLimit = c.UsageCount >= c.UsageLimit;
+                            bool isCurrentlyActive = c.IsActive && !isExpired && !isOutOfLimit && c.StartDate <= now;
+
+                            <tr class="hover:bg-slate-50/70 transition-colors">
+                                <td class="py-3.5 px-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-mono font-bold text-xs border border-blue-200 tracking-wider">
+                                            @c.Code
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-1 max-w-xs truncate">@c.Description</p>
+                                </td>
+
+                                <td class="py-3.5 px-4 text-xs font-bold">
+                                    @if (c.DiscountType == "Percentage")
+                                    {
+                                        <span class="text-indigo-600">Giảm @c.DiscountValue.ToString("0.##")%</span>
+                                        @if (c.MaxDiscountAmount.HasValue && c.MaxDiscountAmount.Value > 0)
+                                        {
+                                            <div class="text-[11px] font-normal text-slate-400">Tối đa: @c.MaxDiscountAmount.Value.ToString("N0") đ</div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-emerald-600">Giảm @c.DiscountValue.ToString("N0") đ</span>
+                                    }
+                                </td>
+
+                                <td class="py-3.5 px-4 text-xs text-slate-700 font-medium">
+                                    @(c.MinOrderAmount > 0 ? c.MinOrderAmount.ToString("N0") + " đ" : "Không giới hạn")
+                                </td>
+
+                                <td class="py-3.5 px-4 text-center">
+                                    <div class="inline-block">
+                                        <span class="text-xs font-bold @(isOutOfLimit ? "text-rose-600" : "text-slate-800")">
+                                            @c.UsageCount / @c.UsageLimit
+                                        </span>
+                                        <div class="w-16 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                            <div class="h-full @(isOutOfLimit ? "bg-rose-500" : "bg-blue-600")" style="width: @(Math.Min(100, (double)c.UsageCount / (c.UsageLimit > 0 ? c.UsageLimit : 1) * 100))%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td class="py-3.5 px-4 text-xs text-slate-500">
+                                    <div>Từ: <strong class="text-slate-700">@c.StartDate.ToString("dd/MM/yyyy")</strong></div>
+                                    <div>Đến: <strong class="@(isExpired ? "text-rose-600" : "text-slate-700")">@c.EndDate.ToString("dd/MM/yyyy")</strong></div>
+                                </td>
+
+                                <td class="py-3.5 px-4 text-center">
+                                    @if (!c.IsActive)
+                                    {
+                                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded bg-slate-100 text-slate-500">Vô hiệu</span>
+                                    }
+                                    else if (isExpired)
+                                    {
+                                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded bg-rose-100 text-rose-700">Hết hạn</span>
+                                    }
+                                    else if (isOutOfLimit)
+                                    {
+                                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-700">Hết lượt</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-700">Đang chạy</span>
+                                    }
+                                </td>
+
+                                <td class="py-3.5 px-4 text-center">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <button type="button" onclick="openEditCouponModal(@c.CouponId, '@c.Code', '@Html.Raw(c.Description.Replace("'", "\\'"))', '@c.DiscountType', @c.DiscountValue, @c.MinOrderAmount, @(c.MaxDiscountAmount ?? 0), @c.UsageLimit, '@c.StartDate.ToString("yyyy-MM-ddTHH:mm")', '@c.EndDate.ToString("yyyy-MM-ddTHH:mm")', @(c.IsActive ? "true" : "false"))" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Chỉnh sửa">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        </button>
+                                        <button type="button" onclick="toggleCouponActive(@c.CouponId, this)" class="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors" title="Bật/Tắt kích hoạt">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                                        </button>
+                                        <form method="post" action="/Admin/Coupon/Delete" onsubmit="return confirm('Bạn có chắc muốn xóa mã giảm giá \'@c.Code\'?');" class="inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@c.CouponId" />
+                                            <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Xóa">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm / Sửa Coupon -->
+<div id="couponModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 id="couponModalTitle" class="text-base font-bold text-slate-900">Tạo Mã Giảm Giá Mới</h3>
+            <button type="button" onclick="closeCouponModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+        </div>
+
+        <form method="post" action="/Admin/Coupon/Save" class="space-y-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="modalCouponId" name="CouponId" value="0" />
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Mã Voucher <span class="text-rose-500">*</span></label>
+                    <input type="text" id="modalCode" name="Code" required class="w-full text-xs font-mono font-bold border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="VD: TECHSALE10" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Loại Giảm Giá <span class="text-rose-500">*</span></label>
+                    <select id="modalDiscountType" name="DiscountType" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" onchange="onDiscountTypeChange(this.value)">
+                        <option value="FixedAmount">Số tiền cố định (VNĐ)</option>
+                        <option value="Percentage">Phần trăm (%)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Mô Tả Khuyến Mãi</label>
+                <input type="text" id="modalDescription" name="Description" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: Giảm 500k cho đơn hàng từ 10 triệu" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label id="lblDiscountValue" class="block text-xs font-semibold text-slate-700 mb-1">Giá Trị Giảm <span class="text-rose-500">*</span></label>
+                    <input type="number" id="modalDiscountValue" name="DiscountValue" required min="1" step="any" class="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div id="divMaxDiscount" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Giảm Tối Đa (VNĐ)</label>
+                    <input type="number" id="modalMaxDiscountAmount" name="MaxDiscountAmount" min="0" step="1000" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: 500000" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Đơn Tối Thiểu (VNĐ)</label>
+                    <input type="number" id="modalMinOrderAmount" name="MinOrderAmount" min="0" value="0" step="1000" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Giới Hạn Lượt Dùng</label>
+                    <input type="number" id="modalUsageLimit" name="UsageLimit" min="1" value="100" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Ngày Bắt Đầu <span class="text-rose-500">*</span></label>
+                    <input type="datetime-local" id="modalStartDate" name="StartDate" required class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Ngày Kết Thúc <span class="text-rose-500">*</span></label>
+                    <input type="datetime-local" id="modalEndDate" name="EndDate" required class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+            </div>
+
+            <label class="flex items-center gap-2 cursor-pointer pt-1">
+                <input type="checkbox" id="modalCouponIsActive" name="IsActive" value="true" checked class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                <span class="text-xs font-bold text-slate-800">Kích Hoạt Chương Trình Khuyến Mãi</span>
+            </label>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeCouponModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                    Hủy
+                </button>
+                <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-xs">
+                    Lưu Mã Khuyến Mãi
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function onDiscountTypeChange(type) {
+        const divMax = document.getElementById('divMaxDiscount');
+        const lbl = document.getElementById('lblDiscountValue');
+        if (type === 'Percentage') {
+            divMax.classList.remove('hidden');
+            lbl.innerText = 'Phần Trăm Giảm (%) *';
+        } else {
+            divMax.classList.add('hidden');
+            lbl.innerText = 'Số Tiền Giảm (VNĐ) *';
+        }
+    }
+
+    function openAddCouponModal() {
+        document.getElementById('couponModalTitle').innerText = 'Tạo Mã Giảm Giá Mới';
+        document.getElementById('modalCouponId').value = 0;
+        document.getElementById('modalCode').value = '';
+        document.getElementById('modalDescription').value = '';
+        document.getElementById('modalDiscountType').value = 'FixedAmount';
+        document.getElementById('modalDiscountValue').value = 50000;
+        document.getElementById('modalMinOrderAmount').value = 0;
+        document.getElementById('modalMaxDiscountAmount').value = '';
+        document.getElementById('modalUsageLimit').value = 100;
+
+        const now = new Date();
+        const startStr = now.toISOString().slice(0, 16);
+        const future = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const endStr = future.toISOString().slice(0, 16);
+
+        document.getElementById('modalStartDate').value = startStr;
+        document.getElementById('modalEndDate').value = endStr;
+        document.getElementById('modalCouponIsActive').checked = true;
+
+        onDiscountTypeChange('FixedAmount');
+        document.getElementById('couponModal').classList.remove('hidden');
+    }
+
+    function openEditCouponModal(id, code, desc, type, val, minAmt, maxDisc, limit, start, end, isActive) {
+        document.getElementById('couponModalTitle').innerText = 'Chỉnh Sửa Mã: ' + code;
+        document.getElementById('modalCouponId').value = id;
+        document.getElementById('modalCode').value = code;
+        document.getElementById('modalDescription').value = desc;
+        document.getElementById('modalDiscountType').value = type;
+        document.getElementById('modalDiscountValue').value = val;
+        document.getElementById('modalMinOrderAmount').value = minAmt;
+        document.getElementById('modalMaxDiscountAmount').value = maxDisc > 0 ? maxDisc : '';
+        document.getElementById('modalUsageLimit').value = limit;
+        document.getElementById('modalStartDate').value = start;
+        document.getElementById('modalEndDate').value = end;
+        document.getElementById('modalCouponIsActive').checked = isActive;
+
+        onDiscountTypeChange(type);
+        document.getElementById('couponModal').classList.remove('hidden');
+    }
+
+    function closeCouponModal() {
+        document.getElementById('couponModal').classList.add('hidden');
+    }
+
+    async function toggleCouponActive(id, btn) {
+        try {
+            const res = await fetch(`/Admin/Coupon/ToggleStatus/${id}`, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                location.reload();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+</script>

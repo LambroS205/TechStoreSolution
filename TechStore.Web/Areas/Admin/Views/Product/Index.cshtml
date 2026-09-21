@@ -1,0 +1,280 @@
+@model List<TechStore.Core.Entities.Product>
+@{
+    ViewData["Title"] = "Quản Lý Sản Phẩm";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    var categories = ViewBag.Categories as List<TechStore.Core.Entities.Category> ?? new();
+    var brands = ViewBag.Brands as List<TechStore.Core.Entities.Brand> ?? new();
+    string? search = ViewBag.Search as string;
+    int? categoryId = ViewBag.CategoryId as int?;
+    int? brandId = ViewBag.BrandId as int?;
+    bool? isActive = ViewBag.IsActive as bool?;
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int totalItems = ViewBag.TotalItems ?? 0;
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">&times;</button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">&times;</button>
+        </div>
+    }
+
+    <!-- Header Actions & Search Filter -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-lg font-bold text-slate-900">Danh Sách Sản Phẩm</h1>
+                <p class="text-xs text-slate-400 mt-0.5">Tìm thấy tổng cộng <strong class="text-slate-800">@totalItems</strong> sản phẩm</p>
+            </div>
+            <a href="/Admin/Product/Create" class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <span>Thêm Sản Phẩm Mới</span>
+            </a>
+        </div>
+
+        <!-- Filter Form -->
+        <form method="get" action="/Admin/Product" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-2 border-t border-slate-100">
+            <!-- Search -->
+            <div class="lg:col-span-2">
+                <div class="relative">
+                    <input type="text" name="search" value="@search" placeholder="Tìm theo tên, slug, mã SKU..." class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                </div>
+            </div>
+
+            <!-- Category -->
+            <div>
+                <select name="categoryId" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    <option value="">-- Tất cả danh mục --</option>
+                    @foreach (var c in categories)
+                    {
+                        <option value="@c.CategoryId" selected="@(categoryId == c.CategoryId)">@c.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Brand -->
+            <div>
+                <select name="brandId" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    <option value="">-- Tất cả thương hiệu --</option>
+                    @foreach (var b in brands)
+                    {
+                        <option value="@b.BrandId" selected="@(brandId == b.BrandId)">@b.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2">
+                <button type="submit" class="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl transition-colors">
+                    Lọc
+                </button>
+                <a href="/Admin/Product" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition-colors">
+                    Xóa lọc
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Products Table -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                    <tr>
+                        <th class="py-3.5 px-4">Sản Phẩm</th>
+                        <th class="py-3.5 px-4">Danh Mục / Hãng</th>
+                        <th class="py-3.5 px-4">Biến Thể & Giá</th>
+                        <th class="py-3.5 px-4 text-center">Tổng Tồn Kho</th>
+                        <th class="py-3.5 px-4 text-center">Nổi Bật</th>
+                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3.5 px-4 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-slate-400 text-xs">
+                                Không tìm thấy sản phẩm nào phù hợp với điều kiện tìm kiếm.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var p in Model)
+                        {
+                            var totalStock = p.Variants.Sum(v => v.StockQuantity);
+                            var minPrice = p.Variants.Count > 0 ? p.Variants.Min(v => v.SalePrice) : 0;
+                            var maxPrice = p.Variants.Count > 0 ? p.Variants.Max(v => v.SalePrice) : 0;
+
+                            <tr class="hover:bg-slate-50/70 transition-colors">
+                                <!-- Image & Title -->
+                                <td class="py-3.5 px-4">
+                                    <div class="flex items-center gap-3">
+                                        <img src="@p.FeaturedImage" alt="@p.Name" class="w-12 h-12 object-contain rounded-xl border border-slate-100 bg-slate-50 p-1 shrink-0" onerror="this.src='/assets/images/placeholder.png'" />
+                                        <div class="min-w-0 max-w-xs">
+                                            <a href="/Admin/Product/Edit/@p.ProductId" class="font-bold text-slate-900 text-xs hover:text-blue-600 line-clamp-2 transition-colors">
+                                                @p.Name
+                                            </a>
+                                            <span class="text-[11px] text-slate-400 font-mono">/@p.Slug</span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Category & Brand -->
+                                <td class="py-3.5 px-4 text-xs">
+                                    <span class="inline-block px-2 py-0.5 font-medium bg-slate-100 text-slate-700 rounded-md">
+                                        @(p.Category?.Name ?? "N/A")
+                                    </span>
+                                    <div class="text-[11px] text-slate-400 mt-1">Hãng: <strong class="text-slate-600">@(p.Brand?.Name ?? "N/A")</strong></div>
+                                </td>
+
+                                <!-- Variants & Price -->
+                                <td class="py-3.5 px-4 text-xs">
+                                    <div class="font-bold text-blue-600">
+                                        @if (minPrice == maxPrice || minPrice == 0)
+                                        {
+                                            <span>@minPrice.ToString("N0") đ</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@minPrice.ToString("N0") - @maxPrice.ToString("N0") đ</span>
+                                        }
+                                    </div>
+                                    <span class="text-[11px] text-slate-400 font-medium">@p.Variants.Count biến thể</span>
+                                </td>
+
+                                <!-- Total Stock -->
+                                <td class="py-3.5 px-4 text-center">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold @(totalStock == 0 ? "bg-rose-100 text-rose-700" : totalStock <= 20 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800")">
+                                        @totalStock
+                                    </span>
+                                </td>
+
+                                <!-- Featured Toggle -->
+                                <td class="py-3.5 px-4 text-center">
+                                    <button type="button" onclick="toggleFeatured(@p.ProductId, this)" class="p-1 rounded-lg hover:bg-slate-100 transition-colors" title="Bật/tắt sản phẩm nổi bật">
+                                        <svg class="w-5 h-5 @(p.IsFeatured ? "text-amber-400 fill-amber-400" : "text-slate-300 fill-transparent") transition-colors" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                        </svg>
+                                    </button>
+                                </td>
+
+                                <!-- Active Toggle -->
+                                <td class="py-3.5 px-4 text-center">
+                                    <button type="button" onclick="toggleActive(@p.ProductId, this)" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none @(p.IsActive ? "bg-blue-600" : "bg-slate-200")" role="switch">
+                                        <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out @(p.IsActive ? "translate-x-4" : "translate-x-0")"></span>
+                                    </button>
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="py-3.5 px-4 text-center">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <a href="/Admin/Product/Edit/@p.ProductId" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Chỉnh sửa sản phẩm & biến thể">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        </a>
+                                        <a href="/product/@p.Slug" target="_blank" class="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors" title="Xem trên cửa hàng">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                        </a>
+                                        <form method="post" action="/Admin/Product/Delete" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sản phẩm \'@p.Name\' không?');" class="inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@p.ProductId" />
+                                            <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Xóa">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (totalPages > 1)
+        {
+            <div class="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <div>Trang <strong>@currentPage</strong> / <strong>@totalPages</strong></div>
+                <div class="flex items-center gap-1">
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <a href="/Admin/Product?search=@search&categoryId=@categoryId&brandId=@brandId&page=@i" class="px-3 py-1.5 rounded-lg font-semibold @(i == currentPage ? "bg-blue-600 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700") transition-colors">
+                            @i
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    async function toggleActive(id, btn) {
+        try {
+            const res = await fetch(`/Admin/Product/ToggleActive/${id}`, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                const circle = btn.querySelector('span');
+                if (data.isActive) {
+                    btn.classList.remove('bg-slate-200');
+                    btn.classList.add('bg-blue-600');
+                    circle.classList.remove('translate-x-0');
+                    circle.classList.add('translate-x-4');
+                } else {
+                    btn.classList.remove('bg-blue-600');
+                    btn.classList.add('bg-slate-200');
+                    circle.classList.remove('translate-x-4');
+                    circle.classList.add('translate-x-0');
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function toggleFeatured(id, btn) {
+        try {
+            const res = await fetch(`/Admin/Product/ToggleFeatured/${id}`, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                const svg = btn.querySelector('svg');
+                if (data.isFeatured) {
+                    svg.classList.remove('text-slate-300', 'fill-transparent');
+                    svg.classList.add('text-amber-400', 'fill-amber-400');
+                } else {
+                    svg.classList.remove('text-amber-400', 'fill-amber-400');
+                    svg.classList.add('text-slate-300', 'fill-transparent');
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+</script>

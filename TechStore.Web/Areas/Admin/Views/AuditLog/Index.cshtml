@@ -1,0 +1,145 @@
+@model TechStore.Web.Areas.Admin.Controllers.AuditLogIndexViewModel
+@{
+    ViewData["Title"] = "Nhật Ký Kiểm Toán Hệ Thống (Audit Log)";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between pb-4 border-b border-slate-200 gap-4">
+        <div class="flex items-center gap-3">
+            <span class="p-2.5 bg-blue-50 text-blue-600 rounded-xl shadow-sm border border-blue-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </span>
+            <div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Nhật Ký Kiểm Toán (Audit Logs)</h1>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">Theo dõi lịch sử và các thao tác nhạy cảm của quản trị viên theo thời gian thực.</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <span class="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold border border-slate-200">
+                Tổng số bản ghi: <strong class="text-blue-600">@Model.TotalCount</strong>
+            </span>
+        </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <form method="get" class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div class="flex items-center gap-2">
+                <label for="moduleFilter" class="text-xs font-bold text-slate-600 uppercase tracking-wider">Phân Hệ:</label>
+                <select name="module" id="moduleFilter" onchange="this.form.submit()" class="bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold rounded-xl p-2 outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.CurrentModule) || Model.CurrentModule == "All")">Tất Cả Phân Hệ</option>
+                    @foreach (var m in Model.AvailableModules)
+                    {
+                        <option value="@m" selected="@(Model.CurrentModule == m)">@m</option>
+                    }
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2 flex-1 sm:w-72">
+                <input type="text" name="search" value="@Model.SearchQuery" placeholder="Tìm thao tác, đối tượng, IP..." class="w-full text-xs border border-slate-300 rounded-xl p-2 outline-none focus:ring-2 focus:ring-blue-500" />
+                <button type="submit" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm">
+                    Tìm
+                </button>
+                @if (!string.IsNullOrEmpty(Model.SearchQuery) || (Model.CurrentModule != "All" && !string.IsNullOrEmpty(Model.CurrentModule)))
+                {
+                    <a href="/Admin/AuditLog" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all">
+                        Reset
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 uppercase font-extrabold text-[11px] tracking-wider border-b border-slate-200">
+                <tr>
+                    <th class="py-3.5 px-4 w-12">#ID</th>
+                    <th class="py-3.5 px-4 w-44">Thời Gian</th>
+                    <th class="py-3.5 px-4 w-36">Người Thực Hiện</th>
+                    <th class="py-3.5 px-4 w-28">Phân Hệ</th>
+                    <th class="py-3.5 px-4 w-48">Hành Động / Mã</th>
+                    <th class="py-3.5 px-4">Chi Tiết / Payload</th>
+                    <th class="py-3.5 px-4 w-28 text-right">Địa Chỉ IP</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                @if (Model.Logs.Any())
+                {
+                    foreach (var log in Model.Logs)
+                    {
+                        <tr class="hover:bg-slate-50/75 transition-colors">
+                            <td class="py-3 px-4 font-mono font-bold text-slate-400">#@log.LogId</td>
+                            <td class="py-3 px-4 whitespace-nowrap">
+                                <span class="font-bold text-slate-800">@log.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-[10px]">
+                                        @(log.User?.Username?.Substring(0, 1).ToUpper() ?? "H")
+                                    </span>
+                                    <span class="font-semibold text-slate-900">@(log.User?.Username ?? "Hệ thống")</span>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                                    @log.Module
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="font-bold text-slate-900 block">@log.Action</span>
+                                @if (!string.IsNullOrEmpty(log.RecordId))
+                                {
+                                    <span class="text-[10px] text-slate-400 font-mono">Đối tượng: @log.RecordId</span>
+                                }
+                            </td>
+                            <td class="py-3 px-4 text-[11px]">
+                                @if (!string.IsNullOrEmpty(log.NewValues))
+                                {
+                                    <div class="max-w-md truncate font-mono bg-slate-50 p-1.5 rounded border border-slate-200 text-slate-700" title="@log.NewValues">
+                                        @log.NewValues
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-slate-400 italic">—</span>
+                                }
+                            </td>
+                            <td class="py-3 px-4 text-right font-mono text-[10px] text-slate-400 whitespace-nowrap">
+                                @(string.IsNullOrEmpty(log.IpAddress) ? "127.0.0.1" : log.IpAddress)
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-400 text-sm">
+                            Không tìm thấy bản ghi nhật ký kiểm toán nào.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="flex items-center justify-center gap-2 pt-2">
+            @for (int p = 1; p <= Model.TotalPages; p++)
+            {
+                <a href="/Admin/AuditLog?page=@p&module=@Model.CurrentModule&search=@Model.SearchQuery"
+                   class="px-3 py-1.5 text-xs font-bold rounded-lg border transition-all @(p == Model.CurrentPage ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50")">
+                    @p
+                </a>
+            }
+        </div>
+    }
+</div>

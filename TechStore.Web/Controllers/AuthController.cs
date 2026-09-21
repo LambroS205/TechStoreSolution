@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -95,9 +95,9 @@ public class AuthController : Controller
                     await _context.SaveChangesAsync();
                 }
             }
-            catch (FormatException)
+            catch (Exception)
             {
-                // Nếu chuỗi băm cũ trong DB bị sai chuẩn Base64, không làm sập ứng dụng
+                // Nếu chuỗi băm cũ trong DB bị sai chuẩn Base64 hoặc hỏng, không làm sập ứng dụng
                 isPasswordValid = false;
             }
         }
@@ -163,6 +163,136 @@ public class AuthController : Controller
     }
 
     [HttpGet]
+    [Route("auth/register")]
+    public IActionResult Register(string? returnUrl)
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        ViewBag.ReturnUrl = returnUrl;
+        return View(new RegisterViewModel());
+    }
+
+    [HttpPost]
+    [Route("auth/register")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Register(RegisterViewModel model, string? returnUrl)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Username) || model.Username.Trim().Length < 3)
+        {
+            ModelState.AddModelError("Username", "Tên đăng nhập phải có ít nhất 3 ký tự!");
+        }
+
+        if (string.IsNullOrWhiteSpace(model.FullName))
+        {
+            ModelState.AddModelError("FullName", "Họ và tên không được để trống!");
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Email) || !model.Email.Contains('@'))
+        {
+            ModelState.AddModelError("Email", "Địa chỉ email không hợp lệ!");
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Password) || model.Password.Length < 6)
+        {
+            ModelState.AddModelError("Password", "Mật khẩu phải có độ dài tối thiểu 6 ký tự!");
+        }
+
+        if (model.Password != model.ConfirmPassword)
+        {
+            ModelState.AddModelError("ConfirmPassword", "Mật khẩu xác nhận không khớp với mật khẩu!");
+        }
+
+        string normalizedUsername = (model.Username ?? "").Trim().ToUpperInvariant();
+        string normalizedEmail = (model.Email ?? "").Trim().ToUpperInvariant();
+
+        if (await _context.Users.AnyAsync(u => u.NormalizedUsername == normalizedUsername))
+        {
+            ModelState.AddModelError("Username", $"Tên đăng nhập '{model.Username}' đã có người sử dụng!");
+        }
+
+        if (await _context.Users.AnyAsync(u => u.NormalizedEmail == normalizedEmail))
+        {
+            ModelState.AddModelError("Email", $"Địa chỉ email '{model.Email}' đã được đăng ký tài khoản khác!");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var newUser = new User
+        {
+            Username = (model.Username ?? "").Trim(),
+            NormalizedUsername = normalizedUsername,
+            FullName = (model.FullName ?? "").Trim(),
+            Email = (model.Email ?? "").Trim(),
+            NormalizedEmail = normalizedEmail,
+            PhoneNumber = model.PhoneNumber?.Trim(),
+            EmailConfirmed = true,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        newUser.PasswordHash = _passwordHasher.HashPassword(newUser, model.Password);
+
+        await _context.Users.AddAsync(newUser);
+        await _context.SaveChangesAsync();
+
+        // Gán vai trò Customer
+        var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.NormalizedName == "CUSTOMER")
+                           ?? await _context.Roles.FirstOrDefaultAsync(r => r.RoleId == 5);
+
+        if (customerRole != null)
+        {
+            await _context.UserRoles.AddAsync(new UserRole
+            {
+                UserId = newUser.UserId,
+                RoleId = customerRole.RoleId
+            });
+            await _context.SaveChangesAsync();
+        }
+
+        await _auditLogService.LogAsync("UserRegister", "Security", newUser.UserId.ToString(), null, new { Username = newUser.Username, Email = newUser.Email });
+
+        // Tự động đăng nhập người dùng ngay sau khi đăng ký
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, newUser.UserId.ToString()),
+            new(ClaimTypes.Name, newUser.Username),
+            new("FullName", newUser.FullName),
+            new(ClaimTypes.Email, newUser.Email),
+            new(ClaimTypes.Role, customerRole?.RoleName ?? "Customer")
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties
+        {
+            IsPersistent = true,
+            ExpiresUtc = DateTime.UtcNow.AddDays(14)
+        });
+
+        TempData["TriggerCartSync"] = true;
+        TempData["SuccessMessage"] = $"Đăng ký tài khoản thành công! Chào mừng {newUser.FullName} đến với TechStore.";
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpGet]
     [Route("auth/logout")]
     public async Task<IActionResult> Logout()
     {
@@ -176,4 +306,14 @@ public class LoginViewModel
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public bool RememberMe { get; set; } = false;
+}
+
+public class RegisterViewModel
+{
+    public string Username { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public string Password { get; set; } = string.Empty;
+    public string ConfirmPassword { get; set; } = string.Empty;
 }

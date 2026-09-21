@@ -1,0 +1,106 @@
+@{
+    ViewData["Title"] = "Về TechStore - Siêu Thị Công Nghệ Chuẩn Best Buy";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="space-y-16 py-8">
+    <!-- Hero Section -->
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="bg-gradient-to-r from-bestbuy-blue to-bestbuy-darkblue rounded-3xl p-8 sm:p-16 text-white text-center space-y-6 shadow-xl relative overflow-hidden">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-bestbuy-yellow text-xs font-bold uppercase tracking-wider">
+                <span class="w-2 h-2 rounded-full bg-bestbuy-yellow animate-ping"></span>
+                Khởi nguồn từ đam mê công nghệ
+            </div>
+            <h1 class="text-3xl sm:text-5xl font-black tracking-tight leading-tight max-w-3xl mx-auto">
+                Kiến Tạo Trải Nghiệm Mua Sắm Thiết Bị Công Nghệ Đẳng Cấp
+            </h1>
+            <p class="text-slate-200 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+                TechStore được xây dựng theo mô hình chuỗi bán lẻ công nghệ hiện đại tiêu chuẩn Best Buy, mang đến các dòng sản phẩm iPhone, MacBook, Samsung Galaxy, Laptop cao cấp và phụ kiện chính hãng 100%.
+            </p>
+            <div class="pt-4 flex flex-wrap items-center justify-center gap-4">
+                <a href="/products" class="px-6 py-3.5 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-sm rounded-xl shadow-lg transition-all">
+                    Khám Phá Cửa Hàng
+                </a>
+                <a href="/contact" class="px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white font-bold text-sm rounded-xl backdrop-blur-sm transition-colors border border-white/20">
+                    Liên Hệ Hợp Tác
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Values Section -->
+    <div class="max-w-7xl mx-auto px-4 space-y-8">
+        <div class="text-center space-y-2">
+            <span class="text-xs font-bold text-blue-600 uppercase tracking-widest">Giá Trị Cốt Lõi</span>
+            <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Vì Sao Hơn 50.000 Khách Hàng Chọn TechStore?</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Value 1 -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow space-y-3">
+                <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                </div>
+                <h3 class="font-bold text-slate-900 text-base">100% Chính Hãng</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Tất cả thiết bị đều là hàng mới nguyên seal, có hóa đơn VAT điện tử và đầy đủ tem chứng nhận từ nhà phân phối ủy quyền tại Việt Nam.
+                </p>
+            </div>
+
+            <!-- Value 2 -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow space-y-3">
+                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </div>
+                <h3 class="font-bold text-slate-900 text-base">1 Đổi 1 Trong 30 Ngày</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Nếu phát sinh bất kỳ lỗi phần cứng từ nhà sản xuất, quý khách sẽ được đổi ngay thiết bị mới nguyên hộp 100% không mất phí.
+                </p>
+            </div>
+
+            <!-- Value 3 -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow space-y-3">
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                </div>
+                <h3 class="font-bold text-slate-900 text-base">Giao Nhanh Thần Tốc</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Hỗ trợ giao hàng hỏa tốc trong 2 giờ nội thành Hà Nội & TP. Hồ Chí Minh. Miễn phí vận chuyển toàn quốc cho đơn từ 1.000.000đ.
+                </p>
+            </div>
+
+            <!-- Value 4 -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow space-y-3">
+                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                </div>
+                <h3 class="font-bold text-slate-900 text-base">Thanh Toán VietQR 24/7</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Tích hợp cổng thanh toán mã động chuẩn VietQR NAPAS 247, tự động duyệt đơn tức thì và hỗ trợ thanh toán khi nhận hàng (COD).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="bg-white py-12 border-y border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+            <div>
+                <h3 class="text-4xl font-black text-blue-600">50K+</h3>
+                <p class="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">Khách Hàng Hài Lòng</p>
+            </div>
+            <div>
+                <h3 class="text-4xl font-black text-slate-900">100%</h3>
+                <p class="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">Chính Hãng Bảo Hành</p>
+            </div>
+            <div>
+                <h3 class="text-4xl font-black text-slate-900">30 Ngày</h3>
+                <p class="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">Đổi Mới Miễn Phí</p>
+            </div>
+            <div>
+                <h3 class="text-4xl font-black text-emerald-600">24/7</h3>
+                <p class="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">Hỗ Trợ Khách Hàng</p>
+            </div>
+        </div>
+    </div>
+</div>

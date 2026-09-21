@@ -77,11 +77,41 @@ public class HomeController : Controller
     [Route("/about")]
     public IActionResult About() => View();
 
+    [HttpGet]
     [Route("/contact")]
-    public IActionResult Contact() => View();
+    public IActionResult Contact() => View(new ContactFormViewModel());
+
+    [HttpPost]
+    [Route("/contact")]
+    [ValidateAntiForgeryToken]
+    public IActionResult Contact(ContactFormViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        if (string.IsNullOrWhiteSpace(model.FullName) || string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Message))
+        {
+            ModelState.AddModelError(string.Empty, "Vui lòng điền đầy đủ các thông tin bắt buộc!");
+            return View(model);
+        }
+
+        TempData["SuccessMessage"] = "Cảm ơn bạn đã gửi liên hệ! Đội ngũ Chăm sóc khách hàng TechStore sẽ phản hồi bạn trong vòng 24 giờ qua Email hoặc Số điện thoại.";
+        return RedirectToAction(nameof(Contact));
+    }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error() => View();
+}
+
+public class ContactFormViewModel
+{
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public string Subject { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
 }
 
 public class HomeViewModel

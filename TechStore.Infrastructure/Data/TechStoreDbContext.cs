@@ -251,6 +251,11 @@ public class TechStoreDbContext : DbContext
             entity.Property(e => e.DiscountAmount).HasPrecision(18, 2);
             entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
             entity.HasIndex(e => e.OrderCode).IsUnique();
+
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<OrderDetail>(entity =>
@@ -282,6 +287,11 @@ public class TechStoreDbContext : DbContext
                   .WithMany(o => o.PaymentTransactions)
                   .HasForeignKey(e => e.OrderId)
                   .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.ConfirmedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.ConfirmedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         // 15. Cấu hình bảng Carts & CartItems

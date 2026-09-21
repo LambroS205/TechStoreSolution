@@ -1,0 +1,238 @@
+@model TechStore.Core.Entities.Order
+@{
+    ViewData["Title"] = $"Đơn Hàng {Model.OrderCode}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    int progressStep = Model.OrderStatus switch
+    {
+        "Pending" => 1,
+        "Processing" => 2,
+        "Shipping" => 3,
+        "Delivered" => 4,
+        "Cancelled" => 0,
+        _ => 1
+    };
+
+    string vietQrUrl = $"https://api.vietqr.io/image/970422-0909123456-compact2.png?amount={(long)Model.TotalAmount}&addInfo={Model.OrderCode}&accountName=CONG%20TY%20TECHSTORE";
+}
+
+<div class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="/" class="hover:text-blue-600">Trang chủ</a>
+                <span>/</span>
+                <a href="/account/orders" class="hover:text-blue-600">Đơn hàng</a>
+                <span>/</span>
+                <span class="text-slate-600">@Model.OrderCode</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 flex items-center gap-3">
+                <span>Đơn Hàng: @Model.OrderCode</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">Đặt lúc: @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="window.print()" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                <span>In Hóa Đơn</span>
+            </button>
+            <a href="/account/orders" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors">
+                &larr; Danh sách
+            </a>
+        </div>
+    </div>
+
+    <!-- Progress Stepper -->
+    @if (Model.OrderStatus != "Cancelled")
+    {
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+            <div class="grid grid-cols-4 relative">
+                <div class="absolute top-4 left-8 right-8 h-1 bg-slate-100 -z-0">
+                    <div class="h-full bg-blue-600 transition-all" style="width: @(progressStep == 1 ? "12%" : progressStep == 2 ? "45%" : progressStep == 3 ? "78%" : "100%")"></div>
+                </div>
+
+                <!-- Step 1 -->
+                <div class="text-center relative z-10 space-y-1">
+                    <div class="w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(progressStep >= 1 ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-400")">
+                        ✓
+                    </div>
+                    <p class="text-xs font-bold @(progressStep >= 1 ? "text-slate-900" : "text-slate-400")">Đặt Hàng</p>
+                    <p class="text-[10px] text-slate-400">Đã tiếp nhận</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="text-center relative z-10 space-y-1">
+                    <div class="w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(progressStep >= 2 ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-400")">
+                        @(progressStep >= 2 ? "✓" : "2")
+                    </div>
+                    <p class="text-xs font-bold @(progressStep >= 2 ? "text-slate-900" : "text-slate-400")">Đóng Gói</p>
+                    <p class="text-[10px] text-slate-400">Kiểm tra thiết bị</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="text-center relative z-10 space-y-1">
+                    <div class="w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(progressStep >= 3 ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-400")">
+                        @(progressStep >= 3 ? "✓" : "3")
+                    </div>
+                    <p class="text-xs font-bold @(progressStep >= 3 ? "text-slate-900" : "text-slate-400")">Đang Giao</p>
+                    <p class="text-[10px] text-slate-400">Bàn giao vận chuyển</p>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="text-center relative z-10 space-y-1">
+                    <div class="w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(progressStep >= 4 ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-100 text-slate-400")">
+                        @(progressStep >= 4 ? "✓" : "4")
+                    </div>
+                    <p class="text-xs font-bold @(progressStep >= 4 ? "text-emerald-700" : "text-slate-400")">Giao Thành Công</p>
+                    <p class="text-[10px] text-slate-400">Hoàn tất nhận hàng</p>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+            <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            <span>Đơn hàng này đã bị hủy bỏ!</span>
+        </div>
+    }
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Products Table (2/3) -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Items Card -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div class="p-4 border-b border-slate-100 font-bold text-sm text-slate-900">
+                    Danh Sách Sản Phẩm (@Model.OrderDetails.Count mặt hàng)
+                </div>
+                <div class="divide-y divide-slate-100">
+                    @foreach (var item in Model.OrderDetails)
+                    {
+                        var img = item.Variant?.ThumbnailImage ?? item.Variant?.Product?.FeaturedImage ?? "/assets/images/placeholder.png";
+                        <div class="p-4 flex items-center justify-between gap-4 text-xs hover:bg-slate-50 transition-colors">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <img src="@img" class="w-14 h-14 object-contain rounded-xl border border-slate-100 bg-slate-50 p-1 shrink-0" onerror="this.src='/assets/images/placeholder.png'" />
+                                <div class="min-w-0">
+                                    <h4 class="font-bold text-slate-900 text-sm truncate">@item.ProductName</h4>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">@item.VariantName</p>
+                                    <p class="text-[10px] text-slate-400 font-mono">SKU: @item.SKU</p>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="font-bold text-blue-600 text-sm">
+                                    @((item.UnitPrice * item.Quantity).ToString("N0")) đ
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">
+                                    @item.UnitPrice.ToString("N0") đ &times; @item.Quantity
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- VietQR Payment Card if Pending -->
+            @if (Model.PaymentMethod == "VietQR" && Model.PaymentStatus == "Pending" && Model.OrderStatus != "Cancelled")
+            {
+                <div class="bg-indigo-50/50 border border-indigo-200 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-2 text-indigo-900 font-bold text-sm">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                        <span>Thanh Toán Chuyển Khoản Tức Thì VietQR</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                        <div class="bg-white p-3 rounded-xl border border-indigo-100 flex items-center justify-center">
+                            <img src="@vietQrUrl" alt="VietQR" class="max-h-56 object-contain" />
+                        </div>
+                        <div class="text-xs text-slate-700 space-y-2">
+                            <p>Ngân hàng nhận: <strong class="text-slate-900">MBBank</strong></p>
+                            <p>Số tài khoản: <strong class="text-slate-900 font-mono font-bold">0909123456</strong></p>
+                            <p>Chủ tài khoản: <strong class="text-slate-900">CONG TY TECHSTORE</strong></p>
+                            <p>Số tiền: <strong class="text-blue-600 font-black text-sm">@Model.TotalAmount.ToString("N0") đ</strong></p>
+                            <p>Nội dung chuyển khoản: <strong class="text-indigo-700 font-mono font-bold bg-indigo-100 px-2 py-0.5 rounded">@Model.OrderCode</strong></p>
+                            <p class="text-[11px] text-slate-400 italic pt-1">
+                                Hệ thống sẽ tự động duyệt đơn hàng ngay khi nhận được tín hiệu tiền vào tài khoản.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Order Summary & Shipping Address (1/3) -->
+        <div class="space-y-6">
+            <!-- Shipping Info -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-3 text-xs text-slate-600">
+                <h3 class="font-bold text-sm text-slate-900 border-b border-slate-100 pb-2">Thông Tin Giao Hàng</h3>
+                <div>
+                    <span class="text-slate-400 block text-[11px]">Người nhận:</span>
+                    <strong class="text-slate-800 text-sm">@Model.CustomerName</strong>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[11px]">Số điện thoại:</span>
+                    <strong class="text-slate-800">@Model.CustomerPhone</strong>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.CustomerEmail))
+                {
+                    <div>
+                        <span class="text-slate-400 block text-[11px]">Email:</span>
+                        <strong class="text-slate-800">@Model.CustomerEmail</strong>
+                    </div>
+                }
+                <div>
+                    <span class="text-slate-400 block text-[11px]">Địa chỉ giao hàng:</span>
+                    <p class="text-slate-800 mt-0.5 leading-relaxed">@Model.ShippingAddress</p>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.OrderNotes))
+                {
+                    <div>
+                        <span class="text-slate-400 block text-[11px]">Ghi chú:</span>
+                        <p class="text-slate-700 italic">@Model.OrderNotes</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Price Breakdown -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-3 text-xs">
+                <h3 class="font-bold text-sm text-slate-900 border-b border-slate-100 pb-2">Chi Tiết Thanh Toán</h3>
+
+                <div class="flex justify-between text-slate-600">
+                    <span>Tạm tính:</span>
+                    <span class="font-bold text-slate-800">@Model.SubTotal.ToString("N0") đ</span>
+                </div>
+
+                @if (Model.DiscountAmount > 0)
+                {
+                    <div class="flex justify-between text-emerald-600">
+                        <span>Giảm giá Voucher:</span>
+                        <span class="font-bold">-@Model.DiscountAmount.ToString("N0") đ</span>
+                    </div>
+                }
+
+                <div class="flex justify-between text-slate-600">
+                    <span>Phí vận chuyển:</span>
+                    <span class="font-bold text-emerald-600">Miễn phí</span>
+                </div>
+
+                <div class="flex justify-between text-slate-600">
+                    <span>Phương thức:</span>
+                    <span class="font-bold text-slate-800">@(Model.PaymentMethod == "VietQR" ? "Chuyển khoản VietQR" : "Thanh toán khi nhận hàng (COD)")</span>
+                </div>
+
+                <div class="flex justify-between text-slate-600">
+                    <span>Trạng thái:</span>
+                    <span class="font-bold @(Model.PaymentStatus == "Paid" ? "text-emerald-600" : "text-amber-600")">
+                        @(Model.PaymentStatus == "Paid" ? "Đã thanh toán" : "Chưa thanh toán")
+                    </span>
+                </div>
+
+                <div class="pt-3 border-t border-slate-200 flex justify-between items-center text-sm">
+                    <strong class="text-slate-900">Tổng thanh toán:</strong>
+                    <strong class="text-base font-black text-blue-600">@Model.TotalAmount.ToString("N0") đ</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

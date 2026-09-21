@@ -1,0 +1,240 @@
+@model TechStore.Web.Areas.Admin.Controllers.ProductCreateViewModel
+@{
+    ViewData["Title"] = "Thêm Mới Sản Phẩm";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var categories = ViewBag.CategoryList as SelectList;
+    var brands = ViewBag.BrandList as SelectList;
+}
+
+<div class="p-6 max-w-6xl mx-auto space-y-6">
+    <!-- Breadcrumb & Title -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="/Admin/Product" class="hover:text-blue-600">Sản phẩm</a>
+                <span>/</span>
+                <span class="text-slate-600">Thêm mới</span>
+            </div>
+            <h1 class="text-xl font-bold text-slate-900">Thêm Mới Sản Phẩm</h1>
+        </div>
+        <a href="/Admin/Product" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+            &larr; Quay lại danh sách
+        </a>
+    </div>
+
+    <!-- Form -->
+    <form method="post" action="/Admin/Product/Create" enctype="multipart/form-data" class="space-y-6">
+        @Html.AntiForgeryToken()
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column: Thông tin cơ bản & Mô tả (2/3) -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Thông tin chung -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Thông Tin Chung</h3>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tên Sản Phẩm <span class="text-rose-500">*</span></label>
+                        <input type="text" id="productName" name="Name" value="@Model.Name" required class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="VD: iPhone 16 Pro Max 256GB" oninput="autoGenerateSlug(this.value)" />
+                        <span asp-validation-for="Name" class="text-xs text-rose-500 mt-1 block"></span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Đường Dẫn Slug (SEO) <span class="text-slate-400 font-normal">(Tự động tạo)</span></label>
+                        <div class="flex items-center">
+                            <span class="px-3 py-2.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-xl text-xs text-slate-500">/product/</span>
+                            <input type="text" id="productSlug" name="Slug" value="@Model.Slug" class="flex-1 text-sm border border-slate-300 rounded-r-xl px-3.5 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none font-mono text-xs" placeholder="iphone-16-pro-max-256gb" />
+                        </div>
+                        <span asp-validation-for="Slug" class="text-xs text-rose-500 mt-1 block"></span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Danh Mục <span class="text-rose-500">*</span></label>
+                            <select name="CategoryId" asp-items="categories" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">-- Chọn danh mục --</option>
+                            </select>
+                            <span asp-validation-for="CategoryId" class="text-xs text-rose-500 mt-1 block"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Thương Hiệu <span class="text-rose-500">*</span></label>
+                            <select name="BrandId" asp-items="brands" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">-- Chọn thương hiệu --</option>
+                            </select>
+                            <span asp-validation-for="BrandId" class="text-xs text-rose-500 mt-1 block"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Bảo Hành (Tháng)</label>
+                            <input type="number" name="WarrantyMonths" value="@Model.WarrantyMonths" min="0" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mô tả sản phẩm -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Mô Tả Sản Phẩm</h3>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Mô Tả Ngắn (Hiển thị trang danh sách & trích dẫn tóm tắt)</label>
+                        <textarea name="ShortDescription" rows="2" class="w-full text-xs border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Tóm tắt đặc điểm nổi bật nhất của sản phẩm...">@Model.ShortDescription</textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Mô Tả Chi Tiết & Bài Viết Đánh Giá</label>
+                        <textarea name="FullDescription" rows="8" class="w-full text-xs font-sans border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Thông số kỹ thuật, trải nghiệm người dùng, hình ảnh minh họa...">@Model.FullDescription</textarea>
+                    </div>
+                </div>
+
+                <!-- Biến thể mặc định ban đầu -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="text-sm font-bold text-slate-900">Biến Thể Ban Đầu (Kho & Giá Bán)</h3>
+                        <span class="text-[11px] text-slate-400">Bạn có thể tạo thêm nhiều màu sắc / dung lượng sau khi tạo sản phẩm</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Mã SKU <span class="text-rose-500">*</span></label>
+                            <input type="text" id="defaultSku" name="DefaultSku" value="@Model.DefaultSku" required class="w-full text-xs font-mono border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="VD: IP16PM-256-DESERT" />
+                            <span asp-validation-for="DefaultSku" class="text-xs text-rose-500 mt-1 block"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Mã Vạch / Barcode (Tùy chọn)</label>
+                            <input type="text" name="DefaultBarcode" value="@Model.DefaultBarcode" class="w-full text-xs font-mono border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: 893123456789" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tên Biến Thể Cụ Thể</label>
+                        <input type="text" id="defaultVariantName" name="DefaultVariantName" value="@Model.DefaultVariantName" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: iPhone 16 Pro Max 256GB Titan Sa Mạc" />
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Giá Bán Khuyến Mãi (đ) <span class="text-rose-500">*</span></label>
+                            <input type="number" name="DefaultSalePrice" value="@(Model.DefaultSalePrice > 0 ? Model.DefaultSalePrice : 0)" required min="1000" step="1000" class="w-full text-xs font-bold text-blue-600 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <span asp-validation-for="DefaultSalePrice" class="text-xs text-rose-500 mt-1 block"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Giá Gốc Niêm Yết (đ)</label>
+                            <input type="number" name="DefaultOriginalPrice" value="@(Model.DefaultOriginalPrice > 0 ? Model.DefaultOriginalPrice : 0)" min="0" step="1000" class="w-full text-xs text-slate-600 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Số Lượng Tồn Kho</label>
+                            <input type="number" name="DefaultStockQuantity" value="@Model.DefaultStockQuantity" min="0" class="w-full text-xs font-bold text-slate-800 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Hình ảnh & Cài đặt (1/3) -->
+            <div class="space-y-6">
+                <!-- Ảnh đại diện chính -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Ảnh Đại Diện</h3>
+
+                    <!-- Image Preview Container -->
+                    <div class="aspect-square w-full rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center overflow-hidden relative group">
+                        <img id="imagePreview" src="/assets/images/placeholder.png" alt="Preview" class="w-full h-full object-contain p-2 hidden" />
+                        <div id="uploadPrompt" class="text-center p-4">
+                            <svg class="w-10 h-10 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            <p class="text-xs font-semibold text-slate-600">Chọn ảnh tải lên</p>
+                            <p class="text-[11px] text-slate-400 mt-1">PNG, JPG, WEBP tối đa 5MB</p>
+                        </div>
+                        <input type="file" name="imageFile" id="imageFileInput" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="previewImage(this)" />
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 mb-1">Hoặc nhập URL hình ảnh ngoài:</label>
+                        <input type="text" name="FeaturedImage" value="@Model.FeaturedImage" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://... hoặc /assets/..." onchange="previewUrl(this.value)" />
+                    </div>
+                </div>
+
+                <!-- Cài đặt hiển thị -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Trạng Thái</h3>
+
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="IsActive" value="true" checked="@Model.IsActive" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                        <div>
+                            <span class="text-xs font-bold text-slate-800">Kích Hoạt Kinh Doanh</span>
+                            <p class="text-[11px] text-slate-400">Hiển thị sản phẩm trên cửa hàng cho khách mua</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="IsFeatured" value="true" checked="@Model.IsFeatured" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                        <div>
+                            <span class="text-xs font-bold text-slate-800">Sản Phẩm Nổi Bật</span>
+                            <p class="text-[11px] text-slate-400">Ghim tại trang chủ và mục sản phẩm gợi ý hot</p>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Actions -->
+                <div class="space-y-2">
+                    <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        <span>Tạo Mới & Quản Lý Biến Thể</span>
+                    </button>
+                    <a href="/Admin/Product" class="block w-full py-2.5 text-center text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                        Hủy bỏ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    function autoGenerateSlug(name) {
+        if (!name) return;
+        const slug = name.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[đĐ]/g, 'd')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/[\s-]+/g, '-');
+        
+        document.getElementById('productSlug').value = slug;
+
+        // Auto suggest Variant Name & SKU if empty
+        const defaultNameInput = document.getElementById('defaultVariantName');
+        if (!defaultNameInput.value) {
+            defaultNameInput.value = name;
+        }
+
+        const skuInput = document.getElementById('defaultSku');
+        if (!skuInput.value) {
+            const shortSku = slug.toUpperCase().split('-').map(w => w.substring(0, 3)).join('-').substring(0, 20);
+            skuInput.value = shortSku;
+        }
+    }
+
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('imagePreview');
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                document.getElementById('uploadPrompt').classList.add('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function previewUrl(url) {
+        if (url && url.trim().length > 0) {
+            const img = document.getElementById('imagePreview');
+            img.src = url.trim();
+            img.classList.remove('hidden');
+            document.getElementById('uploadPrompt').classList.add('hidden');
+        }
+    }
+</script>

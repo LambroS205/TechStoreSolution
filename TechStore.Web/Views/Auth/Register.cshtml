@@ -1,0 +1,88 @@
+@model TechStore.Web.Controllers.RegisterViewModel
+@{
+    ViewData["Title"] = "Đăng Ký Tài Khoản Khách Hàng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="max-w-lg mx-auto px-4 py-12">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-6">
+        <!-- Header -->
+        <div class="text-center space-y-2">
+            <div class="w-12 h-12 mx-auto rounded-2xl bg-bestbuy-blue text-bestbuy-yellow flex items-center justify-center font-black text-2xl shadow-sm">
+                T
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Đăng Ký Thành Viên TechStore</h1>
+            <p class="text-xs text-slate-500 font-medium">Tạo tài khoản để theo dõi đơn hàng và nhận ưu đãi độc quyền</p>
+        </div>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl space-y-1">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <p>&bull; @error.ErrorMessage</p>
+                }
+            </div>
+        }
+
+        <form action="/auth/register@(ViewBag.ReturnUrl != null ? $"?returnUrl={ViewBag.ReturnUrl}" : "")" method="post" class="space-y-4">
+            @Html.AntiForgeryToken()
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Họ và Tên <span class="text-rose-500">*</span></label>
+                <input type="text" name="FullName" value="@Model?.FullName" required 
+                       class="w-full text-sm border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-bestbuy-blue" 
+                       placeholder="Nguyễn Văn A" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tên Đăng Nhập <span class="text-rose-500">*</span></label>
+                    <input type="text" name="Username" value="@Model?.Username" required 
+                           class="w-full text-sm border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-bestbuy-blue" 
+                           placeholder="username123" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Số Điện Thoại</label>
+                    <input type="tel" name="PhoneNumber" value="@Model?.PhoneNumber" 
+                           class="w-full text-sm border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-bestbuy-blue" 
+                           placeholder="0912 345 678" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Địa Chỉ Email <span class="text-rose-500">*</span></label>
+                <input type="email" name="Email" value="@Model?.Email" required 
+                       class="w-full text-sm border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-bestbuy-blue" 
+                       placeholder="email@example.com" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mật Khẩu <span class="text-rose-500">*</span></label>
+                    <input type="password" name="Password" required minlength="6" 
+                           class="w-full text-sm border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-bestbuy-blue" 
+                           placeholder="Tối thiểu 6 ký tự" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Xác Nhận Mật Khẩu <span class="text-rose-500">*</span></label>
+                    <input type="password" name="ConfirmPassword" required minlength="6" 
+                           class="w-full text-sm border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-bestbuy-blue" 
+                           placeholder="Nhập lại mật khẩu" />
+                </div>
+            </div>
+
+            <div class="text-[11px] text-slate-500">
+                Bằng việc bấm Đăng Ký, bạn đồng ý với <a href="#" class="text-blue-600 hover:underline">Điều khoản sử dụng</a> và <a href="#" class="text-blue-600 hover:underline">Chính sách bảo mật</a> của TechStore.
+            </div>
+
+            <button type="submit" class="w-full py-3.5 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-sm rounded-xl shadow-md transition-all active:scale-95">
+                HOÀN TẤT ĐĂNG KÝ
+            </button>
+        </form>
+
+        <div class="text-center pt-2 border-t border-slate-100 text-xs text-slate-600">
+            Đã có tài khoản? <a href="/auth/login@(ViewBag.ReturnUrl != null ? $"?returnUrl={ViewBag.ReturnUrl}" : "")" class="font-bold text-blue-600 hover:underline">Đăng nhập ngay</a>
+        </div>
+    </div>
+</div>

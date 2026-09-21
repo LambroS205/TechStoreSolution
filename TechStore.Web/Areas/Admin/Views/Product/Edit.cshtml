@@ -1,0 +1,372 @@
+@model TechStore.Web.Areas.Admin.Controllers.ProductEditViewModel
+@{
+    ViewData["Title"] = $"Chỉnh Sửa - {Model.Name}";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var categories = ViewBag.CategoryList as SelectList;
+    var brands = ViewBag.BrandList as SelectList;
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="/Admin/Product" class="hover:text-blue-600">Sản phẩm</a>
+                <span>/</span>
+                <span class="text-slate-600">Chỉnh sửa</span>
+            </div>
+            <h1 class="text-xl font-bold text-slate-900 truncate max-w-xl">@Model.Name</h1>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/product/@Model.Slug" target="_blank" class="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors flex items-center gap-1.5 shadow-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                <span>Xem trên cửa hàng</span>
+            </a>
+            <a href="/Admin/Product" class="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                &larr; Danh sách
+            </a>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">&times;</button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">&times;</button>
+        </div>
+    }
+
+    <!-- Phần 1: Thông tin chung sản phẩm -->
+    <form method="post" action="/Admin/Product/Edit/@Model.ProductId" enctype="multipart/form-data" class="space-y-6">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ProductId" value="@Model.ProductId" />
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left 2/3 -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Thông Tin Chung Sản Phẩm</h3>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tên Sản Phẩm <span class="text-rose-500">*</span></label>
+                        <input type="text" name="Name" value="@Model.Name" required class="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <span asp-validation-for="Name" class="text-xs text-rose-500 mt-1 block"></span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Đường Dẫn Slug (SEO)</label>
+                        <div class="flex items-center">
+                            <span class="px-3 py-2.5 bg-slate-100 border border-r-0 border-slate-300 rounded-l-xl text-xs text-slate-500">/product/</span>
+                            <input type="text" name="Slug" value="@Model.Slug" required class="flex-1 text-sm font-mono border border-slate-300 rounded-r-xl px-3.5 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-xs" />
+                        </div>
+                        <span asp-validation-for="Slug" class="text-xs text-rose-500 mt-1 block"></span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Danh Mục <span class="text-rose-500">*</span></label>
+                            <select name="CategoryId" asp-items="categories" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Thương Hiệu <span class="text-rose-500">*</span></label>
+                            <select name="BrandId" asp-items="brands" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Bảo Hành (Tháng)</label>
+                            <input type="number" name="WarrantyMonths" value="@Model.WarrantyMonths" min="0" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Mô Tả Sản Phẩm</h3>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Mô Tả Ngắn</label>
+                        <textarea name="ShortDescription" rows="2" class="w-full text-xs border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none">@Model.ShortDescription</textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Mô Tả Chi Tiết (Hỗ trợ HTML)</label>
+                        <textarea name="FullDescription" rows="8" class="w-full text-xs font-sans border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none">@Model.FullDescription</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right 1/3 -->
+            <div class="space-y-6">
+                <!-- Image -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Ảnh Đại Diện</h3>
+
+                    <div class="aspect-square w-full rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden p-2 relative group">
+                        <img id="featuredImgPreview" src="@Model.FeaturedImage" alt="@Model.Name" class="w-full h-full object-contain" onerror="this.src='/assets/images/placeholder.png'" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Tải ảnh mới từ máy tính:</label>
+                        <input type="file" name="imageFile" accept="image/*" class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" onchange="previewFeaturedImage(this)" />
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 mb-1">Hoặc đường dẫn ảnh:</label>
+                        <input type="text" name="FeaturedImage" value="@Model.FeaturedImage" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Trạng Thái</h3>
+
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="IsActive" value="true" checked="@Model.IsActive" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                        <div>
+                            <span class="text-xs font-bold text-slate-800">Kích Hoạt Kinh Doanh</span>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="IsFeatured" value="true" checked="@Model.IsFeatured" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                        <div>
+                            <span class="text-xs font-bold text-slate-800">Sản Phẩm Nổi Bật</span>
+                        </div>
+                    </label>
+                </div>
+
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    <span>Lưu Cập Nhật Sản Phẩm</span>
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Phần 2: Quản lý Biến thể (Variants) -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+                <h2 class="text-base font-bold text-slate-900">Danh Sách Biến Thể Sản Phẩm (SKU / Màu Sắc / Dung Lượng)</h2>
+                <p class="text-xs text-slate-400">Quản lý kho hàng, giá bán theo từng phiên bản cụ thể</p>
+            </div>
+            <button type="button" onclick="openAddVariantModal()" class="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <span>Thêm Biến Thể Mới</span>
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                    <tr>
+                        <th class="py-3 px-4">Ảnh</th>
+                        <th class="py-3 px-4">Mã SKU / Tên Biến Thể</th>
+                        <th class="py-3 px-4">Giá Bán</th>
+                        <th class="py-3 px-4">Giá Gốc</th>
+                        <th class="py-3 px-4 text-center">Tồn Kho</th>
+                        <th class="py-3 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3 px-4 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @if (Model.Variants.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="py-6 text-center text-xs text-slate-400">
+                                Chưa có biến thể nào. Vui lòng thêm ít nhất một biến thể để khách hàng có thể mua sản phẩm!
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var v in Model.Variants)
+                        {
+                            <tr class="hover:bg-slate-50/70 transition-colors">
+                                <td class="py-3 px-4">
+                                    <img src="@(v.ThumbnailImage ?? Model.FeaturedImage)" class="w-10 h-10 object-contain rounded-lg border border-slate-100 bg-slate-50" onerror="this.src='/assets/images/placeholder.png'" />
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="font-bold text-slate-900 text-xs font-mono text-blue-600">@v.SKU</div>
+                                    <div class="text-xs text-slate-700 font-medium">@v.VariantName</div>
+                                    @if (!string.IsNullOrEmpty(v.Barcode))
+                                    {
+                                        <div class="text-[10px] text-slate-400 font-mono">Barcode: @v.Barcode</div>
+                                    }
+                                </td>
+                                <td class="py-3 px-4 font-bold text-blue-600 text-xs">
+                                    @v.SalePrice.ToString("N0") đ
+                                </td>
+                                <td class="py-3 px-4 text-slate-400 text-xs line-through">
+                                    @(v.OriginalPrice > 0 ? v.OriginalPrice.ToString("N0") + " đ" : "-")
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold @(v.StockQuantity == 0 ? "bg-rose-100 text-rose-700" : v.StockQuantity <= 20 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800")">
+                                        @v.StockQuantity
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded @(v.IsActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500")">
+                                        @(v.IsActive ? "Đang bán" : "Ngừng bán")
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <button type="button" onclick="openEditVariantModal(@v.VariantId, '@v.SKU', '@v.Barcode', '@Html.Raw(v.VariantName.Replace("'", "\\'"))', @v.OriginalPrice, @v.SalePrice, @v.StockQuantity, @v.WeightGrams, '@v.ThumbnailImage', @(v.IsActive ? "true" : "false"))" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Sửa biến thể">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        </button>
+
+                                        <form method="post" action="/Admin/Product/DeleteVariant" onsubmit="return confirm('Bạn có chắc muốn xóa biến thể \'@v.SKU\'?');" class="inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="variantId" value="@v.VariantId" />
+                                            <input type="hidden" name="productId" value="@Model.ProductId" />
+                                            <button type="submit" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Xóa">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm / Sửa Biến Thể -->
+<div id="variantModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 id="variantModalTitle" class="text-base font-bold text-slate-900">Thêm Biến Thể Mới</h3>
+            <button type="button" onclick="closeVariantModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+        </div>
+
+        <form method="post" action="/Admin/Product/SaveVariant" enctype="multipart/form-data" class="space-y-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="modalVariantId" name="VariantId" value="0" />
+            <input type="hidden" name="ProductId" value="@Model.ProductId" />
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Mã SKU <span class="text-rose-500">*</span></label>
+                    <input type="text" id="modalSku" name="SKU" required class="w-full text-xs font-mono border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="VD: IP16PM-256-DESERT" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Mã Barcode</label>
+                    <input type="text" id="modalBarcode" name="Barcode" class="w-full text-xs font-mono border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: 89312345678" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tên Biến Thể <span class="text-rose-500">*</span></label>
+                <input type="text" id="modalVariantName" name="VariantName" required class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: Titan Sa Mạc 256GB" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Giá Bán Khuyến Mãi (đ) <span class="text-rose-500">*</span></label>
+                    <input type="number" id="modalSalePrice" name="SalePrice" required min="1000" step="1000" class="w-full text-xs font-bold text-blue-600 border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Giá Gốc Niêm Yết (đ)</label>
+                    <input type="number" id="modalOriginalPrice" name="OriginalPrice" min="0" step="1000" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Số Lượng Tồn Kho</label>
+                    <input type="number" id="modalStockQuantity" name="StockQuantity" min="0" class="w-full text-xs font-bold border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Khối Lượng (Gram)</label>
+                    <input type="number" id="modalWeightGrams" name="WeightGrams" min="0" value="200" class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Ảnh Thumbnail Biến Thể</label>
+                <input type="file" name="variantImageFile" accept="image/*" class="w-full text-xs file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 cursor-pointer" />
+                <input type="text" id="modalThumbnailImage" name="ThumbnailImage" class="w-full text-xs border border-slate-300 rounded-xl p-2 focus:ring-2 focus:ring-blue-500 outline-none mt-1.5" placeholder="Hoặc nhập URL ảnh..." />
+            </div>
+
+            <label class="flex items-center gap-2 cursor-pointer pt-1">
+                <input type="checkbox" id="modalIsActive" name="IsActive" value="true" checked class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                <span class="text-xs font-bold text-slate-800">Kích Hoạt Bán Biến Thể Này</span>
+            </label>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeVariantModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                    Hủy
+                </button>
+                <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-xs">
+                    Lưu Biến Thể
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function previewFeaturedImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('featuredImgPreview').src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function openAddVariantModal() {
+        document.getElementById('variantModalTitle').innerText = 'Thêm Biến Thể Mới';
+        document.getElementById('modalVariantId').value = 0;
+        document.getElementById('modalSku').value = '';
+        document.getElementById('modalBarcode').value = '';
+        document.getElementById('modalVariantName').value = '';
+        document.getElementById('modalOriginalPrice').value = 0;
+        document.getElementById('modalSalePrice').value = 0;
+        document.getElementById('modalStockQuantity').value = 10;
+        document.getElementById('modalWeightGrams').value = 200;
+        document.getElementById('modalThumbnailImage').value = '';
+        document.getElementById('modalIsActive').checked = true;
+        document.getElementById('variantModal').classList.remove('hidden');
+    }
+
+    function openEditVariantModal(id, sku, barcode, name, origPrice, salePrice, stock, weight, thumb, isActive) {
+        document.getElementById('variantModalTitle').innerText = 'Chỉnh Sửa Biến Thể: ' + sku;
+        document.getElementById('modalVariantId').value = id;
+        document.getElementById('modalSku').value = sku;
+        document.getElementById('modalBarcode').value = barcode || '';
+        document.getElementById('modalVariantName').value = name;
+        document.getElementById('modalOriginalPrice').value = origPrice;
+        document.getElementById('modalSalePrice').value = salePrice;
+        document.getElementById('modalStockQuantity').value = stock;
+        document.getElementById('modalWeightGrams').value = weight;
+        document.getElementById('modalThumbnailImage').value = thumb || '';
+        document.getElementById('modalIsActive').checked = isActive;
+        document.getElementById('variantModal').classList.remove('hidden');
+    }
+
+    function closeVariantModal() {
+        document.getElementById('variantModal').classList.add('hidden');
+    }
+</script>

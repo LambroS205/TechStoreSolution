@@ -1,4 +1,4 @@
-﻿@model TechStore.Core.Entities.Product
+@model TechStore.Core.Entities.Product
 @{
     ViewData["Title"] = Model.Name;
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -34,6 +34,7 @@
                         @Model.Brand.Name
                     </span>
                     <span class="text-xs text-slate-400">Mã SP: #@Model.ProductId</span>
+                    <span id="variantSkuDisplay" class="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">SKU: @defaultVariant?.SKU</span>
                 </div>
 
                 <h1 class="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">@Model.Name</h1>
@@ -60,7 +61,7 @@
                             @foreach (var v in variants)
                             {
                                 <button type="button" 
-                                        onclick="selectVariant(@v.VariantId, '@v.VariantName', @v.SalePrice, @v.OriginalPrice, @v.StockQuantity, '@(string.IsNullOrEmpty(v.ThumbnailImage) ? Model.FeaturedImage : v.ThumbnailImage)')"
+                                        onclick="selectVariant(@v.VariantId, '@v.VariantName', @v.SalePrice, @v.OriginalPrice, @v.StockQuantity, '@(string.IsNullOrEmpty(v.ThumbnailImage) ? Model.FeaturedImage : v.ThumbnailImage)', '@v.SKU')"
                                         id="variantBtn_@v.VariantId"
                                         class="variant-btn p-3 text-left border rounded-xl transition-all @(v.VariantId == defaultVariant?.VariantId ? "border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20" : "border-slate-200 hover:border-slate-300 bg-white")">
                                     <div class="font-bold text-xs text-slate-900">@v.VariantName</div>
@@ -105,12 +106,13 @@
 </div>
 
 <script>
-    function selectVariant(id, name, salePrice, origPrice, stock, image) {
+    function selectVariant(id, name, salePrice, origPrice, stock, image, sku) {
         document.getElementById('selectedVariantId').value = id;
         document.getElementById('variantPrice').innerText = salePrice.toLocaleString('vi-VN') + ' đ';
         document.getElementById('variantOriginalPrice').innerText = origPrice.toLocaleString('vi-VN') + ' đ';
         document.getElementById('stockStatus').innerText = stock > 0 ? `Còn hàng (${stock} sản phẩm)` : 'Hết hàng';
         if (image) document.getElementById('mainProductImage').src = image;
+        if (sku) document.getElementById('variantSkuDisplay').innerText = 'SKU: ' + sku;
 
         document.querySelectorAll('.variant-btn').forEach(btn => {
             btn.className = 'variant-btn p-3 text-left border rounded-xl transition-all border-slate-200 hover:border-slate-300 bg-white';

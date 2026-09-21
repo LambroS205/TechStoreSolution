@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Core.Entities;
+using TechStore.Core.Interfaces;
 using TechStore.Infrastructure.Data;
 using TechStore.Web.Security;
 
@@ -17,10 +18,12 @@ namespace TechStore.Web.Areas.Admin.Controllers;
 public class OrderController : Controller
 {
     private readonly TechStoreDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public OrderController(TechStoreDbContext context)
+    public OrderController(TechStoreDbContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     /// <summary>
@@ -87,6 +90,15 @@ public class OrderController : Controller
 
         await _context.PaymentTransactions.AddAsync(transaction);
         await _context.SaveChangesAsync();
+
+        // Ghi nhận nhật ký kiểm toán cho hành động duyệt tiền VietQR
+        await _auditLogService.LogAsync(
+            action: "VerifyVietQrPayment",
+            module: "Orders",
+            recordId: order.OrderCode,
+            oldValues: new { PaymentStatus = "Pending", OrderStatus = "Pending" },
+            newValues: new { PaymentStatus = "Paid", OrderStatus = "Processing", TransactionReference = transaction.TransactionReference, Amount = order.TotalAmount }
+        );
 
         TempData["SuccessMessage"] = $"Đã xác nhận thanh toán thành công cho đơn hàng {order.OrderCode}!";
         return RedirectToAction(nameof(Index));

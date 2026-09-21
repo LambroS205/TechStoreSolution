@@ -33,8 +33,9 @@ builder.Services.AddDbContext<TechStoreDbContext>(options =>
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 
-// 3. Đăng ký dịch vụ Kiểm toán (Audit Logging Service)
+// 3. Đăng ký dịch vụ Kiểm toán & Lưu trữ tập tin
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 // 4. Cấu hình Xác thực bằng Cookie (Cookie Authentication)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
