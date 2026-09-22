@@ -1,0 +1,414 @@
+@model TechStore.Web.Areas.Admin.Models.UserDetailViewModel
+@{
+    ViewData["Title"] = $"Hồ Sơ Khách Hàng: {Model.User.FullName} (@{Model.User.Username})";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var user = Model.User;
+    var isLocked = !user.IsActive || (user.LockoutEnd != null && user.LockoutEnd > DateTime.UtcNow);
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Breadcrumb & Top Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a asp-action="Index" class="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    @(string.IsNullOrEmpty(user.FullName) ? user.Username : user.FullName)
+                    @if (isLocked)
+                    {
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">Đã Khóa</span>
+                    }
+                    else
+                    {
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Đang Hoạt Động</span>
+                    }
+                </h1>
+                <p class="text-sm text-slate-500">Tài khoản: @@<span class="font-medium text-slate-700">@user.Username</span> (Mã ID: #@user.UserId) &bull; Thành viên từ: @user.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Toggle Lock Form -->
+            <form asp-action="ToggleLock" asp-route-id="@user.UserId" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn thay đổi trạng thái hoạt động của tài khoản này?');">
+                @Html.AntiForgeryToken()
+                @if (isLocked)
+                {
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
+                        Mở Khóa Tài Khoản
+                    </button>
+                }
+                else
+                {
+                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-lg shadow-sm transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        Khóa Tài Khoản
+                    </button>
+                }
+            </form>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 rounded-r-lg flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span class="font-medium text-sm">@TempData["SuccessMessage"]</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">✕</button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 bg-rose-50 border-l-4 border-rose-500 text-rose-800 rounded-r-lg flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span class="font-medium text-sm">@TempData["ErrorMessage"]</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">✕</button>
+        </div>
+    }
+
+    <!-- 360 Lifetime Value KPIs -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng Chi Tiêu</p>
+                <h3 class="text-2xl font-bold text-[#0046be] mt-1">@Model.TotalSpent.ToString("N0") ₫</h3>
+            </div>
+            <span class="p-3 bg-blue-50 text-[#0046be] rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng Đơn Đặt</p>
+                <h3 class="text-2xl font-bold text-slate-900 mt-1">@Model.TotalOrders</h3>
+            </div>
+            <span class="p-3 bg-slate-100 text-slate-700 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            </span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Đơn Hoàn Tất</p>
+                <h3 class="text-2xl font-bold text-emerald-600 mt-1">@Model.CompletedOrders</h3>
+            </div>
+            <span class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Đơn Hủy / Thất Bại</p>
+                <h3 class="text-2xl font-bold text-rose-600 mt-1">@Model.CancelledOrders</h3>
+            </div>
+            <span class="p-3 bg-rose-50 text-rose-600 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </span>
+        </div>
+    </div>
+
+    <!-- Main 2-Column Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left Column: User Profile & Security (4 cols) -->
+        <div class="lg:col-span-4 space-y-6">
+            <!-- Profile Info Card -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-full bg-slate-100 border-2 border-[#0046be] flex items-center justify-center font-bold text-xl text-[#0046be] shrink-0 overflow-hidden">
+                        @if (!string.IsNullOrEmpty(user.AvatarUrl))
+                        {
+                            <img src="@user.AvatarUrl" alt="@user.FullName" class="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <span>@(string.IsNullOrEmpty(user.FullName) ? user.Username.Substring(0, 1).ToUpper() : user.FullName.Substring(0, 1).ToUpper())</span>
+                        }
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">@(string.IsNullOrEmpty(user.FullName) ? user.Username : user.FullName)</h3>
+                        <p class="text-xs text-slate-500">@@@user.Username</p>
+                        <p class="text-xs text-slate-400 mt-0.5">ID: #@user.UserId</p>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-3 space-y-2.5 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-slate-500 text-xs">Email:</span>
+                        <span class="font-medium text-slate-800 text-xs">@user.Email</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500 text-xs">Điện thoại:</span>
+                        <span class="font-medium text-slate-800 text-xs">@(string.IsNullOrEmpty(user.PhoneNumber) ? "Chưa cung cấp" : user.PhoneNumber)</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500 text-xs">Ngày tham gia:</span>
+                        <span class="font-medium text-slate-800 text-xs">@user.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500 text-xs">Cập nhật lần cuối:</span>
+                        <span class="font-medium text-slate-800 text-xs">@(user.UpdatedAt.HasValue ? user.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "Chưa cập nhật")</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Assignment Card -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-[#0046be]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                    Phân Quyền Vai Trò (Roles)
+                </h4>
+                <form asp-action="UpdateRoles" asp-route-id="@user.UserId" method="post" class="space-y-3">
+                    @Html.AntiForgeryToken()
+                    <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        @foreach (var role in Model.AllRoles)
+                        {
+                            var isAssigned = Model.UserRoleIds.Contains(role.RoleId);
+                            <label class="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-50 border border-slate-100 cursor-pointer transition">
+                                <input type="checkbox" name="roleIds" value="@role.RoleId" @(isAssigned ? "checked" : "") 
+                                       class="rounded text-[#0046be] focus:ring-[#0046be] h-4 w-4" />
+                                <div class="text-xs">
+                                    <span class="font-semibold text-slate-800">@role.RoleName</span>
+                                    @if (!string.IsNullOrEmpty(role.Description))
+                                    {
+                                        <p class="text-slate-400 text-[11px]">@role.Description</p>
+                                    }
+                                </div>
+                            </label>
+                        }
+                    </div>
+                    <button type="submit" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+                        Lưu Thay Đổi Vai Trò
+                    </button>
+                </form>
+            </div>
+
+            <!-- Password Reset Card -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                    Đặt Lại Mật Khẩu
+                </h4>
+                <p class="text-xs text-slate-500">Quản trị viên có thể chủ động đặt lại mật khẩu mới cho tài khoản người dùng này khi được yêu cầu hỗ trợ.</p>
+                <form asp-action="ResetPassword" asp-route-id="@user.UserId" method="post" class="space-y-3" onsubmit="return confirm('Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản này?');">
+                    @Html.AntiForgeryToken()
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">Mật khẩu mới (tối thiểu 6 ký tự)</label>
+                        <input type="password" name="newPassword" required minlength="6" placeholder="Nhập mật khẩu mới..." 
+                               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-[#0046be] outline-none transition" />
+                    </div>
+                    <button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+                        Xác Nhận Đặt Lại Mật Khẩu
+                    </button>
+                </form>
+            </div>
+
+            <!-- Address Book Card -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-3">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-[#0046be]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    Sổ Địa Chỉ Giao Hàng (@user.Addresses.Count)
+                </h4>
+                @if (!user.Addresses.Any())
+                {
+                    <p class="text-xs text-slate-400 italic">Chưa có địa chỉ giao hàng nào được lưu.</p>
+                }
+                else
+                {
+                    <div class="space-y-2">
+                        @foreach (var addr in user.Addresses)
+                        {
+                            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-bold text-slate-800">@addr.RecipientName</span>
+                                    @if (addr.IsDefault)
+                                    {
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#0046be] text-white">Mặc Định</span>
+                                    }
+                                </div>
+                                <p class="text-slate-600">@addr.PhoneNumber</p>
+                                <p class="text-slate-500">@addr.StreetAddress, @addr.Ward, @addr.District, @addr.Province</p>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Right Column: Order History, Reviews, Wishlist (8 cols) -->
+        <div class="lg:col-span-8 space-y-6">
+            <!-- Order History Card -->
+            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-[#0046be]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                        Lịch Sử Đơn Hàng (@Model.Orders.Count)
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-[11px] border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">Mã Đơn</th>
+                                <th class="py-3 px-4">Ngày Đặt</th>
+                                <th class="py-3 px-4">Hình Thức</th>
+                                <th class="py-3 px-4">Thanh Toán</th>
+                                <th class="py-3 px-4">Trạng Thái</th>
+                                <th class="py-3 px-4 text-right">Tổng Tiền</th>
+                                <th class="py-3 px-4 text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @if (!Model.Orders.Any())
+                            {
+                                <tr>
+                                    <td colspan="7" class="py-8 text-center text-slate-400">
+                                        Khách hàng này chưa phát sinh đơn hàng nào trên hệ thống.
+                                    </td>
+                                </tr>
+                            }
+                            @foreach (var o in Model.Orders)
+                            {
+                                <tr class="hover:bg-slate-50/75 transition">
+                                    <td class="py-3 px-4 font-bold text-slate-800">
+                                        <a asp-controller="Order" asp-action="Detail" asp-route-id="@o.OrderId" class="hover:text-[#0046be] transition">
+                                            @o.OrderCode
+                                        </a>
+                                    </td>
+                                    <td class="py-3 px-4 text-slate-500">
+                                        @o.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        @if (o.PaymentMethod == "VietQR")
+                                        {
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">VietQR</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">COD</span>
+                                        }
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        @if (o.PaymentStatus == "Paid")
+                                        {
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700">Đã Thanh Toán</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700">Chờ Thu Tiền</span>
+                                        }
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        @switch (o.OrderStatus)
+                                        {
+                                            case "Delivered":
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700">Đã Giao</span>
+                                                break;
+                                            case "Shipping":
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-sky-700">Đang Giao</span>
+                                                break;
+                                            case "Processing":
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700">Đang Xử Lý</span>
+                                                break;
+                                            case "Cancelled":
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700">Đã Hủy</span>
+                                                break;
+                                            default:
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">@o.OrderStatus</span>
+                                                break;
+                                        }
+                                    </td>
+                                    <td class="py-3 px-4 text-right font-bold text-slate-900">
+                                        @o.TotalAmount.ToString("N0") ₫
+                                    </td>
+                                    <td class="py-3 px-4 text-center">
+                                        <a asp-controller="Order" asp-action="Detail" asp-route-id="@o.OrderId" class="text-[#0046be] hover:underline font-semibold text-[11px]">
+                                            Xem Đơn
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Product Reviews & Wishlist Tabs/Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Reviews Card -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-3">
+                    <h4 class="text-sm font-bold text-slate-900 flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                            Đánh Giá Đã Gửi (@user.Reviews.Count)
+                        </span>
+                    </h4>
+                    @if (!user.Reviews.Any())
+                    {
+                        <p class="text-xs text-slate-400 italic">Chưa có đánh giá sản phẩm nào.</p>
+                    }
+                    else
+                    {
+                        <div class="space-y-3 max-h-64 overflow-y-auto pr-1">
+                            @foreach (var rev in user.Reviews)
+                            {
+                                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs space-y-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-semibold text-slate-800 line-clamp-1">@rev.Product.Name</span>
+                                        <span class="text-amber-500 font-bold">@rev.Rating ★</span>
+                                    </div>
+                                    <p class="text-slate-600 line-clamp-2">@rev.Comment</p>
+                                    <p class="text-[10px] text-slate-400">@rev.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- Wishlist Card -->
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-3">
+                    <h4 class="text-sm font-bold text-slate-900 flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
+                            Sản Phẩm Yêu Thích (@user.Wishlists.Count)
+                        </span>
+                    </h4>
+                    @if (!user.Wishlists.Any())
+                    {
+                        <p class="text-xs text-slate-400 italic">Chưa lưu sản phẩm yêu thích nào.</p>
+                    }
+                    else
+                    {
+                        <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                            @foreach (var w in user.Wishlists)
+                            {
+                                <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center gap-3">
+                                    <img src="@w.Product.FeaturedImage" alt="@w.Product.Name" class="w-10 h-10 object-cover rounded border border-slate-200 shrink-0" />
+                                    <div class="flex-1 min-w-0 text-xs">
+                                        <a href="/Product/Detail/@w.Product.Slug" target="_blank" class="font-semibold text-slate-800 hover:text-[#0046be] transition truncate block">
+                                            @w.Product.Name
+                                        </a>
+                                        <span class="text-[10px] text-slate-400">Đã lưu: @w.AddedAt.ToString("dd/MM/yyyy")</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

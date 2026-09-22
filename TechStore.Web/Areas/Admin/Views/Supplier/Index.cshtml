@@ -1,0 +1,229 @@
+@model List<TechStore.Core.Entities.Supplier>
+@{
+    ViewData["Title"] = "Quản Lý Nhà Cung Cấp";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string? search = ViewBag.Search as string;
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">&times;</button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">&times;</button>
+        </div>
+    }
+
+    <!-- Header Actions & Search -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-lg font-bold text-slate-900">Danh Bạ Nhà Cung Cấp & Phân Phối</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Quản lý các hãng sản xuất và đơn vị phân phối thiết bị công nghệ chính thức</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button type="button" onclick="openAddSupplierModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <span>Thêm Đối Tác Mới</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <form method="get" action="/Admin/Supplier" class="flex items-center gap-3">
+            <div class="flex-1">
+                <input type="text" name="q" value="@search" placeholder="Tìm theo tên nhà cung cấp, người đại diện, số điện thoại, email..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+            </div>
+            <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors">
+                Tìm Kiếm
+            </button>
+            @if (!string.IsNullOrEmpty(search))
+            {
+                <a href="/Admin/Supplier" class="px-3 py-2 text-slate-500 hover:text-slate-800 text-xs font-medium">Đặt lại</a>
+            }
+        </form>
+    </div>
+
+    <!-- Suppliers Table -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                    <tr>
+                        <th class="py-3.5 px-4">Nhà Cung Cấp</th>
+                        <th class="py-3.5 px-4">Người Đại Diện</th>
+                        <th class="py-3.5 px-4">Liên Hệ</th>
+                        <th class="py-3.5 px-4">Địa Chỉ</th>
+                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3.5 px-4 text-right">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @if (Model.Any())
+                    {
+                        @foreach (var s in Model)
+                        {
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="py-3.5 px-4 font-bold text-slate-900 text-xs">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                            @s.Name.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <span>@s.Name</span>
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-4 text-xs font-medium text-slate-700">
+                                    @(s.ContactPerson ?? "—")
+                                </td>
+                                <td class="py-3.5 px-4 text-xs">
+                                    <div class="space-y-0.5">
+                                        <div class="font-semibold text-slate-900">@s.Phone</div>
+                                        @if (!string.IsNullOrEmpty(s.Email))
+                                        {
+                                            <div class="text-[11px] text-slate-400">@s.Email</div>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-4 text-xs text-slate-500 max-w-xs truncate">
+                                    @(s.Address ?? "—")
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <form method="post" action="/Admin/Supplier/ToggleActive/@s.SupplierId" class="inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all @(s.IsActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100" : "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100")" title="Nhấp để đổi trạng thái">
+                                            <span class="w-1.5 h-1.5 rounded-full @(s.IsActive ? "bg-emerald-500" : "bg-rose-500")"></span>
+                                            <span>@(s.IsActive ? "Đang hợp tác" : "Tạm ngưng")</span>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <div class="inline-flex items-center gap-1">
+                                        <button type="button" onclick="editSupplier(@s.SupplierId, '@Html.Raw(s.Name)', '@Html.Raw(s.ContactPerson ?? "")', '@s.Phone', '@Html.Raw(s.Email ?? "")', '@Html.Raw(s.Address ?? "")', @(s.IsActive.ToString().ToLower()))" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Sửa">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        </button>
+                                        <form method="post" action="/Admin/Supplier/Delete/@s.SupplierId" onsubmit="return confirm('Bạn có chắc chắn muốn xóa nhà cung cấp này?');" class="inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Xóa">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="py-12 text-center text-slate-400 text-xs">
+                                Không tìm thấy đối tác nhà cung cấp nào.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Modal -->
+<div id="supplierModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-100">
+        <div class="flex items-center justify-between">
+            <h3 id="modalSupplierTitle" class="text-base font-bold text-slate-900">Thêm Nhà Cung Cấp Mới</h3>
+            <button type="button" onclick="closeSupplierModal()" class="text-slate-400 hover:text-slate-600">&times;</button>
+        </div>
+
+        <form method="post" action="/Admin/Supplier/Save" class="space-y-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="modalSupplierId" name="SupplierId" value="0" />
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tên Nhà Cung Cấp / Doanh Nghiệp <span class="text-rose-500">*</span></label>
+                <input type="text" id="modalSupplierName" name="Name" required placeholder="VD: Apple Việt Nam..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Người Đại Diện</label>
+                    <input type="text" id="modalContactPerson" name="ContactPerson" placeholder="VD: Nguyễn Văn Đại Diện" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Số Điện Thoại <span class="text-rose-500">*</span></label>
+                    <input type="tel" id="modalSupplierPhone" name="Phone" required placeholder="VD: 02838221234" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Email Liên Hệ</label>
+                <input type="email" id="modalSupplierEmail" name="Email" placeholder="contact@supplier.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Địa Chỉ Kho / Trụ Sở</label>
+                <input type="text" id="modalSupplierAddress" name="Address" placeholder="VD: Tòa nhà Bitexco, Bến Nghé, Quận 1..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+                <input type="checkbox" id="modalIsActive" name="IsActive" value="true" checked class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300" />
+                <label for="modalIsActive" class="text-xs font-semibold text-slate-700">
+                    Đang duy trì quan hệ hợp tác cung ứng
+                </label>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeSupplierModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+                    Hủy
+                </button>
+                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors">
+                    Lưu Thông Tin
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openAddSupplierModal() {
+        document.getElementById('modalSupplierTitle').innerText = 'Thêm Nhà Cung Cấp Mới';
+        document.getElementById('modalSupplierId').value = '0';
+        document.getElementById('modalSupplierName').value = '';
+        document.getElementById('modalContactPerson').value = '';
+        document.getElementById('modalSupplierPhone').value = '';
+        document.getElementById('modalSupplierEmail').value = '';
+        document.getElementById('modalSupplierAddress').value = '';
+        document.getElementById('modalIsActive').checked = true;
+        document.getElementById('supplierModal').classList.remove('hidden');
+    }
+
+    function editSupplier(id, name, contact, phone, email, address, isActive) {
+        document.getElementById('modalSupplierTitle').innerText = 'Chỉnh Sửa Nhà Cung Cấp';
+        document.getElementById('modalSupplierId').value = id;
+        document.getElementById('modalSupplierName').value = name;
+        document.getElementById('modalContactPerson').value = contact;
+        document.getElementById('modalSupplierPhone').value = phone;
+        document.getElementById('modalSupplierEmail').value = email;
+        document.getElementById('modalSupplierAddress').value = address;
+        document.getElementById('modalIsActive').checked = isActive;
+        document.getElementById('supplierModal').classList.remove('hidden');
+    }
+
+    function closeSupplierModal() {
+        document.getElementById('supplierModal').classList.add('hidden');
+    }
+</script>

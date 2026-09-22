@@ -1,0 +1,115 @@
+@model TechStore.Core.Entities.BlogPost
+@{
+    ViewData["Title"] = "Viết Bài Công Nghệ Mới";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="p-6 max-w-5xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="/Admin/Blog" class="hover:text-blue-600">Bài viết</a>
+                <span>/</span>
+                <span class="text-slate-700">Tạo mới</span>
+            </div>
+            <h1 class="text-xl font-bold text-slate-900">Soạn Thảo Bài Viết Công Nghệ</h1>
+        </div>
+
+        <a href="/Admin/Blog" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+            Quay Lại
+        </a>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
+            <div class="font-bold mb-1">Vui lòng kiểm tra lại thông tin:</div>
+            <ul class="list-disc list-inside space-y-0.5">
+                @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@err.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <!-- Form -->
+    <form method="post" action="/Admin/Blog/Create" enctype="multipart/form-data" class="space-y-6">
+        @Html.AntiForgeryToken()
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Tiêu Đề Bài Viết <span class="text-rose-500">*</span>
+                </label>
+                <input type="text" name="Title" value="@Model.Title" required placeholder="VD: Đánh giá chi tiết iPhone 16 Pro Max sau 1 tháng trải nghiệm..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Chuyên Mục <span class="text-rose-500">*</span>
+                    </label>
+                    <select name="BlogCategoryId" asp-items="ViewBag.Categories" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                        <option value="">-- Chọn danh mục bài viết --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Đường dẫn tĩnh (Slug - Tùy chọn)
+                    </label>
+                    <input type="text" name="Slug" value="@Model.Slug" placeholder="Tự động sinh từ tiêu đề nếu để trống" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Tóm Tắt Ngắn (Summary)
+                </label>
+                <textarea name="Summary" rows="2" placeholder="Tóm tắt 1-2 câu ngắn gọn xuất hiện trên danh sách tin tức và meta SEO..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-blue-600 focus:outline-none">@Model.Summary</textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Tải Ảnh Bìa Đại Diện (Thumbnail)
+                    </label>
+                    <input type="file" name="thumbnail" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Hoặc Nhập URL Ảnh Ngoài
+                    </label>
+                    <input type="url" name="ThumbnailUrl" value="@Model.ThumbnailUrl" placeholder="https://images.unsplash.com/..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Nội Dung Bài Viết (HTML / Markdown) <span class="text-rose-500">*</span>
+                </label>
+                <textarea name="Content" rows="15" required placeholder="Soạn thảo nội dung bài viết. Bạn có thể sử dụng các thẻ HTML như <h2>, <p>, <ul>, <img> để định dạng phong phú..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-blue-600 focus:outline-none leading-relaxed">@Model.Content</textarea>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+                <input type="checkbox" id="IsPublished" name="IsPublished" value="true" checked class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300" />
+                <label for="IsPublished" class="text-xs font-bold text-slate-800">
+                    Xuất bản công khai ngay lên Storefront
+                </label>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+            <a href="/Admin/Blog" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+                Hủy Bỏ
+            </a>
+            <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                <span>Lưu & Xuất Bản</span>
+            </button>
+        </div>
+    </form>
+</div>

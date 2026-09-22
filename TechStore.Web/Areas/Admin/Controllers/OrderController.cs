@@ -89,6 +89,18 @@ public class OrderController : Controller
         };
 
         await _context.PaymentTransactions.AddAsync(transaction);
+
+        // Ghi nhận nhật ký chuyển trạng thái đơn hàng
+        var statusHistory = new OrderStatusHistory
+        {
+            OrderId = order.OrderId,
+            PreviousStatus = "Pending",
+            NewStatus = "Processing",
+            Note = $"Duyệt thanh toán VietQR thành công (Mã GD: {transaction.TransactionReference})",
+            ChangedBy = adminId > 0 ? adminId : null,
+            ChangedAt = DateTime.UtcNow
+        };
+        await _context.OrderStatusHistories.AddAsync(statusHistory);
         await _context.SaveChangesAsync();
 
         // Ghi nhận nhật ký kiểm toán cho hành động duyệt tiền VietQR
@@ -110,20 +122,69 @@ public class OrderController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [HasPermission("Orders.Edit")]
-    public async Task<IActionResult> UpdateStatus(int orderId, string newStatus)
+    public async Task<IActionResult> UpdateStatus(int orderId, string newStatus, string? note = null)
     {
         var order = await _context.Orders.FindAsync(orderId);
         if (order == null) return NotFound();
 
-        order.OrderStatus = newStatus;
-        if (newStatus == "Delivered" && order.PaymentMethod == "COD")
+        string oldStatus = order.OrderStatus;
+        if (oldStatus != newStatus)
         {
-            order.PaymentStatus = "Paid"; // Thu tiền COD thành công khi giao hàng
-        }
-        order.UpdatedAt = DateTime.UtcNow;
+            order.OrderStatus = newStatus;
+            if (newStatus == "Delivered" && order.PaymentMethod == "COD")
+            {
+                order.PaymentStatus = "Paid"; // Thu tiền COD thành công khi giao hàng
+            }
+            order.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
-        TempData["SuccessMessage"] = $"Đã cập nhật trạng thái đơn {order.OrderCode} thành '{newStatus}'.";
-        return RedirectToAction(nameof(Index));
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            int.TryParse(userIdClaim?.Value, out int adminId);
+
+            var history = new OrderStatusHistory
+            {
+                OrderId = order.OrderId,
+                PreviousStatus = oldStatus,
+                NewStatus = newStatus,
+                Note = string.IsNullOrWhiteSpace(note) ? $"Nhân viên cập nhật trạng thái đơn thành '{newStatus}'" : note.Trim(),
+                ChangedBy = adminId > 0 ? adminId : null,
+                ChangedAt = DateTime.UtcNow
+            };
+            await _context.OrderStatusHistories.AddAsync(history);
+
+            await _auditLogService.LogAsync(
+                action: "UpdateOrderStatus",
+                module: "Orders",
+                recordId: order.OrderCode,
+                oldValues: new { OrderStatus = oldStatus },
+                newValues: new { OrderStatus = newStatus, PaymentStatus = order.PaymentStatus, Note = note }
+            );
+
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = $"Đã cập nhật trạng thái đơn {order.OrderCode} thành '{newStatus}'.";
+        }
+
+        return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    /// <summary>
+    /// Xem chi tiết đơn hàng, danh sách sản phẩm, dòng thời gian và nhật ký đối soát
+    /// </summary>
+    [HttpGet]
+    [HasPermission("Orders.View")]
+    public async Task<IActionResult> Detail(int id)
+    {
+        var order = await _context.Orders
+            .Include(o => o.OrderDetails)
+                .ThenInclude(od => od.Variant)
+                    .ThenInclude(v => v.Product)
+            .Include(o => o.StatusHistories)
+                .ThenInclude(h => h.User)
+            .Include(o => o.PaymentTransactions)
+            .Include(o => o.User)
+            .FirstOrDefaultAsync(o => o.OrderId == id);
+
+        if (order == null) return NotFound();
+
+        return View(order);
     }
 }

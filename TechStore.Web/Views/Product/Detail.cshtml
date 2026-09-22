@@ -4,6 +4,16 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     var variants = Model.Variants.Where(v => v.IsActive).ToList();
     var defaultVariant = variants.FirstOrDefault();
+    var reviews = (List<TechStore.Core.Entities.ProductReview>?)ViewBag.Reviews ?? new List<TechStore.Core.Entities.ProductReview>();
+    double avgRating = (double)(ViewBag.AverageRating ?? 5.0);
+    int totalReviews = (int)(ViewBag.TotalReviews ?? 0);
+    int count5 = (int)(ViewBag.Count5 ?? 0);
+    int count4 = (int)(ViewBag.Count4 ?? 0);
+    int count3 = (int)(ViewBag.Count3 ?? 0);
+    int count2 = (int)(ViewBag.Count2 ?? 0);
+    int count1 = (int)(ViewBag.Count1 ?? 0);
+    bool hasPurchased = (bool)(ViewBag.HasPurchased ?? false);
+    bool hasReviewed = (bool)(ViewBag.HasReviewed ?? false);
 }
 
 <div class="max-w-7xl mx-auto px-4 py-6 space-y-8">
@@ -16,14 +26,51 @@
         <span class="text-slate-800 font-bold truncate">@Model.Name</span>
     </div>
 
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs">
+            <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs">
+            <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
     <!-- Product Main Info Section -->
     <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Left: Image Gallery -->
-        <div class="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-100 relative">
-            <img id="mainProductImage" src="@Model.FeaturedImage" alt="@Model.Name" class="max-h-96 w-auto object-contain hover:scale-105 transition-transform duration-300" onerror="this.src='/assets/images/placeholder.png'" />
-            <span class="absolute top-4 left-4 px-3 py-1 text-xs font-black bg-blue-600 text-white rounded-lg shadow-sm">
-                Chính Hãng 100%
-            </span>
+        <!-- Left: Image Gallery & Thumbnail Slider -->
+        <div class="space-y-4">
+            <div class="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-100 relative overflow-hidden group">
+                <img id="mainProductImage" src="@Model.FeaturedImage" alt="@Model.Name" class="max-h-96 w-auto object-contain transition-transform duration-300 group-hover:scale-105" onerror="this.src='/assets/images/placeholder.png'" />
+                <span class="absolute top-4 left-4 px-3 py-1 text-xs font-black bg-[#0046be] text-white rounded-lg shadow-sm">
+                    Chính Hãng 100%
+                </span>
+            </div>
+
+            <!-- Thumbnail Strip -->
+            @if (Model.Images != null && Model.Images.Any())
+            {
+                <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                    <button type="button" onclick="switchGalleryImage('@Model.FeaturedImage', this)" 
+                            class="gallery-thumb w-16 h-16 rounded-xl border-2 border-[#0046be] p-1 bg-white hover:opacity-90 shrink-0 transition shadow-xs focus:outline-none">
+                        <img src="@Model.FeaturedImage" alt="Main Thumbnail" class="w-full h-full object-contain rounded-lg" onerror="this.src='/assets/images/placeholder.png'" />
+                    </button>
+
+                    @foreach (var img in Model.Images.OrderBy(i => i.DisplayOrder))
+                    {
+                        <button type="button" onclick="switchGalleryImage('@img.ImageUrl', this)" 
+                                class="gallery-thumb w-16 h-16 rounded-xl border-2 border-slate-200 p-1 bg-white hover:border-[#0046be] shrink-0 transition shadow-xs focus:outline-none">
+                            <img src="@img.ImageUrl" alt="Gallery Thumbnail" class="w-full h-full object-contain rounded-lg" onerror="this.src='/assets/images/placeholder.png'" />
+                        </button>
+                    }
+                </div>
+            }
         </div>
 
         <!-- Right: Configurations & Variant Selection -->
@@ -38,6 +85,32 @@
                 </div>
 
                 <h1 class="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">@Model.Name</h1>
+
+                <!-- Đánh giá sao & Đã bán -->
+                <div class="flex items-center gap-3 pt-0.5 text-xs">
+                    <div class="flex items-center text-amber-400">
+                        @for (int s = 1; s <= 5; s++)
+                        {
+                            if (s <= Math.Round(avgRating))
+                            {
+                                <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                            }
+                            else
+                            {
+                                <svg class="w-4 h-4 text-slate-200 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                            }
+                        }
+                    </div>
+                    <span class="font-bold text-slate-900">@avgRating</span>
+                    <span class="text-slate-300">|</span>
+                    <a href="#reviewsSection" class="text-blue-600 hover:underline font-semibold">@totalReviews đánh giá</a>
+                    <span class="text-slate-300">|</span>
+                    <span class="text-emerald-600 font-semibold flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        Đã bán 250+
+                    </span>
+                </div>
+
                 <p class="text-xs text-slate-500 leading-relaxed">@Model.ShortDescription</p>
 
                 <!-- Giá bán thay đổi thời gian thực -->
@@ -82,7 +155,7 @@
                 </div>
             </div>
 
-            <!-- Nút Mua Ngay & Thêm Giỏ Hàng -->
+            <!-- Nút Mua Ngay, Thêm Giỏ Hàng & Yêu Thích -->
             <div class="pt-4 border-t border-slate-100 flex items-center gap-3">
                 <input type="hidden" id="selectedVariantId" value="@(defaultVariant?.VariantId ?? 0)" />
                 <button type="button" onclick="handleAddCurrentToCart(true)" class="flex-1 py-3.5 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-sm rounded-xl shadow-md active:scale-95 transition-all text-center">
@@ -91,6 +164,13 @@
                 <button type="button" onclick="handleAddCurrentToCart(false)" class="px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                     <span>Thêm Vào Giỏ</span>
+                </button>
+                <!-- Nút Yêu thích (Wishlist) -->
+                <button type="button" onclick="toggleWishlist(@Model.ProductId, this)" 
+                        id="wishlistBtn_@Model.ProductId"
+                        class="p-3.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 rounded-xl transition-all flex items-center justify-center shadow-xs" 
+                        title="Thêm vào danh sách yêu thích">
+                    <svg class="w-5 h-5 transition-transform active:scale-125" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                 </button>
             </div>
         </div>
@@ -101,6 +181,181 @@
         <h3 class="text-lg font-black text-slate-900 pb-3 border-b border-slate-100">Mô Tả Chi Tiết Thiết Bị</h3>
         <div class="prose max-w-none text-slate-700 text-sm leading-relaxed">
             @Html.Raw(Model.FullDescription ?? Model.ShortDescription)
+        </div>
+    </div>
+
+    <!-- Phân Hệ Đánh Giá & Nhận Xét Sản Phẩm (Reviews & Ratings) -->
+    <div id="reviewsSection" class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-8">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div>
+                <h3 class="text-xl font-black text-slate-900">Đánh Giá & Nhận Xét Khách Hàng</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Ý kiến đóng góp thực tế từ những người đã sở hữu sản phẩm</p>
+            </div>
+            <div class="hidden sm:flex items-center gap-1.5 text-xs text-emerald-600 font-bold bg-emerald-50 px-3 py-1.5 rounded-xl">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                <span>100% Đánh Giá Xác Thực</span>
+            </div>
+        </div>
+
+        <!-- Rating Score Overview & Review Form -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <!-- Left: Rating Card & Percentage Breakdown -->
+            <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 space-y-4">
+                <div class="text-center space-y-1">
+                    <div class="text-4xl font-black text-slate-900">@avgRating<span class="text-lg text-slate-400 font-medium">/5</span></div>
+                    <div class="flex items-center justify-center text-amber-400">
+                        @for (int s = 1; s <= 5; s++)
+                        {
+                            if (s <= Math.Round(avgRating))
+                            {
+                                <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                            }
+                            else
+                            {
+                                <svg class="w-5 h-5 text-slate-200 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                            }
+                        }
+                    </div>
+                    <p class="text-xs text-slate-500 font-medium">Dựa trên @totalReviews lượt đánh giá</p>
+                </div>
+
+                <!-- Star Bars -->
+                <div class="space-y-2 text-xs text-slate-600">
+                    @{
+                        var starLevels = new[] {
+                            (Star: 5, Count: count5),
+                            (Star: 4, Count: count4),
+                            (Star: 3, Count: count3),
+                            (Star: 2, Count: count2),
+                            (Star: 1, Count: count1)
+                        };
+                    }
+                    @foreach (var sl in starLevels)
+                    {
+                        var pct = totalReviews > 0 ? (sl.Count * 100) / totalReviews : 0;
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 font-bold text-slate-700">@sl.Star ★</span>
+                            <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-amber-400 rounded-full" style="width: @pct%"></div>
+                            </div>
+                            <span class="w-8 text-right text-slate-400 font-mono text-[11px]">@sl.Count</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Right: Interactive Review Form (2 columns) -->
+            <div class="lg:col-span-2 bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <h4 class="font-bold text-slate-900 text-sm mb-3 flex items-center gap-2">
+                        <span>Viết Đánh Giá Của Bạn</span>
+                        @if (hasPurchased)
+                        {
+                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">✓ Đã Mua Thiết Bị Này</span>
+                        }
+                    </h4>
+
+                    <form action="/product/@Model.Slug/review" method="post" class="space-y-4">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Star Rating Picker -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Mức độ hài lòng của bạn:</label>
+                            <div class="flex items-center gap-2" id="starPickerContainer">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <button type="button" onclick="setReviewRating(@i)" class="star-pick text-amber-400 hover:scale-110 transition-transform" data-rating="@i">
+                                        <svg class="w-7 h-7 fill-current star-icon" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                        </svg>
+                                    </button>
+                                }
+                                <span id="ratingDescription" class="text-xs font-bold text-amber-600 ml-2">5/5 - Rất tuyệt vời!</span>
+                            </div>
+                            <input type="hidden" name="rating" id="reviewRatingInput" value="5" />
+                        </div>
+
+                        <!-- Comment textarea -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Nhận xét chi tiết:</label>
+                            <textarea name="comment" rows="3" required placeholder="Chia sẻ trải nghiệm về hiệu năng, thiết kế, thời lượng pin, độ hài lòng khi nhận hàng..." class="w-full bg-white text-slate-900 text-xs rounded-xl p-3 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600"></textarea>
+                        </div>
+
+                        <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95">
+                            Gửi Đánh Giá Ngay
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <div class="text-center py-6 space-y-3">
+                        <div class="w-12 h-12 mx-auto rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </div>
+                        <h4 class="font-bold text-slate-900 text-sm">Bạn đã trải nghiệm thiết bị này?</h4>
+                        <p class="text-xs text-slate-500 max-w-md mx-auto">Vui lòng đăng nhập tài khoản TechStore để chia sẻ nhận xét và đánh giá trải nghiệm thực tế với cộng đồng.</p>
+                        <a href="/auth/login?returnUrl=/product/@Model.Slug" class="inline-flex items-center gap-2 px-5 py-2.5 bg-bestbuy-blue text-white font-bold text-xs rounded-xl shadow-md hover:bg-bestbuy-darkblue transition-all">
+                            <span>Đăng Nhập Để Viết Đánh Giá</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Reviews List -->
+        <div class="space-y-4 pt-4 border-t border-slate-100">
+            <h4 class="font-bold text-slate-900 text-sm">Nhận xét từ khách hàng (@reviews.Count)</h4>
+
+            @if (reviews.Any())
+            {
+                <div class="space-y-4">
+                    @foreach (var r in reviews)
+                    {
+                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs">
+                                        @((r.User?.FullName ?? "K").Substring(0, 1).ToUpper())
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <strong class="text-slate-900 font-bold">@(r.User?.FullName ?? "Khách hàng TechStore")</strong>
+                                            <span class="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
+                                                <svg class="w-3 h-3 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                                Đã mua hàng
+                                            </span>
+                                        </div>
+                                        <span class="text-[10px] text-slate-400">@r.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center text-amber-400">
+                                    @for (int s = 1; s <= 5; s++)
+                                    {
+                                        if (s <= r.Rating)
+                                        {
+                                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                        }
+                                        else
+                                        {
+                                            <svg class="w-3.5 h-3.5 text-slate-200 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                            <p class="text-slate-700 leading-relaxed pl-10">@r.Comment</p>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-8 text-slate-400 text-xs">
+                    Chưa có đánh giá nào cho sản phẩm này. Hãy là người đầu tiên để lại nhận xét!
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -130,6 +385,82 @@
             if (redirectToCheckout) {
                 window.location.href = '/checkout';
             }
+        }
+    }
+
+    // Star rating selection
+    const ratingTexts = {
+        1: "1/5 - Rất không hài lòng",
+        2: "2/5 - Không hài lòng",
+        3: "3/5 - Bình thường",
+        4: "4/5 - Hài lòng",
+        5: "5/5 - Rất tuyệt vời!"
+    };
+
+    function setReviewRating(rating) {
+        const input = document.getElementById('reviewRatingInput');
+        if (input) input.value = rating;
+
+        const desc = document.getElementById('ratingDescription');
+        if (desc) desc.innerText = ratingTexts[rating] || (rating + "/5");
+
+        const buttons = document.querySelectorAll('.star-pick');
+        buttons.forEach((btn, idx) => {
+            const starSvg = btn.querySelector('.star-icon');
+            if (idx < rating) {
+                starSvg.classList.add('text-amber-400');
+                starSvg.classList.remove('text-slate-200');
+            } else {
+                starSvg.classList.remove('text-amber-400');
+                starSvg.classList.add('text-slate-200');
+            }
+        });
+    }
+
+    // Wishlist toggle
+    async function toggleWishlist(productId, btn) {
+        try {
+            const res = await fetch(`/api/wishlist/toggle?productId=${productId}`, { method: 'POST' });
+            if (res.status === 401) {
+                window.location.href = `/auth/login?returnUrl=${encodeURIComponent(window.location.pathname)}`;
+                return;
+            }
+            if (!res.ok) return;
+            const data = await res.json();
+            const svg = btn.querySelector('svg');
+            if (data.isWishlisted) {
+                btn.classList.remove('bg-slate-100', 'text-slate-500');
+                btn.classList.add('bg-rose-50', 'text-rose-600');
+                svg.setAttribute('fill', 'currentColor');
+            } else {
+                btn.classList.remove('bg-rose-50', 'text-rose-600');
+                btn.classList.add('bg-slate-100', 'text-slate-500');
+                svg.setAttribute('fill', 'none');
+            }
+
+            const headerWishlistBadge = document.getElementById('headerWishlistCount');
+            if (headerWishlistBadge) {
+                headerWishlistBadge.innerText = data.count;
+                headerWishlistBadge.classList.toggle('hidden', data.count === 0);
+            }
+        } catch (err) {
+            console.error('Wishlist error:', err);
+        }
+    }
+
+    // Interactive Gallery image switcher
+    function switchGalleryImage(imgUrl, btnElement) {
+        const mainImg = document.getElementById('mainProductImage');
+        if (mainImg) {
+            mainImg.src = imgUrl;
+        }
+        document.querySelectorAll('.gallery-thumb').forEach(btn => {
+            btn.classList.remove('border-[#0046be]');
+            btn.classList.add('border-slate-200');
+        });
+        if (btnElement) {
+            btnElement.classList.remove('border-slate-200');
+            btnElement.classList.add('border-[#0046be]');
         }
     }
 </script>

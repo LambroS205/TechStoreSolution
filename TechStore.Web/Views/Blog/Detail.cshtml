@@ -1,0 +1,120 @@
+@model TechStore.Core.Entities.BlogPost
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var relatedPosts = (List<TechStore.Core.Entities.BlogPost>?)ViewBag.RelatedPosts ?? new List<TechStore.Core.Entities.BlogPost>();
+}
+
+<div class="max-w-4xl mx-auto px-4 py-8 space-y-8">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs text-slate-400">
+        <a href="/" class="hover:text-blue-600">Trang chủ</a>
+        <span>/</span>
+        <a href="/blogs" class="hover:text-blue-600">Tin tức công nghệ</a>
+        <span>/</span>
+        <a href="/blogs/category/@Model.Category.Slug" class="hover:text-blue-600">@Model.Category.Name</a>
+    </nav>
+
+    <!-- Post Header -->
+    <header class="space-y-4">
+        <div class="inline-flex items-center gap-2">
+            <span class="px-3 py-1 text-xs font-black uppercase tracking-wider bg-blue-100 text-bestbuy-blue rounded-full">
+                @Model.Category.Name
+            </span>
+        </div>
+
+        <h1 class="text-3xl sm:text-4xl font-black text-slate-900 leading-tight tracking-tight">
+            @Model.Title
+        </h1>
+
+        <!-- Author, Date, Views -->
+        <div class="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-slate-100 text-xs text-slate-500">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-bestbuy-blue text-white font-bold flex items-center justify-center text-sm shadow-xs">
+                    @(Model.Author?.FullName?.Substring(0, 1) ?? "A")
+                </div>
+                <div>
+                    <div class="font-bold text-slate-800">@(Model.Author?.FullName ?? "Ban Biên Tập TechStore")</div>
+                    <div class="text-[11px] text-slate-400">Biên tập viên công nghệ</div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 text-[11px]">
+                <span class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    @Model.PublishedAt.ToString("dd/MM/yyyy HH:mm")
+                </span>
+                <span>&bull;</span>
+                <span class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    @Model.ViewCount lượt xem
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Post Summary Callout -->
+    @if (!string.IsNullOrWhiteSpace(Model.Summary))
+    {
+        <div class="p-4 bg-slate-50 border-l-4 border-bestbuy-blue rounded-r-2xl text-sm font-medium text-slate-700 leading-relaxed italic">
+            @Model.Summary
+        </div>
+    }
+
+    <!-- Featured Image -->
+    @if (!string.IsNullOrWhiteSpace(Model.ThumbnailUrl))
+    {
+        <div class="rounded-3xl overflow-hidden shadow-lg border border-slate-100 aspect-video w-full bg-slate-100">
+            <img src="@Model.ThumbnailUrl" alt="@Model.Title" class="w-full h-full object-cover" onerror="this.src='/assets/images/placeholder.png'" />
+        </div>
+    }
+
+    <!-- Post Body Content -->
+    <article class="prose prose-slate max-w-none text-slate-800 leading-relaxed text-sm sm:text-base space-y-4">
+        @Html.Raw(Model.Content)
+    </article>
+
+    <!-- Tags & Action -->
+    <div class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <a href="/blogs" class="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-blue-600 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Quay lại Tin Công Nghệ
+        </a>
+
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-medium">Chia sẻ:</span>
+            <button onclick="navigator.clipboard.writeText(window.location.href); alert('Đã sao chép liên kết!');" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors" title="Sao chép liên kết">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Related Articles -->
+    @if (relatedPosts.Any())
+    {
+        <section class="pt-10 border-t border-slate-200 space-y-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-black text-slate-900">Bài Viết Cùng Chủ Đề</h3>
+                <a href="/blogs/category/@Model.Category.Slug" class="text-xs font-bold text-blue-600 hover:underline">Xem tất cả &rarr;</a>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                @foreach (var rel in relatedPosts)
+                {
+                    <a href="/blog/@rel.Slug" class="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all flex flex-col">
+                        <div class="aspect-video w-full bg-slate-100 overflow-hidden">
+                            <img src="@rel.ThumbnailUrl" alt="@rel.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='/assets/images/placeholder.png'" />
+                        </div>
+                        <div class="p-4 flex-1 flex flex-col justify-between space-y-2">
+                            <span class="text-[10px] font-bold text-blue-600 uppercase">@rel.Category.Name</span>
+                            <h4 class="text-xs font-bold text-slate-900 group-hover:text-blue-600 line-clamp-2 leading-snug">
+                                @rel.Title
+                            </h4>
+                            <span class="text-[10px] text-slate-400">@rel.PublishedAt.ToString("dd/MM/yyyy")</span>
+                        </div>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+</div>

@@ -39,6 +39,21 @@ public class TechStoreDbContext : DbContext
     public DbSet<OrderDetail> OrderDetails => Set<OrderDetail>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
 
+    // DbSets: Phân hệ Đánh giá, Yêu thích & Kho hàng (Phase 3)
+    public DbSet<ProductReview> ProductReviews => Set<ProductReview>();
+    public DbSet<Wishlist> Wishlists => Set<Wishlist>();
+    public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
+
+    // DbSets: Phân hệ Blog, Sổ địa chỉ, Nhà cung cấp & Lịch sử đơn (Phase 4)
+    public DbSet<BlogCategory> BlogCategories => Set<BlogCategory>();
+    public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
+    public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
+
+    // DbSets: Phân hệ Thư viện ảnh sản phẩm (Phase 5)
+    public DbSet<ProductImage> ProductImages => Set<ProductImage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -340,6 +355,173 @@ public class TechStoreDbContext : DbContext
                   .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasIndex(e => new { e.Module, e.CreatedAt });
+        });
+
+        // 17. Cấu hình bảng ProductReviews
+        modelBuilder.Entity<ProductReview>(entity =>
+        {
+            entity.ToTable("ProductReviews");
+            entity.HasKey(e => e.ReviewId);
+            entity.Property(e => e.Comment).HasMaxLength(1000);
+            entity.Property(e => e.IsApproved).IsRequired();
+
+            entity.HasOne(e => e.Product)
+                  .WithMany(p => p.Reviews)
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                  .WithMany(u => u.Reviews)
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.ProductId, e.IsApproved });
+        });
+
+        // 18. Cấu hình bảng Wishlists (Composite Key)
+        modelBuilder.Entity<Wishlist>(entity =>
+        {
+            entity.ToTable("Wishlists");
+            entity.HasKey(e => new { e.UserId, e.ProductId });
+
+            entity.HasOne(e => e.User)
+                  .WithMany(u => u.Wishlists)
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Product)
+                  .WithMany(p => p.Wishlists)
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 19. Cấu hình bảng InventoryTransactions
+        modelBuilder.Entity<InventoryTransaction>(entity =>
+        {
+            entity.ToTable("InventoryTransactions");
+            entity.HasKey(e => e.InventoryTxId);
+            entity.Property(e => e.TransactionType).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.UnitPrice).HasPrecision(18, 2);
+            entity.Property(e => e.ReferenceCode).HasMaxLength(50);
+            entity.Property(e => e.Note).HasMaxLength(300);
+
+            entity.HasOne(e => e.Variant)
+                  .WithMany()
+                  .HasForeignKey(e => e.VariantId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.CreatedBy)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.VariantId, e.CreatedAt });
+        });
+
+        // 20. Cấu hình bảng BlogCategories
+        modelBuilder.Entity<BlogCategory>(entity =>
+        {
+            entity.ToTable("BlogCategories");
+            entity.HasKey(e => e.BlogCategoryId);
+            entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Slug).HasMaxLength(150).IsRequired();
+
+            entity.HasIndex(e => e.Slug).IsUnique();
+        });
+
+        // 21. Cấu hình bảng BlogPosts
+        modelBuilder.Entity<BlogPost>(entity =>
+        {
+            entity.ToTable("BlogPosts");
+            entity.HasKey(e => e.PostId);
+            entity.Property(e => e.Title).HasMaxLength(250).IsRequired();
+            entity.Property(e => e.Slug).HasMaxLength(300).IsRequired();
+            entity.Property(e => e.Summary).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.ThumbnailUrl).HasMaxLength(500).IsRequired();
+
+            entity.HasOne(e => e.Category)
+                  .WithMany(c => c.Posts)
+                  .HasForeignKey(e => e.BlogCategoryId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Author)
+                  .WithMany()
+                  .HasForeignKey(e => e.AuthorId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => new { e.IsPublished, e.PublishedAt });
+        });
+
+        // 22. Cấu hình bảng CustomerAddresses
+        modelBuilder.Entity<CustomerAddress>(entity =>
+        {
+            entity.ToTable("CustomerAddresses");
+            entity.HasKey(e => e.AddressId);
+            entity.Property(e => e.RecipientName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.PhoneNumber).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Province).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.District).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Ward).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.StreetAddress).HasMaxLength(250).IsRequired();
+
+            entity.HasOne(e => e.User)
+                  .WithMany(u => u.Addresses)
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.UserId);
+        });
+
+        // 23. Cấu hình bảng Suppliers
+        modelBuilder.Entity<Supplier>(entity =>
+        {
+            entity.ToTable("Suppliers");
+            entity.HasKey(e => e.SupplierId);
+            entity.Property(e => e.Name).HasMaxLength(150).IsRequired();
+            entity.Property(e => e.ContactPerson).HasMaxLength(100);
+            entity.Property(e => e.Phone).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Email).HasMaxLength(100);
+            entity.Property(e => e.Address).HasMaxLength(250);
+        });
+
+        // 24. Cấu hình bảng OrderStatusHistory
+        modelBuilder.Entity<OrderStatusHistory>(entity =>
+        {
+            entity.ToTable("OrderStatusHistory");
+            entity.HasKey(e => e.HistoryId);
+            entity.Property(e => e.PreviousStatus).HasMaxLength(30);
+            entity.Property(e => e.NewStatus).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.Note).HasMaxLength(300);
+
+            entity.HasOne(e => e.Order)
+                  .WithMany(o => o.StatusHistories)
+                  .HasForeignKey(e => e.OrderId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.ChangedBy)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => new { e.OrderId, e.ChangedAt });
+        });
+
+        // 25. Cấu hình bảng ProductImages (Phase 5)
+        modelBuilder.Entity<ProductImage>(entity =>
+        {
+            entity.ToTable("ProductImages");
+            entity.HasKey(e => e.ImageId);
+            entity.Property(e => e.ImageUrl).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.DisplayOrder).HasDefaultValue(0);
+            entity.Property(e => e.IsPrimary).HasDefaultValue(false);
+
+            entity.HasOne(e => e.Product)
+                  .WithMany(p => p.Images)
+                  .HasForeignKey(e => e.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.ProductId);
         });
     }
 }

@@ -1,0 +1,116 @@
+@model TechStore.Web.Areas.Admin.Controllers.ImportInventoryViewModel
+@{
+    ViewData["Title"] = "Lập Phiếu Nhập Kho";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string? selectedVariantName = ViewBag.SelectedVariantName;
+}
+
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- Header & Breadcrumb -->
+    <div>
+        <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+            <a href="/Admin/Dashboard" class="hover:text-blue-600">Tổng quan</a>
+            <span>/</span>
+            <a href="/Admin/Inventory" class="hover:text-blue-600">Kho hàng</a>
+            <span>/</span>
+            <span class="text-slate-600">Lập phiếu nhập kho</span>
+        </div>
+        <h1 class="text-2xl font-black text-slate-900">Lập Phiếu Nhập Kho Thiết Bị</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Tiếp nhận hàng hóa mới từ hãng sản xuất hoặc nhà phân phối, tự động cộng tồn kho</p>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs">
+            <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8">
+        <form method="post" action="/Admin/Inventory/Import" class="space-y-6">
+            @Html.AntiForgeryToken()
+
+            <!-- Biến thể sản phẩm cần nhập -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Thiết Bị & Biến Thể Cần Nhập <span class="text-rose-500">*</span>
+                </label>
+                @if (!string.IsNullOrEmpty(selectedVariantName))
+                {
+                    <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs">
+                        <span class="font-bold text-blue-900">@selectedVariantName</span>
+                        <input type="hidden" asp-for="VariantId" />
+                        <a href="/Admin/Inventory/Import" class="text-xs text-blue-600 hover:underline font-semibold">Chọn SP khác</a>
+                    </div>
+                }
+                else
+                {
+                    <select asp-for="VariantId" asp-items="ViewBag.Variants" class="w-full bg-white text-slate-800 text-xs rounded-xl p-3 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600">
+                        <option value="">-- Chọn thiết bị và biến thể cần nhập kho --</option>
+                    </select>
+                }
+                <span asp-validation-for="VariantId" class="text-rose-500 text-xs mt-1 block font-medium"></span>
+            </div>
+
+            <!-- Nhà cung cấp đối tác -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Đối Tác Nhà Cung Cấp / Hãng Phân Phối
+                </label>
+                <select asp-for="SupplierId" asp-items="ViewBag.Suppliers" class="w-full bg-white text-slate-800 text-xs rounded-xl p-3 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600">
+                    <option value="">-- Chọn nhà cung cấp nhập hàng (Tùy chọn) --</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Số lượng nhập -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                        Số Lượng Nhập Thêm <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="number" asp-for="Quantity" min="1" max="10000" class="w-full bg-white text-slate-800 text-sm font-bold rounded-xl p-3 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600" />
+                    <span asp-validation-for="Quantity" class="text-rose-500 text-xs mt-1 block font-medium"></span>
+                </div>
+
+                <!-- Đơn giá nhập -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                        Giá Nhập Từ Nhà Cung Cấp (VNĐ) <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="number" asp-for="UnitPrice" min="0" step="10000" placeholder="vd: 25000000" class="w-full bg-white text-slate-800 text-sm font-bold rounded-xl p-3 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600" />
+                    <span asp-validation-for="UnitPrice" class="text-rose-500 text-xs mt-1 block font-medium"></span>
+                </div>
+            </div>
+
+            <!-- Mã tham chiếu / Số hóa đơn VAT -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Mã Tham Chiếu / Số Hóa Đơn Đỏ VAT (Nếu có)
+                </label>
+                <input type="text" asp-for="ReferenceCode" placeholder="vd: VAT-APPLE-2026/01 hoặc để trống tự sinh" class="w-full bg-white text-slate-800 text-xs rounded-xl p-3 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600 font-mono" />
+            </div>
+
+            <!-- Ghi chú nhập kho -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Ghi Chú & Thông Tin Đợt Nhập Hàng
+                </label>
+                <textarea asp-for="Note" rows="3" placeholder="Ghi chú xuất xứ lô hàng, chứng nhận hải quan, biên bản kiểm tra số lượng..." class="w-full bg-white text-slate-800 text-xs rounded-xl p-3 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600"></textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <a href="/Admin/Inventory" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors">
+                    Hủy Bỏ
+                </a>
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    <span>Xác Nhận Nhập Kho</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

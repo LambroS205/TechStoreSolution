@@ -1,0 +1,217 @@
+@model List<TechStore.Core.Entities.ProductVariant>
+@{
+    ViewData["Title"] = "Quản Lý Kho Hàng & Tồn Kho";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string currentStatus = ViewBag.Status ?? "All";
+    string? searchQuery = ViewBag.SearchQuery;
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+}
+
+<div class="space-y-6">
+    <!-- Header & Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="/Admin/Dashboard" class="hover:text-blue-600">Tổng quan</a>
+                <span>/</span>
+                <span class="text-slate-600">Kho hàng</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900">Báo Cáo Tồn Kho & Xuất Nhập</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Theo dõi số lượng hàng hóa tồn kho thực tế của từng phiên bản cấu hình thiết bị</p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <a href="/Admin/Inventory/Transactions" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                <span>Sổ Giao Dịch Kho</span>
+            </a>
+            <a href="/Admin/Inventory/Import" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <span>Lập Phiếu Nhập Kho</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs">
+            <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Tổng Tồn Kho</p>
+                <h3 class="text-xl font-black text-slate-900 mt-1">@(((int)ViewBag.TotalQuantity).ToString("N0")) <span class="text-xs font-normal text-slate-500">thiết bị</span></h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Giá Trị Tồn Kho</p>
+                <h3 class="text-xl font-black text-slate-900 mt-1">@(((decimal)ViewBag.TotalValue).ToString("N0")) <span class="text-xs font-normal text-slate-500">đ</span></h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cảnh Báo Tồn Thấp</p>
+                <h3 class="text-xl font-black text-amber-600 mt-1">@ViewBag.LowStockCount <span class="text-xs font-normal text-slate-500">mặt hàng (&le;10)</span></h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Hết Hàng</p>
+                <h3 class="text-xl font-black text-rose-600 mt-1">@ViewBag.OutOfStockCount <span class="text-xs font-normal text-slate-500">mặt hàng</span></h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-2 text-xs font-semibold overflow-x-auto pb-1 no-scrollbar">
+            <a href="/Admin/Inventory?status=All&q=@searchQuery" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentStatus == "All" ? "bg-bestbuy-blue text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+                Tất Cả
+            </a>
+            <a href="/Admin/Inventory?status=LowStock&q=@searchQuery" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentStatus == "LowStock" ? "bg-amber-600 text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+                Tồn Kho Thấp (&le;10)
+            </a>
+            <a href="/Admin/Inventory?status=OutOfStock&q=@searchQuery" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentStatus == "OutOfStock" ? "bg-rose-600 text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+                Hết Hàng (0)
+            </a>
+            <a href="/Admin/Inventory?status=InStock&q=@searchQuery" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentStatus == "InStock" ? "bg-emerald-600 text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+                Tồn Kho Dồi Dào (&gt;10)
+            </a>
+        </div>
+
+        <form method="get" action="/Admin/Inventory" class="relative max-w-xs w-full">
+            <input type="hidden" name="status" value="@currentStatus" />
+            <input type="text" name="q" value="@searchQuery" placeholder="Tìm tên SP, biến thể, SKU..." class="w-full bg-white text-slate-800 text-xs rounded-xl pl-9 pr-4 py-2.5 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600 shadow-xs" />
+            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </form>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600 divide-y divide-slate-100">
+                <thead class="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3.5 px-4">Thiết Bị & Biến Thể</th>
+                        <th class="py-3.5 px-4">Mã SKU</th>
+                        <th class="py-3.5 px-4">Danh Mục / Hãng</th>
+                        <th class="py-3.5 px-4 text-right">Giá Bán Lẻ</th>
+                        <th class="py-3.5 px-4 text-center">Tồn Kho</th>
+                        <th class="py-3.5 px-4 text-center">Tình Trạng</th>
+                        <th class="py-3.5 px-4 text-right">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @if (Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            string img = !string.IsNullOrEmpty(item.ThumbnailImage) ? item.ThumbnailImage : item.Product.FeaturedImage;
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="py-3.5 px-4">
+                                    <div class="flex items-center gap-3">
+                                        <img src="@img" alt="@item.Product.Name" class="w-10 h-10 object-contain rounded-lg border border-slate-100 bg-slate-50 p-1 shrink-0" onerror="this.src='/assets/images/placeholder.png'" />
+                                        <div>
+                                            <a href="/product/@item.Product.Slug" target="_blank" class="font-bold text-slate-900 hover:text-blue-600 line-clamp-1">
+                                                @item.Product.Name
+                                            </a>
+                                            <span class="text-[11px] text-blue-600 font-semibold">@item.VariantName</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap font-mono font-bold text-slate-700">
+                                    @item.SKU
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <div class="font-semibold text-slate-800">@(item.Product.Brand?.Name ?? "")</div>
+                                    <div class="text-[10px] text-slate-400">@(item.Product.Category?.Name ?? "")</div>
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap text-right font-bold text-slate-900">
+                                    @item.SalePrice.ToString("N0") đ
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap text-center">
+                                    <span class="font-mono font-black text-sm @(item.StockQuantity <= 0 ? "text-rose-600" : (item.StockQuantity <= 10 ? "text-amber-600" : "text-emerald-600"))">
+                                        @item.StockQuantity
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap text-center">
+                                    @if (item.StockQuantity <= 0)
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                            ✕ Hết hàng
+                                        </span>
+                                    }
+                                    else if (item.StockQuantity <= 10)
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                            ⚠ Tồn kho thấp
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                            ✓ Dồi dào
+                                        </span>
+                                    }
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap text-right">
+                                    <a href="/Admin/Inventory/Import?variantId=@item.VariantId" class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] rounded-lg transition-colors" title="Nhập thêm hàng">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                        <span>Nhập Thêm</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="py-12 text-center text-slate-400">
+                                Không tìm thấy biến thể sản phẩm nào phù hợp.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (totalPages > 1)
+        {
+            <div class="p-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span class="text-slate-400">Trang @currentPage / @totalPages (Tổng @ViewBag.TotalItems biến thể)</span>
+                <div class="flex items-center gap-1.5">
+                    @for (int p = 1; p <= totalPages; p++)
+                    {
+                        <a href="/Admin/Inventory?status=@currentStatus&q=@searchQuery&page=@p" class="w-7 h-7 rounded-lg flex items-center justify-center font-bold transition-colors @(p == currentPage ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200")">
+                            @p
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>

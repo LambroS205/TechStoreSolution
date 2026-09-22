@@ -1,0 +1,183 @@
+@model List<TechStore.Core.Entities.BlogPost>
+@{
+    ViewData["Title"] = "Quản Lý Tin Tức & Blog";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string? search = ViewBag.Search as string;
+    int? categoryId = ViewBag.CategoryId as int?;
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int totalItems = ViewBag.TotalItems ?? 0;
+    var categories = (List<TechStore.Core.Entities.BlogCategory>?)ViewBag.Categories ?? new List<TechStore.Core.Entities.BlogCategory>();
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">&times;</button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">&times;</button>
+        </div>
+    }
+
+    <!-- Header Actions & Search -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-lg font-bold text-slate-900">Bài Viết & Tin Tức Công Nghệ</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Quản lý bài viết đánh giá, tin tức sản phẩm, bài hướng dẫn kỹ thuật trên Storefront (@totalItems bài viết)</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="/Admin/Blog/Categories" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                <span>Quản Lý Danh Mục</span>
+            </a>
+
+            <a href="/Admin/Blog/Create" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <span>Viết Bài Mới</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <form method="get" action="/Admin/Blog" class="flex flex-wrap items-center gap-3">
+            <div class="flex-1 min-w-[240px]">
+                <input type="text" name="q" value="@search" placeholder="Tìm theo tiêu đề hoặc tóm tắt bài viết..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+            </div>
+
+            <div class="w-48">
+                <select name="categoryId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                    <option value="">Tất cả danh mục</option>
+                    @foreach (var cat in categories)
+                    {
+                        <option value="@cat.BlogCategoryId" selected="@(categoryId == cat.BlogCategoryId)">@cat.Name</option>
+                    }
+                </select>
+            </div>
+
+            <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors">
+                Lọc Bài Viết
+            </button>
+            @if (!string.IsNullOrEmpty(search) || categoryId.HasValue)
+            {
+                <a href="/Admin/Blog" class="px-3 py-2 text-slate-500 hover:text-slate-800 text-xs font-medium">Đặt lại</a>
+            }
+        </form>
+    </div>
+
+    <!-- Blog Posts Table -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                    <tr>
+                        <th class="py-3.5 px-4">Bài Viết</th>
+                        <th class="py-3.5 px-4">Danh Mục</th>
+                        <th class="py-3.5 px-4">Tác Giả</th>
+                        <th class="py-3.5 px-4 text-center">Lượt Xem</th>
+                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3.5 px-4">Ngày Đăng</th>
+                        <th class="py-3.5 px-4 text-right">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @if (Model.Any())
+                    {
+                        @foreach (var post in Model)
+                        {
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="py-3.5 px-4">
+                                    <div class="flex items-center gap-3">
+                                        <img src="@post.ThumbnailUrl" alt="@post.Title" class="w-14 h-10 rounded-lg object-cover border border-slate-200 shrink-0 bg-slate-100" onerror="this.src='/assets/images/placeholder.png'" />
+                                        <div class="max-w-md">
+                                            <a href="/blog/@post.Slug" target="_blank" class="font-bold text-slate-900 hover:text-blue-600 line-clamp-1 text-xs">
+                                                @post.Title
+                                            </a>
+                                            <p class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">@post.Summary</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                                        @post.Category?.Name
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-xs font-medium text-slate-700">
+                                    @(post.Author?.FullName ?? "Ban Biên Tập")
+                                </td>
+                                <td class="py-3.5 px-4 text-center text-xs font-semibold text-slate-600">
+                                    @post.ViewCount.ToString("N0")
+                                </td>
+                                <td class="py-3.5 px-4 text-center">
+                                    <form method="post" action="/Admin/Blog/TogglePublish/@post.PostId" class="inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all @(post.IsPublished ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100" : "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200")" title="Nhấp để đổi trạng thái">
+                                            <span class="w-1.5 h-1.5 rounded-full @(post.IsPublished ? "bg-emerald-500" : "bg-slate-400")"></span>
+                                            <span>@(post.IsPublished ? "Xuất bản" : "Bản nháp")</span>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="py-3.5 px-4 text-xs text-slate-500">
+                                    @post.PublishedAt.ToString("dd/MM/yyyy")
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <div class="inline-flex items-center gap-1">
+                                        <a href="/Admin/Blog/Edit/@post.PostId" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Chỉnh sửa">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        </a>
+
+                                        <form method="post" action="/Admin/Blog/Delete/@post.PostId" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bài viết này?');" class="inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Xóa">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="py-12 text-center text-slate-400 text-xs">
+                                Chưa có bài viết nào phù hợp với bộ lọc tìm kiếm.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (totalPages > 1)
+        {
+            <div class="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Trang @currentPage / @totalPages (Tổng @totalItems bài viết)</span>
+                <div class="flex items-center gap-1">
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <a href="/Admin/Blog?page=@i&q=@search&categoryId=@categoryId" class="w-8 h-8 rounded-lg flex items-center justify-center font-bold @(i == currentPage ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200") transition-colors">
+                            @i
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -17,11 +17,13 @@ public class CheckoutController : Controller
 {
     private readonly TechStoreDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly TechStore.Core.Interfaces.IEmailService _emailService;
 
-    public CheckoutController(TechStoreDbContext context, IConfiguration configuration)
+    public CheckoutController(TechStoreDbContext context, IConfiguration configuration, TechStore.Core.Interfaces.IEmailService emailService)
     {
         _context = context;
         _configuration = configuration;
+        _emailService = emailService;
     }
 
     /// <summary>
@@ -29,8 +31,25 @@ public class CheckoutController : Controller
     /// </summary>
     [HttpGet]
     [Route("checkout")]
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+            {
+                var addr = await _context.CustomerAddresses
+                    .Where(a => a.UserId == userId)
+                    .OrderByDescending(a => a.IsDefault)
+                    .ThenByDescending(a => a.AddressId)
+                    .FirstOrDefaultAsync();
+
+                var user = await _context.Users.FindAsync(userId);
+                ViewBag.DefaultAddress = addr;
+                ViewBag.CustomerUser = user;
+            }
+        }
+
         return View();
     }
 
@@ -167,6 +186,39 @@ public class CheckoutController : Controller
 
         await _context.Orders.AddAsync(order);
         await _context.SaveChangesAsync();
+
+        // 5.1 Ghi nhận lịch sử khởi tạo đơn hàng
+        await _context.OrderStatusHistories.AddAsync(new OrderStatusHistory
+        {
+            OrderId = order.OrderId,
+            PreviousStatus = null,
+            NewStatus = "Pending",
+            Note = "Khách hàng hoàn tất đặt hàng trên hệ thống TechStore",
+            ChangedBy = userId,
+            ChangedAt = DateTime.UtcNow
+        });
+        await _context.SaveChangesAsync();
+
+        // 6. Ghi nhận lịch sử biến động xuất kho bán hàng
+        int createdById = userId ?? 1;
+        foreach (var detail in order.OrderDetails)
+        {
+            await _context.InventoryTransactions.AddAsync(new InventoryTransaction
+            {
+                VariantId = detail.VariantId,
+                TransactionType = "EXPORT_ORDER",
+                Quantity = detail.Quantity,
+                UnitPrice = detail.UnitPrice,
+                ReferenceCode = order.OrderCode,
+                Note = $"Xuất kho bán hàng theo đơn #{order.OrderCode}",
+                CreatedBy = createdById,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        await _context.SaveChangesAsync();
+
+        // 7. Gửi email xác nhận đặt hàng kèm hóa đơn & mã VietQR
+        await _emailService.SendOrderConfirmationEmailAsync(order);
 
         return RedirectToAction(nameof(Success), new { orderCode = order.OrderCode });
     }

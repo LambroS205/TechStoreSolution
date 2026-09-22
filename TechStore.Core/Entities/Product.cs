@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TechStore.Core.Entities;
@@ -30,4 +30,7 @@ public class Product
     public virtual Category Category { get; set; } = null!;
     public virtual Brand Brand { get; set; } = null!;
     public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
+    public virtual ICollection<ProductReview> Reviews { get; set; } = new List<ProductReview>();
+    public virtual ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();
+    public virtual ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
 }

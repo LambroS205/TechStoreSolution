@@ -221,6 +221,7 @@ public class AccountController : Controller
             .Include(o => o.OrderDetails)
                 .ThenInclude(od => od.Variant)
                     .ThenInclude(v => v.Product)
+            .Include(o => o.StatusHistories)
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
 
         if (order == null) return NotFound();
@@ -235,6 +236,142 @@ public class AccountController : Controller
         }
 
         return View(order);
+    }
+
+    /// <summary>
+    /// Trang danh sách sản phẩm yêu thích của khách hàng
+    /// </summary>
+    [HttpGet]
+    [Route("account/wishlist")]
+    public async Task<IActionResult> Wishlist()
+    {
+        var user = await GetCurrentUserAsync();
+        if (user == null) return RedirectToAction("Login", "Auth");
+
+        var wishlistItems = await _context.Wishlists
+            .Include(w => w.Product)
+                .ThenInclude(p => p.Category)
+            .Include(w => w.Product)
+                .ThenInclude(p => p.Brand)
+            .Include(w => w.Product)
+                .ThenInclude(p => p.Variants.Where(v => v.IsActive))
+            .Where(w => w.UserId == user.UserId)
+            .OrderByDescending(w => w.AddedAt)
+            .ToListAsync();
+
+        return View(wishlistItems);
+    }
+
+    /// <summary>
+    /// Quản lý sổ địa chỉ giao nhận hàng của khách hàng
+    /// </summary>
+    [HttpGet]
+    [Route("account/addresses")]
+    public async Task<IActionResult> Addresses()
+    {
+        var user = await GetCurrentUserAsync();
+        if (user == null) return RedirectToAction("Login", "Auth");
+
+        var addresses = await _context.CustomerAddresses
+            .Where(a => a.UserId == user.UserId)
+            .OrderByDescending(a => a.IsDefault)
+            .ThenByDescending(a => a.AddressId)
+            .ToListAsync();
+
+        return View(addresses);
+    }
+
+    /// <summary>
+    /// Thêm mới địa chỉ nhận hàng
+    /// </summary>
+    [HttpPost]
+    [Route("account/addresses/create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateAddress(CustomerAddress model)
+    {
+        var user = await GetCurrentUserAsync();
+        if (user == null) return RedirectToAction("Login", "Auth");
+
+        if (string.IsNullOrWhiteSpace(model.RecipientName) || string.IsNullOrWhiteSpace(model.PhoneNumber) || string.IsNullOrWhiteSpace(model.StreetAddress))
+        {
+            TempData["ErrorMessage"] = "Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ chi tiết!";
+            return RedirectToAction(nameof(Addresses));
+        }
+
+        bool hasAddresses = await _context.CustomerAddresses.AnyAsync(a => a.UserId == user.UserId);
+        if (!hasAddresses || model.IsDefault)
+        {
+            model.IsDefault = true;
+            var oldDefaults = await _context.CustomerAddresses.Where(a => a.UserId == user.UserId && a.IsDefault).ToListAsync();
+            foreach (var d in oldDefaults) d.IsDefault = false;
+        }
+
+        model.UserId = user.UserId;
+
+        await _context.CustomerAddresses.AddAsync(model);
+        await _context.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = "Đã lưu địa chỉ nhận hàng mới thành công!";
+        return RedirectToAction(nameof(Addresses));
+    }
+
+    /// <summary>
+    /// Đặt làm địa chỉ giao hàng mặc định
+    /// </summary>
+    [HttpPost]
+    [Route("account/addresses/set-default/{id}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetDefaultAddress(int id)
+    {
+        var user = await GetCurrentUserAsync();
+        if (user == null) return RedirectToAction("Login", "Auth");
+
+        var address = await _context.CustomerAddresses.FirstOrDefaultAsync(a => a.AddressId == id && a.UserId == user.UserId);
+        if (address != null)
+        {
+            var otherAddresses = await _context.CustomerAddresses.Where(a => a.UserId == user.UserId && a.AddressId != id).ToListAsync();
+            foreach (var o in otherAddresses) o.IsDefault = false;
+
+            address.IsDefault = true;
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Đã đặt làm địa chỉ mặc định!";
+        }
+
+        return RedirectToAction(nameof(Addresses));
+    }
+
+    /// <summary>
+    /// Xóa địa chỉ khỏi sổ địa chỉ
+    /// </summary>
+    [HttpPost]
+    [Route("account/addresses/delete/{id}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteAddress(int id)
+    {
+        var user = await GetCurrentUserAsync();
+        if (user == null) return RedirectToAction("Login", "Auth");
+
+        var address = await _context.CustomerAddresses.FirstOrDefaultAsync(a => a.AddressId == id && a.UserId == user.UserId);
+        if (address != null)
+        {
+            bool wasDefault = address.IsDefault;
+            _context.CustomerAddresses.Remove(address);
+            await _context.SaveChangesAsync();
+
+            if (wasDefault)
+            {
+                var nextAddress = await _context.CustomerAddresses.Where(a => a.UserId == user.UserId).OrderByDescending(a => a.AddressId).FirstOrDefaultAsync();
+                if (nextAddress != null)
+                {
+                    nextAddress.IsDefault = true;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            TempData["SuccessMessage"] = "Đã xóa địa chỉ thành công!";
+        }
+
+        return RedirectToAction(nameof(Addresses));
     }
 
     private async Task<User?> GetCurrentUserAsync()

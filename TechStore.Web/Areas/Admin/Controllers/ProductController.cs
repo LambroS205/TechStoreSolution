@@ -234,6 +234,7 @@ public class ProductController : Controller
     {
         var product = await _context.Products
             .Include(p => p.Variants)
+            .Include(p => p.Images)
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .FirstOrDefaultAsync(p => p.ProductId == id);
@@ -255,7 +256,8 @@ public class ProductController : Controller
             FullDescription = product.FullDescription,
             IsFeatured = product.IsFeatured,
             IsActive = product.IsActive,
-            Variants = product.Variants.OrderBy(v => v.VariantId).ToList()
+            Variants = product.Variants.OrderBy(v => v.VariantId).ToList(),
+            GalleryImages = product.Images.OrderBy(i => i.DisplayOrder).ToList()
         };
 
         return View(viewModel);
@@ -273,6 +275,7 @@ public class ProductController : Controller
 
         var product = await _context.Products
             .Include(p => p.Variants)
+            .Include(p => p.Images)
             .FirstOrDefaultAsync(p => p.ProductId == id);
 
         if (product == null) return NotFound();
@@ -296,6 +299,7 @@ public class ProductController : Controller
         {
             await LoadDropdownsAsync();
             model.Variants = product.Variants.OrderBy(v => v.VariantId).ToList();
+            model.GalleryImages = product.Images.OrderBy(i => i.DisplayOrder).ToList();
             return View(model);
         }
 
@@ -567,6 +571,79 @@ public class ProductController : Controller
         ViewBag.CategoryList = new SelectList(categories, "CategoryId", "Name");
         ViewBag.BrandList = new SelectList(brands, "BrandId", "Name");
     }
+
+    /// <summary>
+    /// Upload nhiều góc chụp bổ sung vào thư viện ảnh sản phẩm
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [HasPermission("Products.Edit")]
+    public async Task<IActionResult> UploadGallery(int id, List<IFormFile> galleryFiles)
+    {
+        var product = await _context.Products
+            .Include(p => p.Images)
+            .FirstOrDefaultAsync(p => p.ProductId == id);
+
+        if (product == null) return NotFound();
+
+        if (galleryFiles != null && galleryFiles.Any())
+        {
+            var maxOrder = product.Images.Any() ? product.Images.Max(i => i.DisplayOrder) : 0;
+            var uploadedCount = 0;
+
+            foreach (var file in galleryFiles)
+            {
+                if (file.Length > 0)
+                {
+                    using var stream = file.OpenReadStream();
+                    var savedPath = await _fileStorageService.SaveFileAsync(stream, file.FileName, "products");
+                    maxOrder++;
+                    _context.ProductImages.Add(new ProductImage
+                    {
+                        ProductId = id,
+                        ImageUrl = savedPath,
+                        DisplayOrder = maxOrder,
+                        IsPrimary = false
+                    });
+                    uploadedCount++;
+                }
+            }
+
+            if (uploadedCount > 0)
+            {
+                await _context.SaveChangesAsync();
+                await _auditLogService.LogAsync("UploadGallery", "Products", id.ToString(), null, $"Uploaded {uploadedCount} images");
+                TempData["SuccessMessage"] = $"Đã tải lên thành công {uploadedCount} ảnh vào thư viện!";
+            }
+        }
+        else
+        {
+            TempData["ErrorMessage"] = "Vui lòng chọn ít nhất một file ảnh hợp lệ.";
+        }
+
+        return RedirectToAction(nameof(Edit), new { id });
+    }
+
+    /// <summary>
+    /// Xóa ảnh khỏi thư viện ảnh sản phẩm
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [HasPermission("Products.Edit")]
+    public async Task<IActionResult> DeleteGalleryImage(int imageId)
+    {
+        var image = await _context.ProductImages.FindAsync(imageId);
+        if (image == null) return NotFound();
+
+        var productId = image.ProductId;
+        _context.ProductImages.Remove(image);
+        await _context.SaveChangesAsync();
+
+        await _auditLogService.LogAsync("DeleteGalleryImage", "Products", productId.ToString(), image.ImageUrl, null);
+        TempData["SuccessMessage"] = "Đã xóa ảnh khỏi thư viện thành công!";
+
+        return RedirectToAction(nameof(Edit), new { id = productId });
+    }
 }
 
 public class ProductCreateViewModel
@@ -606,6 +683,7 @@ public class ProductEditViewModel
     public bool IsActive { get; set; }
 
     public List<ProductVariant> Variants { get; set; } = new();
+    public List<ProductImage> GalleryImages { get; set; } = new();
 }
 
 public class SaveVariantDto

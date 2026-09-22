@@ -1,0 +1,160 @@
+@model List<TechStore.Core.Entities.InventoryTransaction>
+@{
+    ViewData["Title"] = "Sổ Giao Dịch Xuất Nhập Kho";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string currentType = ViewBag.Type ?? "All";
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+}
+
+<div class="space-y-6">
+    <!-- Header & Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="/Admin/Dashboard" class="hover:text-blue-600">Tổng quan</a>
+                <span>/</span>
+                <a href="/Admin/Inventory" class="hover:text-blue-600">Kho hàng</a>
+                <span>/</span>
+                <span class="text-slate-600">Sổ giao dịch kho</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900">Sổ Nhật Ký Biến Động Kho Hàng</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Kiểm toán toàn bộ lịch sử xuất - nhập - điều chỉnh tồn kho theo thời gian thực</p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <a href="/Admin/Inventory" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                <span>Bảng Tồn Kho</span>
+            </a>
+            <a href="/Admin/Inventory/Import" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <span>Lập Phiếu Nhập Mới</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex items-center gap-2 text-xs font-semibold overflow-x-auto pb-1 no-scrollbar">
+        <a href="/Admin/Inventory/Transactions?type=All" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentType == "All" ? "bg-bestbuy-blue text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+            Tất Cả Giao Dịch
+        </a>
+        <a href="/Admin/Inventory/Transactions?type=IMPORT" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentType == "IMPORT" ? "bg-emerald-600 text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+            Nhập Kho (+)
+        </a>
+        <a href="/Admin/Inventory/Transactions?type=EXPORT_ORDER" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentType == "EXPORT_ORDER" ? "bg-rose-600 text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+            Xuất Bán Hàng (-)
+        </a>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600 divide-y divide-slate-100">
+                <thead class="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3.5 px-4">Thời Gian</th>
+                        <th class="py-3.5 px-4">Loại Giao Dịch</th>
+                        <th class="py-3.5 px-4">Thiết Bị & Biến Thể</th>
+                        <th class="py-3.5 px-4">Mã SKU</th>
+                        <th class="py-3.5 px-4 text-center">Biến Động SL</th>
+                        <th class="py-3.5 px-4 text-right">Đơn Giá</th>
+                        <th class="py-3.5 px-4">Mã Tham Chiếu</th>
+                        <th class="py-3.5 px-4">Người Thực Hiện</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @if (Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="py-3.5 px-4 whitespace-nowrap text-slate-400 font-mono text-[11px]">
+                                    @item.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    @if (item.TransactionType == "IMPORT")
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                            ↓ Nhập Kho
+                                        </span>
+                                    }
+                                    else if (item.TransactionType == "EXPORT_ORDER")
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                            ↑ Xuất Bán Hàng
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                            ⚙ @item.TransactionType
+                                        </span>
+                                    }
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-bold text-slate-900 max-w-xs truncate">
+                                        @item.Variant.Product.Name
+                                    </div>
+                                    <span class="text-[11px] text-blue-600 font-semibold">@item.Variant.VariantName</span>
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap font-mono font-bold text-slate-700">
+                                    @item.Variant.SKU
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap text-center">
+                                    @if (item.TransactionType == "IMPORT")
+                                    {
+                                        <span class="font-mono font-bold text-emerald-600 text-sm">
+                                            +@item.Quantity
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="font-mono font-bold text-rose-600 text-sm">
+                                            -@item.Quantity
+                                        </span>
+                                    }
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap text-right font-bold text-slate-800">
+                                    @(item.UnitPrice.HasValue ? item.UnitPrice.Value.ToString("N0") + " đ" : "-")
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <span class="font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                                        @(item.ReferenceCode ?? "N/A")
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 whitespace-nowrap text-slate-700">
+                                    @(item.User?.FullName ?? "Hệ thống")
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="py-12 text-center text-slate-400">
+                                Chưa có giao dịch xuất nhập kho nào được ghi nhận.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (totalPages > 1)
+        {
+            <div class="p-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span class="text-slate-400">Trang @currentPage / @totalPages (Tổng @ViewBag.TotalItems bản ghi)</span>
+                <div class="flex items-center gap-1.5">
+                    @for (int p = 1; p <= totalPages; p++)
+                    {
+                        <a href="/Admin/Inventory/Transactions?type=@currentType&page=@p" class="w-7 h-7 rounded-lg flex items-center justify-center font-bold transition-colors @(p == currentPage ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200")">
+                            @p
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>

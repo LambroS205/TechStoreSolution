@@ -1,4 +1,4 @@
-﻿@model List<TechStore.Core.Entities.Order>
+@model List<TechStore.Core.Entities.Order>
 @{
     ViewData["Title"] = "Quản Lý Đơn Hàng & Duyệt VietQR";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -69,7 +69,7 @@
                     bool isPendingVietQr = o.PaymentMethod == "VietQR" && o.PaymentStatus == "Pending";
                     <tr class="hover:bg-slate-50/70 transition-colors @(isPendingVietQr ? "bg-amber-50/30" : "")">
                         <td class="py-4 px-4 font-bold text-slate-900">
-                            <div>@o.OrderCode</div>
+                            <div><a href="/Admin/Order/Detail/@o.OrderId" class="hover:text-blue-600 transition-colors text-blue-600 font-bold">@o.OrderCode</a></div>
                             <span class="text-[11px] font-normal text-slate-400">@o.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                         </td>
                         <td class="py-4 px-4">
@@ -101,16 +101,17 @@
                             </form>
                         </td>
                         <td class="py-4 px-4 text-center">
-                            @if (isPendingVietQr)
-                            {
-                                <button onclick="openVietQrConfirmModal(@o.OrderId, '@o.OrderCode', '@o.TotalAmount.ToString("N0")')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-sm">
-                                    Duyệt VietQR
-                                </button>
-                            }
-                            else
-                            {
-                                <span class="text-xs text-slate-400 font-medium">Hoàn tất</span>
-                            }
+                            <div class="inline-flex items-center gap-1.5">
+                                @if (isPendingVietQr)
+                                {
+                                    <button onclick="openVietQrConfirmModal(@o.OrderId, '@o.OrderCode', '@o.TotalAmount.ToString("N0")')" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-sm">
+                                        Duyệt VietQR
+                                    </button>
+                                }
+                                <a href="/Admin/Order/Detail/@o.OrderId" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-colors">
+                                    Chi tiết
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 }

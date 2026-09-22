@@ -69,6 +69,14 @@
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                                     <span>Đơn hàng của tôi</span>
                                 </a>
+                                <a href="/account/wishlist" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:text-rose-600 hover:bg-slate-50 font-medium">
+                                    <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                    <span>Sản phẩm yêu thích</span>
+                                </a>
+                                <a href="/account/addresses" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-medium">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    <span>Sổ địa chỉ nhận hàng</span>
+                                </a>
                             </div>
                             @if (User.IsInRole("SuperAdmin") || User.IsInRole("StaffProduct") || User.IsInRole("StaffOrder") || User.IsInRole("StaffMarketing"))
                             {
@@ -145,6 +153,12 @@
                     </div>
                 </div>
 
+                <!-- Nút Danh Sách Yêu Thích -->
+                <a href="/account/wishlist" class="relative p-2 text-white hover:text-bestbuy-yellow hover:bg-blue-700/60 rounded-xl transition-colors flex items-center justify-center" title="Sản phẩm yêu thích">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                    <span id="headerWishlistCount" class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold hidden">0</span>
+                </a>
+
                 <!-- Nút Giỏ hàng mở Slide-over Drawer -->
                 <button onclick="toggleCartDrawer()" class="relative flex items-center gap-2.5 px-4 py-2 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-900 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
@@ -166,6 +180,10 @@
                 <a href="/category/tablet" class="text-white hover:text-bestbuy-yellow transition-colors whitespace-nowrap">Máy Tính Bảng / iPad</a>
                 <a href="/category/am-thanh" class="text-white hover:text-bestbuy-yellow transition-colors whitespace-nowrap">Tai Nghe & Âm Thanh</a>
                 <a href="/category/tivi-man-hinh" class="text-white hover:text-bestbuy-yellow transition-colors whitespace-nowrap">Tivi & Màn Hình</a>
+                <a href="/blogs" class="text-white hover:text-bestbuy-yellow transition-colors whitespace-nowrap flex items-center gap-1.5 ml-auto">
+                    <svg class="w-3.5 h-3.5 text-bestbuy-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+                    <span>Tin Công Nghệ</span>
+                </a>
             </div>
         </nav>
     </header>
@@ -229,9 +247,36 @@
         </div>
     </footer>
 
+    <!-- Server Toast Trigger if TempData present -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div id="techstore-server-toast" data-type="success" data-message="@TempData["SuccessMessage"]" class="hidden"></div>
+    }
+    else if (TempData["ErrorMessage"] != null)
+    {
+        <div id="techstore-server-toast" data-type="error" data-message="@TempData["ErrorMessage"]" class="hidden"></div>
+    }
+
     <!-- Scripts -->
+    <script src="~/js/toast.js"></script>
     <script src="~/js/cart_drawer.js"></script>
     <script src="~/js/search_suggest.js"></script>
+    <script>
+        // Load initial Wishlist badge count
+        (async function() {
+            try {
+                const res = await fetch('/api/wishlist/count');
+                if (res.ok) {
+                    const data = await res.json();
+                    const badge = document.getElementById('headerWishlistCount');
+                    if (badge && data.count > 0) {
+                        badge.innerText = data.count;
+                        badge.classList.remove('hidden');
+                    }
+                }
+            } catch(e) {}
+        })();
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

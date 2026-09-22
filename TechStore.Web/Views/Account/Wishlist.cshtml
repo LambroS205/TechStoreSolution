@@ -1,0 +1,163 @@
+@model List<TechStore.Core.Entities.Wishlist>
+@{
+    ViewData["Title"] = "Sản Phẩm Yêu Thích Của Tôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="/" class="hover:text-blue-600">Trang chủ</a>
+                <span>/</span>
+                <a href="/account/profile" class="hover:text-blue-600">Tài khoản</a>
+                <span>/</span>
+                <span class="text-slate-600">Sản phẩm yêu thích</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 flex items-center gap-2">
+                <span>Sản Phẩm Yêu Thích Của Tôi</span>
+                <span id="wishlistCountHeader" class="text-sm font-bold text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
+                    @Model.Count sản phẩm
+                </span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">Lưu lại các thiết bị công nghệ bạn quan tâm để dễ dàng theo dõi giá và mua sắm</p>
+        </div>
+
+        <a href="/products" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors shrink-0">
+            &larr; Tiếp Tục Xem Sản Phẩm
+        </a>
+    </div>
+
+    <!-- Wishlist Grid -->
+    @if (Model.Any())
+    {
+        <div id="wishlistGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            @foreach (var item in Model)
+            {
+                var p = item.Product;
+                var activeVariants = p.Variants.Where(v => v.IsActive).ToList();
+                var defaultVariant = activeVariants.FirstOrDefault();
+                decimal minPrice = activeVariants.Any() ? activeVariants.Min(v => v.SalePrice) : 0;
+                decimal origPrice = defaultVariant?.OriginalPrice ?? minPrice;
+                int totalStock = activeVariants.Sum(v => v.StockQuantity);
+
+                <div id="wishlistItem_@p.ProductId" class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col justify-between hover:shadow-lg transition-all relative group">
+                    <!-- Remove Wishlist Button -->
+                    <button type="button" onclick="removeFromWishlist(@p.ProductId)" 
+                            class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center shadow-xs border border-slate-100 transition-colors z-10"
+                            title="Xóa khỏi danh sách">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                    </button>
+
+                    <div>
+                        <!-- Thumbnail -->
+                        <a href="/product/@p.Slug" class="block aspect-square rounded-xl bg-slate-50 border border-slate-100 p-4 mb-3 overflow-hidden">
+                            <img src="@p.FeaturedImage" alt="@p.Name" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" onerror="this.src='/assets/images/placeholder.png'" />
+                        </a>
+
+                        <!-- Brand & Category -->
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">@(p.Brand?.Name ?? "")</span>
+                            <span class="text-[10px] text-slate-400 truncate">@(p.Category?.Name ?? "")</span>
+                        </div>
+
+                        <!-- Product Title -->
+                        <a href="/product/@p.Slug" class="font-bold text-slate-900 text-xs line-clamp-2 hover:text-blue-600 transition-colors mb-2">
+                            @p.Name
+                        </a>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 space-y-3">
+                        <!-- Pricing -->
+                        <div>
+                            <div class="text-base font-black text-red-600">
+                                @(minPrice > 0 ? minPrice.ToString("N0") + " đ" : "Liên hệ")
+                            </div>
+                            @if (origPrice > minPrice)
+                            {
+                                <div class="text-[11px] text-slate-400 line-through">
+                                    @origPrice.ToString("N0") đ
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Add to Cart or View -->
+                        @if (defaultVariant != null && totalStock > 0)
+                        {
+                            <button type="button" onclick="handleAddToCartFromWishlist(@defaultVariant.VariantId)" class="w-full py-2 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                                <span>Thêm Vào Giỏ</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <a href="/product/@p.Slug" class="block w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl text-center transition-colors">
+                                Xem Chi Tiết
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div id="emptyWishlist" class="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4">
+            <div class="w-16 h-16 mx-auto rounded-full bg-rose-50 text-rose-500 flex items-center justify-center">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-slate-800">Danh sách yêu thích đang trống</h3>
+                <p class="text-xs text-slate-400 mt-1">Hãy nhấn biểu tượng trái tim ở các sản phẩm bạn yêu thích để lưu lại và mua sau!</p>
+            </div>
+            <div>
+                <a href="/products" class="inline-flex items-center gap-2 px-6 py-3 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all">
+                    <span>Khám Phá Thiết Bị Ngay</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+<script>
+    async function removeFromWishlist(productId) {
+        try {
+            const res = await fetch(`/api/wishlist/toggle?productId=${productId}`, { method: 'POST' });
+            if (!res.ok) return;
+            const data = await res.json();
+
+            const card = document.getElementById(`wishlistItem_${productId}`);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                card.style.transition = 'all 0.3s ease';
+                setTimeout(() => {
+                    card.remove();
+                    const grid = document.getElementById('wishlistGrid');
+                    if (grid && grid.children.length === 0) {
+                        location.reload();
+                    }
+                }, 300);
+            }
+
+            const headerBadge = document.getElementById('headerWishlistCount');
+            if (headerBadge) {
+                headerBadge.innerText = data.count;
+                headerBadge.classList.toggle('hidden', data.count === 0);
+            }
+
+            const countHeader = document.getElementById('wishlistCountHeader');
+            if (countHeader) countHeader.innerText = `${data.count} sản phẩm`;
+        } catch (err) {
+            console.error('Remove error:', err);
+        }
+    }
+
+    function handleAddToCartFromWishlist(variantId) {
+        if (typeof addToCart === 'function') {
+            addToCart(variantId, 1, true); // true to show cart drawer
+        }
+    }
+</script>

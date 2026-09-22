@@ -1,0 +1,150 @@
+@model List<TechStore.Core.Entities.BlogCategory>
+@{
+    ViewData["Title"] = "Chuyên Mục Tin Tức Công Nghệ";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="p-6 max-w-5xl mx-auto space-y-6">
+    <!-- Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">&times;</button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-medium flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700">&times;</button>
+        </div>
+    }
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="/Admin/Blog" class="hover:text-blue-600">Bài viết</a>
+                <span>/</span>
+                <span class="text-slate-700">Chuyên mục</span>
+            </div>
+            <h1 class="text-xl font-bold text-slate-900">Danh Mục Bài Viết Tin Tức</h1>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="openCategoryModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                <span>Tạo Chuyên Mục</span>
+            </button>
+            <a href="/Admin/Blog" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+                Quay Lại Bài Viết
+            </a>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                <tr>
+                    <th class="py-3.5 px-4">Tên Chuyên Mục</th>
+                    <th class="py-3.5 px-4">Đường Dẫn Tĩnh (Slug)</th>
+                    <th class="py-3.5 px-4 text-center">Số Lượng Bài Viết</th>
+                    <th class="py-3.5 px-4 text-right">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                @foreach (var cat in Model)
+                {
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-4 font-bold text-slate-900 text-xs">
+                            @cat.Name
+                        </td>
+                        <td class="py-3.5 px-4 font-mono text-xs text-blue-600">
+                            /blogs/category/@cat.Slug
+                        </td>
+                        <td class="py-3.5 px-4 text-center text-xs font-semibold text-slate-600">
+                            @(cat.Posts?.Count ?? 0) bài
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="inline-flex items-center gap-1">
+                                <button type="button" onclick="editCategory(@cat.BlogCategoryId, '@cat.Name', '@cat.Slug')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Sửa">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                                <form method="post" action="/Admin/Blog/DeleteCategory/@cat.BlogCategoryId" onsubmit="return confirm('Bạn có chắc muốn xóa chuyên mục này?');" class="inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Xóa">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Category Modal -->
+<div id="categoryModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-100">
+        <div class="flex items-center justify-between">
+            <h3 id="modalTitle" class="text-base font-bold text-slate-900">Tạo Chuyên Mục Mới</h3>
+            <button type="button" onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600">&times;</button>
+        </div>
+
+        <form method="post" action="/Admin/Blog/SaveCategory" class="space-y-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="modalCatId" name="BlogCategoryId" value="0" />
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tên Chuyên Mục <span class="text-rose-500">*</span></label>
+                <input type="text" id="modalCatName" name="Name" required placeholder="VD: Đánh Giá & Trên Tay..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Đường dẫn tĩnh (Slug - Tùy chọn)</label>
+                <input type="text" id="modalCatSlug" name="Slug" placeholder="danh-gia-tren-tay" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeCategoryModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+                    Hủy
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors">
+                    Lưu Lại
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openCategoryModal() {
+        document.getElementById('modalTitle').innerText = 'Tạo Chuyên Mục Mới';
+        document.getElementById('modalCatId').value = '0';
+        document.getElementById('modalCatName').value = '';
+        document.getElementById('modalCatSlug').value = '';
+        document.getElementById('categoryModal').classList.remove('hidden');
+    }
+
+    function editCategory(id, name, slug) {
+        document.getElementById('modalTitle').innerText = 'Chỉnh Sửa Chuyên Mục';
+        document.getElementById('modalCatId').value = id;
+        document.getElementById('modalCatName').value = name;
+        document.getElementById('modalCatSlug').value = slug;
+        document.getElementById('categoryModal').classList.remove('hidden');
+    }
+
+    function closeCategoryModal() {
+        document.getElementById('categoryModal').classList.add('hidden');
+    }
+</script>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TechStore.Core.Entities;
@@ -29,4 +29,7 @@ public class User
     // Navigation Properties
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public virtual ICollection<UserCustomPermission> CustomPermissions { get; set; } = new List<UserCustomPermission>();
+    public virtual ICollection<ProductReview> Reviews { get; set; } = new List<ProductReview>();
+    public virtual ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();
+    public virtual ICollection<CustomerAddress> Addresses { get; set; } = new List<CustomerAddress>();
 }

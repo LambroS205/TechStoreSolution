@@ -1,0 +1,124 @@
+@model List<TechStore.Core.Entities.BlogPost>
+@{
+    ViewData["Title"] = "Tin Tức & Đánh Giá Công Nghệ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var categories = (List<TechStore.Core.Entities.BlogCategory>?)ViewBag.Categories ?? new List<TechStore.Core.Entities.BlogCategory>();
+    var currentCat = (TechStore.Core.Entities.BlogCategory?)ViewBag.CurrentCategory;
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    string? catSlug = ViewBag.CategorySlug;
+}
+
+<div class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="/" class="hover:text-blue-600">Trang chủ</a>
+                <span>/</span>
+                <span class="text-slate-600">Tin tức công nghệ</span>
+                @if (currentCat != null)
+                {
+                    <span>/</span>
+                    <span class="text-slate-900 font-bold">@currentCat.Name</span>
+                }
+            </div>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight">
+                @(currentCat != null ? currentCat.Name : "Tin Tức & Đánh Giá Thiết Bị")
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">Cập nhật nhanh xu hướng công nghệ mới, đánh giá trên tay và kinh nghiệm sử dụng thông minh</p>
+        </div>
+    </div>
+
+    <!-- Category Tabs Filter -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 text-xs font-bold no-scrollbar">
+        <a href="/blogs" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(string.IsNullOrEmpty(catSlug) ? "bg-bestbuy-blue text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+            Tất Cả Bài Viết
+        </a>
+        @foreach (var cat in categories)
+        {
+            <a href="/blogs/category/@cat.Slug" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(catSlug == cat.Slug ? "bg-bestbuy-blue text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+                @cat.Name
+            </a>
+        }
+    </div>
+
+    <!-- Blog Posts Grid -->
+    @if (Model.Any())
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @foreach (var post in Model)
+            {
+                <article class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
+                    <div>
+                        <!-- Thumbnail -->
+                        <a href="/blog/@post.Slug" class="block aspect-video w-full bg-slate-100 overflow-hidden relative">
+                            <img src="@post.ThumbnailUrl" alt="@post.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='/assets/images/placeholder.png'" />
+                            <span class="absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold bg-bestbuy-blue/90 text-white rounded-lg backdrop-blur-xs shadow-xs uppercase tracking-wider">
+                                @post.Category.Name
+                            </span>
+                        </a>
+
+                        <div class="p-6 space-y-3">
+                            <!-- Meta: Date & Views -->
+                            <div class="flex items-center gap-3 text-[11px] text-slate-400 font-medium">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    @post.PublishedAt.ToString("dd/MM/yyyy")
+                                </span>
+                                <span>&bull;</span>
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                    @post.ViewCount lượt xem
+                                </span>
+                            </div>
+
+                            <!-- Title -->
+                            <h2 class="font-extrabold text-slate-900 text-base leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
+                                <a href="/blog/@post.Slug">@post.Title</a>
+                            </h2>
+
+                            <!-- Summary -->
+                            <p class="text-xs text-slate-500 line-clamp-3 leading-relaxed">
+                                @post.Summary
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Footer Link -->
+                    <div class="px-6 pb-6 pt-2 border-t border-slate-50 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 font-medium">Bởi: @(post.Author?.FullName ?? "Ban Biên Tập")</span>
+                        <a href="/blog/@post.Slug" class="font-bold text-blue-600 group-hover:text-blue-800 flex items-center gap-1 transition-colors">
+                            <span>Đọc tiếp</span>
+                            <svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        </a>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if (totalPages > 1)
+        {
+            <div class="flex items-center justify-center gap-2 pt-6">
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    string url = string.IsNullOrEmpty(catSlug) ? $"/blogs?page={p}" : $"/blogs/category/{catSlug}?page={p}";
+                    <a href="@url" class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs transition-colors @(p == currentPage ? "bg-bestbuy-blue text-white shadow-md" : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200")">
+                        @p
+                    </a>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3">
+            <div class="w-16 h-16 mx-auto rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+            </div>
+            <h3 class="text-base font-bold text-slate-800">Chưa có bài viết trong danh mục này</h3>
+            <p class="text-xs text-slate-400">Các bài viết mới đang được ban biên tập hoàn thiện và sẽ sớm ra mắt bạn đọc!</p>
+        </div>
+    }
+</div>
