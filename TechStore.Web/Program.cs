@@ -33,10 +33,11 @@ builder.Services.AddDbContext<TechStoreDbContext>(options =>
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 
-// 3. Đăng ký dịch vụ Kiểm toán, Lưu trữ tập tin & Email
+// 3. Đăng ký dịch vụ Kiểm toán, Lưu trữ tập tin & Email, Cấu hình giao diện CMS
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ISiteSettingsService, SiteSettingsService>();
 
 // 4. Cấu hình Xác thực bằng Cookie (Cookie Authentication)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -60,6 +61,13 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+
+// Tự động kiểm tra và chuẩn hóa encoding Unicode UTF-8 tiếng Việt cho SiteSettings và phân quyền
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<TechStoreDbContext>();
+    await DbInitializer.InitializeAndRepairEncodingAsync(dbContext);
+}
 
 // Pipeline xử lý HTTP Requests
 if (!app.Environment.IsDevelopment())

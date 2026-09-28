@@ -54,6 +54,9 @@ public class TechStoreDbContext : DbContext
     // DbSets: Phân hệ Thư viện ảnh sản phẩm (Phase 5)
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
 
+    // DbSets: Phân hệ Cấu hình giao diện và hệ thống động (CMS Site Settings)
+    public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -522,6 +525,21 @@ public class TechStoreDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(e => e.ProductId);
+        });
+
+        // 26. Cấu hình bảng SiteSettings (CMS Site Settings)
+        modelBuilder.Entity<SiteSetting>(entity =>
+        {
+            entity.ToTable("SiteSettings");
+            entity.HasKey(e => e.SettingId);
+            entity.Property(e => e.Key).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Group).HasMaxLength(50).IsRequired().HasDefaultValue("General");
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.ValueType).HasMaxLength(30).IsRequired().HasDefaultValue("text");
+            entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+
+            entity.HasIndex(e => e.Key).IsUnique();
+            entity.HasIndex(e => e.Group);
         });
     }
 }

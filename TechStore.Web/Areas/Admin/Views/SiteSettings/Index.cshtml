@@ -1,0 +1,510 @@
+@model TechStore.Web.Areas.Admin.Models.SiteSettingsViewModel
+@{
+    ViewData["Title"] = "Cài Đặt Giao Diện & Hệ Thống CMS";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-200">
+        <div>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center font-bold">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900">Cài Đặt Giao Diện & Hệ Thống</h1>
+                    <p class="text-sm text-slate-500 mt-0.5">Tùy biến thương hiệu, nhận diện màu sắc, cấu hình thanh toán VietQR và can thiệp sâu giao diện Storefront.</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="/" target="_blank" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                <span>Xem Storefront</span>
+            </a>
+            <button type="submit" form="settingsForm" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Lưu Tất Cả Thiết Lập</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Thông báo kết quả thao tác -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl flex items-center gap-3 shadow-sm animate-fade-in">
+            <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="font-medium">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-sm rounded-xl flex items-center gap-3 shadow-sm">
+            <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="font-medium">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <!-- Tabs Navigation -->
+    <div class="border-b border-slate-200 bg-white rounded-t-2xl shadow-sm px-6 pt-3">
+        <nav class="flex space-x-6 overflow-x-auto" aria-label="Tabs">
+            <button type="button" onclick="switchTab('general')" id="tab-btn-general" class="tab-btn active pb-4 px-1 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                <span>1. Thông Tin Chung</span>
+            </button>
+            <button type="button" onclick="switchTab('branding')" id="tab-btn-branding" class="tab-btn pb-4 px-1 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                </svg>
+                <span>2. Giao Diện & Màu Sắc</span>
+            </button>
+            <button type="button" onclick="switchTab('vietqr')" id="tab-btn-vietqr" class="tab-btn pb-4 px-1 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                </svg>
+                <span>3. VietQR & Thanh Toán</span>
+            </button>
+            <button type="button" onclick="switchTab('footer')" id="tab-btn-footer" class="tab-btn pb-4 px-1 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span>4. Chân Trang & Mạng Xã Hội</span>
+            </button>
+            <button type="button" onclick="switchTab('customcss')" id="tab-btn-customcss" class="tab-btn pb-4 px-1 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+                <span>5. Tùy Biến CSS & Mã Nhúng</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Form chính -->
+    <form id="settingsForm" method="post" action="/Admin/SiteSettings/Update" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        <!-- TAB 1: THÔNG TIN CHUNG -->
+        <div id="tab-content-general" class="tab-pane bg-white rounded-b-2xl p-8 border border-t-0 border-slate-200 shadow-sm space-y-6">
+            <div class="border-b border-slate-100 pb-4">
+                <h2 class="text-lg font-bold text-slate-900">Thông Tin Tổng Quan Website</h2>
+                <p class="text-xs text-slate-500 mt-1">Thông tin này xuất hiện trên tiêu đề trang, thanh điều hướng và thông tin liên hệ toàn sàn.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Tên Website / Thương Hiệu</label>
+                    <input type="text" name="SiteName" value="@Model.SiteName" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="VD: TechStore - Thế Giới Công Nghệ Đỉnh Cao" required />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Hotline Đường Dây Nóng</label>
+                    <input type="text" name="Hotline" value="@Model.Hotline" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="1800 6868" />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Email Hỗ Trợ Khách Hàng</label>
+                    <input type="email" name="Email" value="@Model.Email" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="support@techstore.vn" />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Địa Chỉ Trụ Sở Chính</label>
+                    <input type="text" name="Address" value="@Model.Address" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="123 Đường Công Nghệ, Quận 1, TP. Hồ Chí Minh" />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Giờ Mở Cửa / Phục Vụ</label>
+                    <input type="text" name="WorkingHours" value="@Model.WorkingHours" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="8:00 - 21:30 hàng ngày" />
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: GIAO DIỆN & MÀU SẮC -->
+        <div id="tab-content-branding" class="tab-pane hidden bg-white rounded-b-2xl p-8 border border-t-0 border-slate-200 shadow-sm space-y-8">
+            <div class="border-b border-slate-100 pb-4">
+                <h2 class="text-lg font-bold text-slate-900">Nhận Diện Thương Hiệu & Bảng Màu</h2>
+                <p class="text-xs text-slate-500 mt-1">Thay đổi logo, favicon và tông màu chính. Màu sắc này sẽ tự động cập nhật hệ thống nút bấm, thanh điều hướng và biểu tượng trên Storefront.</p>
+            </div>
+
+            <!-- Upload Logo & Favicon -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Logo -->
+                <div class="p-5 border border-slate-200 rounded-2xl bg-slate-50/50 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-bold text-slate-800">Logo Website</label>
+                        <span class="text-xs text-slate-400">PNG, SVG, WEBP</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <div class="w-28 h-16 bg-white border border-slate-200 rounded-xl p-2 flex items-center justify-center shadow-inner overflow-hidden">
+                            @if (!string.IsNullOrEmpty(Model.LogoUrl))
+                            {
+                                <img id="logoPreview" src="@Model.LogoUrl" alt="Logo Preview" class="max-h-full max-w-full object-contain" />
+                            }
+                            else
+                            {
+                                <span id="logoPlaceholder" class="text-xs text-slate-400 italic">Chưa tải ảnh</span>
+                                <img id="logoPreview" class="max-h-full max-w-full object-contain hidden" />
+                            }
+                        </div>
+                        <div class="flex-1 space-y-2">
+                            <input type="file" name="logoFile" id="logoFileInput" accept=".png,.jpg,.jpeg,.svg,.webp" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" onchange="previewImage(this, 'logoPreview', 'logoPlaceholder')" />
+                            <input type="text" name="LogoUrl" value="@Model.LogoUrl" placeholder="Hoặc nhập URL ảnh trực tiếp..." class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Favicon -->
+                <div class="p-5 border border-slate-200 rounded-2xl bg-slate-50/50 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-bold text-slate-800">Biểu Tượng Favicon</label>
+                        <span class="text-xs text-slate-400">ICO, PNG (16x16, 32x32)</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 bg-white border border-slate-200 rounded-xl p-2 flex items-center justify-center shadow-inner overflow-hidden">
+                            <img id="faviconPreview" src="@(string.IsNullOrEmpty(Model.FaviconUrl) ? "/favicon.ico" : Model.FaviconUrl)" alt="Favicon" class="w-8 h-8 object-contain" />
+                        </div>
+                        <div class="flex-1 space-y-2">
+                            <input type="file" name="faviconFile" accept=".ico,.png,.svg" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" onchange="previewImage(this, 'faviconPreview')" />
+                            <input type="text" name="FaviconUrl" value="@Model.FaviconUrl" placeholder="/favicon.ico hoặc URL" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Color Palette Selectors -->
+            <div class="space-y-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700">Tùy Biến Bảng Màu Toàn Sàn</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Primary Color -->
+                    <div class="p-5 border border-slate-200 rounded-2xl bg-white shadow-sm space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-bold text-slate-800">Màu Chủ Đạo (Primary)</span>
+                            <div class="w-6 h-6 rounded-full border border-slate-300 shadow-sm" id="primaryColorBadge" style="background-color: @Model.PrimaryColor"></div>
+                        </div>
+                        <p class="text-xs text-slate-500">Màu nút Mua Hàng, giỏ hàng, thẻ giá nổi bật và link chính.</p>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="primaryColorPicker" value="@Model.PrimaryColor" oninput="updateColor('PrimaryColor', this.value, 'primaryColorBadge')" class="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent p-0" />
+                            <input type="text" id="primaryColorText" name="PrimaryColor" value="@Model.PrimaryColor" oninput="updateColorPicker('primaryColorPicker', this.value, 'primaryColorBadge')" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 uppercase focus:bg-white" />
+                        </div>
+                    </div>
+
+                    <!-- Secondary Color -->
+                    <div class="p-5 border border-slate-200 rounded-2xl bg-white shadow-sm space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-bold text-slate-800">Màu Phụ Gradient (Secondary)</span>
+                            <div class="w-6 h-6 rounded-full border border-slate-300 shadow-sm" id="secondaryColorBadge" style="background-color: @Model.SecondaryColor"></div>
+                        </div>
+                        <p class="text-xs text-slate-500">Màu gradient phối với màu chủ đạo trong các banner, header.</p>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="secondaryColorPicker" value="@Model.SecondaryColor" oninput="updateColor('SecondaryColor', this.value, 'secondaryColorBadge')" class="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent p-0" />
+                            <input type="text" id="secondaryColorText" name="SecondaryColor" value="@Model.SecondaryColor" oninput="updateColorPicker('secondaryColorPicker', this.value, 'secondaryColorBadge')" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 uppercase focus:bg-white" />
+                        </div>
+                    </div>
+
+                    <!-- Accent Color -->
+                    <div class="p-5 border border-slate-200 rounded-2xl bg-white shadow-sm space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-bold text-slate-800">Màu Điểm Nhấn (Accent)</span>
+                            <div class="w-6 h-6 rounded-full border border-slate-300 shadow-sm" id="accentColorBadge" style="background-color: @Model.AccentColor"></div>
+                        </div>
+                        <p class="text-xs text-slate-500">Màu nhãn Khuyến Mãi (Sale badge), số sao đánh giá và cảnh báo.</p>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="accentColorPicker" value="@Model.AccentColor" oninput="updateColor('AccentColor', this.value, 'accentColorBadge')" class="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent p-0" />
+                            <input type="text" id="accentColorText" name="AccentColor" value="@Model.AccentColor" oninput="updateColorPicker('accentColorPicker', this.value, 'accentColorBadge')" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 uppercase focus:bg-white" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini Live Preview -->
+            <div class="p-6 border border-slate-200 rounded-2xl bg-slate-50 space-y-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Bản Xem Trước Màu Sắc Thực Tế (Live Preview):</span>
+                <div class="flex flex-wrap items-center gap-4">
+                    <button type="button" id="previewBtnPrimary" class="px-5 py-2.5 rounded-xl font-bold text-white text-sm shadow-sm transition" style="background-color: @Model.PrimaryColor">
+                        Nút Mua Ngay (Primary)
+                    </button>
+                    <span id="previewBadgeSale" class="px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm" style="background-color: @Model.AccentColor">
+                        GIẢM GIÁ 25% (Accent)
+                    </span>
+                    <div id="previewGradient" class="px-6 py-2.5 rounded-xl text-white font-semibold text-xs shadow-sm" style="background: linear-gradient(135deg, @Model.PrimaryColor, @Model.SecondaryColor)">
+                        Khung Banner Gradient Phối Màu
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: VIETQR & THANH TOÁN -->
+        <div id="tab-content-vietqr" class="tab-pane hidden bg-white rounded-b-2xl p-8 border border-t-0 border-slate-200 shadow-sm space-y-8">
+            <div class="border-b border-slate-100 pb-4">
+                <div class="flex items-center gap-3">
+                    <span class="px-2.5 py-1 text-xs font-bold rounded-md bg-blue-100 text-blue-700">NAPAS 247</span>
+                    <h2 class="text-lg font-bold text-slate-900">Cấu Hình Tài Khoản Nhận Tiền VietQR</h2>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Mã QR động sẽ tự động sinh theo chuẩn NAPAS 247 khi khách hàng thanh toán đơn hàng bằng VietQR.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Inputs -->
+                <div class="lg:col-span-2 space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Ngân Hàng Thụ Hưởng</label>
+                            <select id="bankSelect" onchange="onBankSelectChange(this)" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
+                                <option value="970422|MBBank (Ngân hàng Quân Đội)">MBBank - Ngân hàng TMCP Quân Đội</option>
+                                <option value="970436|Vietcombank">Vietcombank - Ngân hàng Ngoại thương VN</option>
+                                <option value="970407|Techcombank">Techcombank - Ngân hàng Kỹ thương VN</option>
+                                <option value="970415|VietinBank">VietinBank - Ngân hàng Công thương VN</option>
+                                <option value="970418|BIDV">BIDV - Ngân hàng Đầu tư & Phát triển VN</option>
+                                <option value="970432|VPBank">VPBank - Ngân hàng Việt Nam Thịnh Vượng</option>
+                                <option value="970416|ACB">ACB - Ngân hàng Á Châu</option>
+                                <option value="970423|TPBank">TPBank - Ngân hàng Tiên Phong</option>
+                            </select>
+                            <input type="hidden" name="VietQrBankName" id="vietQrBankName" value="@Model.VietQrBankName" />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Mã BIN Ngân Hàng (NAPAS Code)</label>
+                            <input type="text" name="VietQrBankId" id="vietQrBankId" value="@Model.VietQrBankId" oninput="updateQrLivePreview()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Số Tài Khoản Nhận Tiền</label>
+                            <input type="text" name="VietQrAccountNo" id="vietQrAccountNo" value="@Model.VietQrAccountNo" oninput="updateQrLivePreview()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-blue-700 font-mono font-bold text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="VD: 0869162534" required />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Giao Diện Mẫu VietQR</label>
+                            <select name="VietQrTemplate" id="vietQrTemplate" onchange="updateQrLivePreview()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
+                                <option value="compact2" selected="@(Model.VietQrTemplate == "compact2")">compact2 (Khuyên dùng - Đầy đủ thông tin NAPAS)</option>
+                                <option value="compact" selected="@(Model.VietQrTemplate == "compact")">compact (Gọn nhẹ)</option>
+                                <option value="qr_only" selected="@(Model.VietQrTemplate == "qr_only")">qr_only (Chỉ mã QR không khung)</option>
+                                <option value="print" selected="@(Model.VietQrTemplate == "print")">print (Bản in phiếu thu)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Tên Chủ Tài Khoản (In hoa không dấu)</label>
+                        <input type="text" name="VietQrAccountName" id="vietQrAccountName" value="@Model.VietQrAccountName" oninput="updateQrLivePreview()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm font-semibold uppercase focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="VD: CONG TY TNHH TECHSTORE VIET NAM" required />
+                    </div>
+
+                    <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-1">
+                        <p class="font-bold flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Lưu ý thanh toán tức thì:
+                        </p>
+                        <p>Số tài khoản MBBank <strong>@Model.VietQrAccountNo</strong> sẽ được áp dụng trực tiếp cho trang đặt hàng thành công và các email thông báo đơn gửi tới khách.</p>
+                    </div>
+                </div>
+
+                <!-- Live VietQR Card Preview -->
+                <div class="flex flex-col items-center justify-center p-6 border border-slate-200 rounded-2xl bg-gradient-to-b from-slate-50 to-white shadow-sm text-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Xem Trước Mã QR Sinh Ra</span>
+                    <div class="w-56 bg-white p-3 rounded-xl border border-slate-200 shadow-md">
+                        <img id="vietQrPreviewImg" src="https://img.vietqr.io/image/@(Model.VietQrBankId)-@(Model.VietQrAccountNo)-@(Model.VietQrTemplate).png?amount=500000&addInfo=TECHSTOREDEMO&accountName=@Uri.EscapeDataString(Model.VietQrAccountName)" alt="VietQR Preview" class="w-full h-auto object-contain rounded-lg" onerror="this.src='/assets/images/placeholder.png'" />
+                    </div>
+                    <p class="text-xs font-mono text-slate-500 mt-3 font-semibold" id="qrAccountDisplay">STK: @Model.VietQrAccountNo</p>
+                    <p class="text-[11px] text-slate-400 mt-1" id="qrBankDisplay">@Model.VietQrBankName</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: CHÂN TRANG & MẠNG XÃ HỘI -->
+        <div id="tab-content-footer" class="tab-pane hidden bg-white rounded-b-2xl p-8 border border-t-0 border-slate-200 shadow-sm space-y-6">
+            <div class="border-b border-slate-100 pb-4">
+                <h2 class="text-lg font-bold text-slate-900">Chân Trang (Footer) & Kênh Truyền Thông</h2>
+                <p class="text-xs text-slate-500 mt-1">Cấu hình các liên kết mạng xã hội, đoạn giới thiệu và dòng bản quyền dưới chân trang.</p>
+            </div>
+
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Đoạn Giới Thiệu Chân Trang (About Footer)</label>
+                    <textarea name="FooterAboutText" rows="3" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="Mô tả tóm tắt về uy tín, dịch vụ của sàn...">@Model.FooterAboutText</textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Dòng Bản Quyền Bản Quyền (Copyright Text)</label>
+                    <input type="text" name="FooterCopyright" value="@Model.FooterCopyright" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="© 2026 TechStore Electronics. Mọi quyền được bảo lưu." />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 pt-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Facebook URL</label>
+                        <input type="url" name="FacebookUrl" value="@Model.FacebookUrl" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="https://facebook.com/techstore" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">YouTube URL</label>
+                        <input type="url" name="YoutubeUrl" value="@Model.YoutubeUrl" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="https://youtube.com/@@techstore" />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">TikTok URL</label>
+                        <input type="url" name="TiktokUrl" value="@Model.TiktokUrl" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" placeholder="https://tiktok.com/@@techstore" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: TÙY BIẾN CSS & MÃ NHÚNG -->
+        <div id="tab-content-customcss" class="tab-pane hidden bg-white rounded-b-2xl p-8 border border-t-0 border-slate-200 shadow-sm space-y-6">
+            <div class="border-b border-slate-100 pb-4">
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 text-xs font-bold rounded-md bg-purple-100 text-purple-700">Dành Cho Quản Trị Viên Nâng Cao</span>
+                    <h2 class="text-lg font-bold text-slate-900">Can Thiệp Sâu Vào Giao Diện & Mã Nhúng</h2>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Bạn có thể viết thêm mã CSS ghi đè hoặc nhúng Google Tag Manager, Facebook Pixel vào thẻ &lt;head&gt; của Storefront mà không cần biên dịch lại mã nguồn.</p>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-700">Mã CSS Tùy Biến (Custom CSS Stylesheet)</label>
+                        <span class="text-xs text-slate-400">Tự động bọc trong thẻ &lt;style&gt;</span>
+                    </div>
+                    <textarea name="CustomCss" rows="10" class="w-full font-mono text-xs px-4 py-3 bg-slate-900 text-emerald-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-inner leading-relaxed" placeholder="/* Ví dụ: Thay đổi bo góc thẻ sản phẩm */
+.product-card {
+    border-radius: 1.25rem !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}">@Model.CustomCss</textarea>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-700">Mã Nhúng Thẻ Head (Custom Header HTML / Script Tracking)</label>
+                        <span class="text-xs text-slate-400">Google Analytics, Chatbot Widget...</span>
+                    </div>
+                    <textarea name="CustomHeaderHtml" rows="5" class="w-full font-mono text-xs px-4 py-3 bg-slate-900 text-cyan-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-inner leading-relaxed" placeholder="<!-- Nhúng script theo dõi, font tùy chỉnh hoặc meta tag tùy ý -->">@Model.CustomHeaderHtml</textarea>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    // Xử lý chuyển đổi Tab
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active', 'border-blue-600', 'text-blue-600');
+            btn.classList.add('border-transparent', 'text-slate-500');
+        });
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.add('hidden');
+        });
+
+        const activeBtn = document.getElementById('tab-btn-' + tabId);
+        const activePane = document.getElementById('tab-content-' + tabId);
+
+        if (activeBtn && activePane) {
+            activeBtn.classList.remove('border-transparent', 'text-slate-500');
+            activeBtn.classList.add('active', 'border-blue-600', 'text-blue-600');
+            activePane.classList.remove('hidden');
+        }
+    }
+
+    // Xử lý xem trước ảnh khi người dùng chọn file
+    function previewImage(input, previewId, placeholderId) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById(previewId);
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                if (placeholderId) {
+                    const placeholder = document.getElementById(placeholderId);
+                    if (placeholder) placeholder.classList.add('hidden');
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Cập nhật màu sắc thời gian thực
+    function updateColor(fieldName, hex, badgeId) {
+        if (fieldName === 'PrimaryColor') {
+            document.getElementById('primaryColorText').value = hex;
+            document.getElementById('previewBtnPrimary').style.backgroundColor = hex;
+            updateGradient();
+        } else if (fieldName === 'SecondaryColor') {
+            document.getElementById('secondaryColorText').value = hex;
+            updateGradient();
+        } else if (fieldName === 'AccentColor') {
+            document.getElementById('accentColorText').value = hex;
+            document.getElementById('previewBadgeSale').style.backgroundColor = hex;
+        }
+        document.getElementById(badgeId).style.backgroundColor = hex;
+    }
+
+    function updateColorPicker(pickerId, hex, badgeId) {
+        if (/^#[0-9A-F]{6}$/i.test(hex)) {
+            document.getElementById(pickerId).value = hex;
+            document.getElementById(badgeId).style.backgroundColor = hex;
+            if (pickerId === 'primaryColorPicker') {
+                document.getElementById('previewBtnPrimary').style.backgroundColor = hex;
+            } else if (pickerId === 'accentColorPicker') {
+                document.getElementById('previewBadgeSale').style.backgroundColor = hex;
+            }
+            updateGradient();
+        }
+    }
+
+    function updateGradient() {
+        const p = document.getElementById('primaryColorPicker').value;
+        const s = document.getElementById('secondaryColorPicker').value;
+        document.getElementById('previewGradient').style.background = `linear-gradient(135deg, ${p}, ${s})`;
+    }
+
+    // Xử lý chọn ngân hàng nhanh
+    function onBankSelectChange(select) {
+        const parts = select.value.split('|');
+        if (parts.length === 2) {
+            document.getElementById('vietQrBankId').value = parts[0];
+            document.getElementById('vietQrBankName').value = parts[1];
+            updateQrLivePreview();
+        }
+    }
+
+    // Cập nhật mã VietQR động xem trước
+    function updateQrLivePreview() {
+        const bankId = document.getElementById('vietQrBankId').value || '970422';
+        const accountNo = document.getElementById('vietQrAccountNo').value || '0869162534';
+        const template = document.getElementById('vietQrTemplate').value || 'compact2';
+        const accountName = encodeURIComponent(document.getElementById('vietQrAccountName').value || 'TECHSTORE');
+
+        const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-${template}.png?amount=500000&addInfo=TECHSTOREDEMO&accountName=${accountName}`;
+        document.getElementById('vietQrPreviewImg').src = qrUrl;
+        document.getElementById('qrAccountDisplay').textContent = `STK: ${accountNo}`;
+        document.getElementById('qrBankDisplay').textContent = document.getElementById('vietQrBankName').value || 'MBBank';
+    }
+
+    // Chọn ngân hàng tương ứng theo bankId ban đầu
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentBankId = document.getElementById('vietQrBankId').value;
+        const bankSelect = document.getElementById('bankSelect');
+        for (let i = 0; i < bankSelect.options.length; i++) {
+            if (bankSelect.options[i].value.startsWith(currentBankId + '|')) {
+                bankSelect.selectedIndex = i;
+                break;
+            }
+        }
+    });
+</script>
+}

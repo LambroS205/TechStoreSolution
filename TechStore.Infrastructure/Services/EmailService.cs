@@ -17,19 +17,25 @@ public class EmailService : IEmailService
     private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<EmailService> _logger;
+    private readonly ISiteSettingsService? _siteSettingsService;
 
-    public EmailService(IConfiguration configuration, IWebHostEnvironment env, ILogger<EmailService> logger)
+    public EmailService(
+        IConfiguration configuration,
+        IWebHostEnvironment env,
+        ILogger<EmailService> logger,
+        ISiteSettingsService? siteSettingsService = null)
     {
         _configuration = configuration;
         _env = env;
         _logger = logger;
+        _siteSettingsService = siteSettingsService;
     }
 
     public async Task SendOrderConfirmationEmailAsync(Order order)
     {
         try
         {
-            string htmlContent = GenerateOrderHtml(order);
+            string htmlContent = await GenerateOrderHtmlAsync(order);
 
             // 1. Luôn lưu bản sao Email HTML cục bộ vào wwwroot/uploads/emails/ để kiểm tra offline
             string emailDir = Path.Combine(_env.WebRootPath, "uploads", "emails");
@@ -77,7 +83,7 @@ public class EmailService : IEmailService
         }
     }
 
-    private string GenerateOrderHtml(Order order)
+    private async Task<string> GenerateOrderHtmlAsync(Order order)
     {
         var sb = new StringBuilder();
         sb.Append(@"
@@ -177,15 +183,20 @@ public class EmailService : IEmailService
 
         if (order.PaymentMethod == "VietQR" && order.PaymentStatus == "Pending")
         {
-            string vietQrUrl = $"https://api.vietqr.io/image/970422-0909123456-compact2.png?amount={(long)order.TotalAmount}&addInfo={order.OrderCode}&accountName=CONG%20TY%20TECHSTORE";
+            var bankId = (_siteSettingsService != null ? await _siteSettingsService.GetValueAsync("VietQr.BankId", _configuration["VietQrSettings:BankId"] ?? "970422") : _configuration["VietQrSettings:BankId"]) ?? "970422";
+            var accountNo = (_siteSettingsService != null ? await _siteSettingsService.GetValueAsync("VietQr.AccountNo", _configuration["VietQrSettings:AccountNo"] ?? "0869162534") : _configuration["VietQrSettings:AccountNo"]) ?? "0869162534";
+            var accountName = (_siteSettingsService != null ? await _siteSettingsService.GetValueAsync("VietQr.AccountName", _configuration["VietQrSettings:AccountName"] ?? "CONG TY TNHH TECHSTORE VIET NAM") : _configuration["VietQrSettings:AccountName"]) ?? "CONG TY TNHH TECHSTORE VIET NAM";
+            var bankName = (_siteSettingsService != null ? await _siteSettingsService.GetValueAsync("VietQr.BankName", _configuration["VietQrSettings:BankName"] ?? "MBBank (Ngân hàng Quân Đội)") : _configuration["VietQrSettings:BankName"]) ?? "MBBank (Ngân hàng Quân Đội)";
+            var template = (_siteSettingsService != null ? await _siteSettingsService.GetValueAsync("VietQr.Template", _configuration["VietQrSettings:Template"] ?? "compact2") : _configuration["VietQrSettings:Template"]) ?? "compact2";
+            string vietQrUrl = $"https://img.vietqr.io/image/{bankId}-{accountNo}-{template}.png?amount={(long)order.TotalAmount}&addInfo={order.OrderCode}&accountName={Uri.EscapeDataString(accountName)}";
             sb.Append($@"
             <div class=""vietqr-box"">
                 <h4 style=""margin:0 0 10px 0;color:#3730a3;font-size:15px;"">Mã Chuyển Khoản Tức Thì VietQR</h4>
                 <img src=""{vietQrUrl}"" alt=""VietQR"" />
                 <div class=""bank-details"">
-                    <strong>Ngân hàng:</strong> MBBank (Ngân hàng Quân Đội)<br>
-                    <strong>Số tài khoản:</strong> <span style=""font-family:monospace;font-weight:bold;font-size:14px;color:#1e40af;"">0909123456</span><br>
-                    <strong>Chủ tài khoản:</strong> CONG TY TECHSTORE<br>
+                    <strong>Ngân hàng:</strong> {bankName}<br>
+                    <strong>Số tài khoản:</strong> <span style=""font-family:monospace;font-weight:bold;font-size:14px;color:#1e40af;"">{accountNo}</span><br>
+                    <strong>Chủ tài khoản:</strong> {accountName}<br>
                     <strong>Số tiền:</strong> <span style=""color:#dc2626;font-weight:bold;"">{order.TotalAmount:N0} đ</span><br>
                     <strong>Nội dung CK:</strong> <span style=""background:#fef08a;padding:2px 8px;border-radius:4px;font-family:monospace;font-weight:bold;"">{order.OrderCode}</span>
                 </div>

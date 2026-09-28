@@ -18,12 +18,18 @@ public class CheckoutController : Controller
     private readonly TechStoreDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly TechStore.Core.Interfaces.IEmailService _emailService;
+    private readonly TechStore.Core.Interfaces.ISiteSettingsService _siteSettingsService;
 
-    public CheckoutController(TechStoreDbContext context, IConfiguration configuration, TechStore.Core.Interfaces.IEmailService emailService)
+    public CheckoutController(
+        TechStoreDbContext context,
+        IConfiguration configuration,
+        TechStore.Core.Interfaces.IEmailService emailService,
+        TechStore.Core.Interfaces.ISiteSettingsService siteSettingsService)
     {
         _context = context;
         _configuration = configuration;
         _emailService = emailService;
+        _siteSettingsService = siteSettingsService;
     }
 
     /// <summary>
@@ -240,19 +246,20 @@ public class CheckoutController : Controller
             return NotFound();
         }
 
-        // Lấy thông tin tài khoản ngân hàng từ appsettings.json để render chuẩn VietQR NAPAS
-        var bankId = _configuration["VietQrSettings:BankId"] ?? "970422";
-        var accountNo = _configuration["VietQrSettings:AccountNo"] ?? "0909123456";
-        var accountName = _configuration["VietQrSettings:AccountName"] ?? "CONG TY TNHH TECHSTORE VIET NAM";
-        var template = _configuration["VietQrSettings:Template"] ?? "compact2";
+        // Lấy thông tin tài khoản ngân hàng từ SiteSettings CMS (ưu tiên) hoặc appsettings.json
+        var bankId = await _siteSettingsService.GetValueAsync("VietQr.BankId", _configuration["VietQrSettings:BankId"] ?? "970422");
+        var accountNo = await _siteSettingsService.GetValueAsync("VietQr.AccountNo", _configuration["VietQrSettings:AccountNo"] ?? "0869162534");
+        var accountName = await _siteSettingsService.GetValueAsync("VietQr.AccountName", _configuration["VietQrSettings:AccountName"] ?? "CONG TY TNHH TECHSTORE VIET NAM");
+        var template = await _siteSettingsService.GetValueAsync("VietQr.Template", _configuration["VietQrSettings:Template"] ?? "compact2");
+        var bankName = await _siteSettingsService.GetValueAsync("VietQr.BankName", _configuration["VietQrSettings:BankName"] ?? "MBBank (Ngân hàng Quân Đội)");
 
         // URL sinh mã QR thanh toán động VietQR chuẩn NAPAS 247
-        string vietQrUrl = $"https://img.vietqr.io/image/{bankId}-{accountNo}-{template}.png?amount={(long)order.TotalAmount}&addInfo={order.OrderCode}&accountName={Uri.EscapeDataString(accountName)}";
+        string vietQrUrl = $"https://img.vietqr.io/image/{bankId}-{accountNo}-{template}.png?amount={(long)order.TotalAmount}&addInfo={order.OrderCode}&accountName={Uri.EscapeDataString(accountName ?? "")}";
 
         ViewBag.VietQrUrl = vietQrUrl;
         ViewBag.AccountNo = accountNo;
         ViewBag.AccountName = accountName;
-        ViewBag.BankName = _configuration["VietQrSettings:BankName"] ?? "MBBank";
+        ViewBag.BankName = bankName;
 
         return View(order);
     }

@@ -1,36 +1,69 @@
+@inject TechStore.Core.Interfaces.ISiteSettingsService SiteSettingsService
+@{
+    var siteSettings = await SiteSettingsService.GetAllSettingsAsync();
+    var siteName = siteSettings.GetValueOrDefault("General.SiteName", "TechStore - Siêu Thị Công Nghệ Chính Hãng");
+    var siteHotline = siteSettings.GetValueOrDefault("General.Hotline", "1800 6868");
+    var logoUrl = siteSettings.GetValueOrDefault("Brand.LogoUrl", "");
+    var faviconUrl = siteSettings.GetValueOrDefault("Brand.FaviconUrl", "/favicon.ico");
+    var primaryColor = siteSettings.GetValueOrDefault("Theme.PrimaryColor", "#0046be");
+    var secondaryColor = siteSettings.GetValueOrDefault("Theme.SecondaryColor", "#002e7a");
+    var accentColor = siteSettings.GetValueOrDefault("Theme.AccentColor", "#fff200");
+    var footerAbout = siteSettings.GetValueOrDefault("Footer.AboutText", "Hệ thống bán lẻ thiết bị công nghệ chính hãng hàng đầu theo tiêu chuẩn chuỗi cửa hàng Best Buy. Cam kết 100% thiết bị mới, bảo hành chính hãng.");
+    var footerCopyright = siteSettings.GetValueOrDefault("Footer.Copyright", $"© {DateTime.UtcNow.Year} TechStore Electronics. Mọi quyền được bảo lưu.");
+    var facebookUrl = siteSettings.GetValueOrDefault("Footer.FacebookUrl", "https://facebook.com");
+    var youtubeUrl = siteSettings.GetValueOrDefault("Footer.YoutubeUrl", "https://youtube.com");
+    var tiktokUrl = siteSettings.GetValueOrDefault("Footer.TiktokUrl", "https://tiktok.com");
+    var customCss = siteSettings.GetValueOrDefault("CustomCss.Code", "");
+    var customHeaderHtml = siteSettings.GetValueOrDefault("CustomCss.CustomHeaderHtml", "");
+}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - TechStore Siêu Thị Công Nghệ Chính Hãng</title>
+    <title>@ViewData["Title"] - @siteName</title>
+    <link rel="icon" type="image/x-icon" href="@(string.IsNullOrEmpty(faviconUrl) ? "/favicon.ico" : faviconUrl)" />
     <!-- Tailwind CSS CDN & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&subset=vietnamese,latin,latin-ext&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         bestbuy: {
-                            blue: '#0046be',
-                            darkblue: '#002e7a',
-                            yellow: '#fff200',
+                            blue: '@primaryColor',
+                            darkblue: '@secondaryColor',
+                            yellow: '@accentColor',
                             gray: '#f0f2f5'
                         }
                     },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif']
+                        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif']
                     }
                 }
             }
         }
     </script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        :root {
+            --primary-color: @primaryColor;
+            --secondary-color: @secondaryColor;
+            --accent-color: @accentColor;
+        }
+        body { 
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        @Html.Raw(customCss)
     </style>
+    @if (!string.IsNullOrWhiteSpace(customHeaderHtml))
+    {
+        @Html.Raw(customHeaderHtml)
+    }
 </head>
 <body class="bg-[#f4f6f9] text-slate-800 antialiased min-h-screen flex flex-col justify-between">
     <!-- Top Announcement Bar -->
@@ -114,13 +147,20 @@
         <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
             <!-- Brand Logo -->
             <a href="/" class="flex items-center gap-2 shrink-0 group">
-                <div class="w-10 h-10 rounded-xl bg-bestbuy-yellow text-slate-900 flex items-center justify-center font-black text-xl shadow-sm group-hover:scale-105 transition-transform">
-                    T
-                </div>
-                <div>
-                    <span class="text-2xl font-black tracking-tight block leading-none text-white">TechStore</span>
-                    <span class="text-[10px] font-bold text-bestbuy-yellow uppercase tracking-widest block mt-0.5">Electronics</span>
-                </div>
+                @if (!string.IsNullOrWhiteSpace(logoUrl))
+                {
+                    <img src="@logoUrl" alt="@siteName" class="h-10 w-auto object-contain group-hover:scale-105 transition-transform" />
+                }
+                else
+                {
+                    <div class="w-10 h-10 rounded-xl bg-bestbuy-yellow text-slate-900 flex items-center justify-center font-black text-xl shadow-sm group-hover:scale-105 transition-transform">
+                        T
+                    </div>
+                    <div>
+                        <span class="text-2xl font-black tracking-tight block leading-none text-white">TechStore</span>
+                        <span class="text-[10px] font-bold text-bestbuy-yellow uppercase tracking-widest block mt-0.5">Electronics</span>
+                    </div>
+                }
             </a>
 
             <!-- Search Bar with Live Autocomplete -->
@@ -201,14 +241,35 @@
         <div class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
             <div class="space-y-3">
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-bestbuy-blue text-bestbuy-yellow flex items-center justify-center font-black">T</div>
-                    <span class="font-extrabold text-slate-900 text-lg">TechStore</span>
+                    @if (!string.IsNullOrWhiteSpace(logoUrl))
+                    {
+                        <img src="@logoUrl" alt="@siteName" class="h-8 w-auto object-contain" />
+                    }
+                    else
+                    {
+                        <div class="w-8 h-8 rounded-lg bg-bestbuy-blue text-bestbuy-yellow flex items-center justify-center font-black">T</div>
+                    }
+                    <span class="font-extrabold text-slate-900 text-lg">@siteName</span>
                 </div>
                 <p class="text-xs text-slate-500 leading-relaxed">
-                    Hệ thống bán lẻ thiết bị công nghệ chính hãng hàng đầu theo tiêu chuẩn chuỗi cửa hàng Best Buy. Cam kết 100% thiết bị mới, bảo hành chính hãng.
+                    @footerAbout
                 </p>
                 <div class="text-xs font-semibold text-slate-700">
-                    Hotline: <span class="text-blue-600">1800 6868</span> (Miễn phí)
+                    Hotline: <span class="text-blue-600 font-bold">@siteHotline</span> (Miễn phí)
+                </div>
+                <div class="flex items-center gap-3 pt-1">
+                    @if (!string.IsNullOrWhiteSpace(facebookUrl))
+                    {
+                        <a href="@facebookUrl" target="_blank" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-blue-600 flex items-center justify-center transition text-xs font-bold" title="Facebook">f</a>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(youtubeUrl))
+                    {
+                        <a href="@youtubeUrl" target="_blank" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 flex items-center justify-center transition text-xs font-bold" title="YouTube">▶</a>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(tiktokUrl))
+                    {
+                        <a href="@tiktokUrl" target="_blank" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition text-xs font-bold" title="TikTok">♪</a>
+                    }
                 </div>
             </div>
 
@@ -216,6 +277,7 @@
                 <h4 class="font-bold text-slate-900 mb-3 text-xs uppercase tracking-wider">Hỗ Trợ Khách Hàng</h4>
                 <ul class="space-y-2 text-xs">
                     <li><a href="/checkout" class="hover:text-blue-600">Hướng dẫn thanh toán VietQR</a></li>
+                    <li><a href="/compare" class="hover:text-blue-600">So sánh sản phẩm</a></li>
                     <li><a href="#" class="hover:text-blue-600">Chính sách giao hàng toàn quốc</a></li>
                     <li><a href="#" class="hover:text-blue-600">Quy chế đổi trả 30 ngày</a></li>
                     <li><a href="#" class="hover:text-blue-600">Tra cứu bảo hành điện tử</a></li>
@@ -243,9 +305,39 @@
             </div>
         </div>
         <div class="bg-slate-50 border-t border-slate-100 py-4 text-center text-xs text-slate-400">
-            &copy; @DateTime.UtcNow.Year TechStore eCommerce Solution .NET 10 LTS. All rights reserved.
+            @footerCopyright
         </div>
     </footer>
+
+    <!-- Floating Product Comparison Bar -->
+    <div id="floatingCompareBar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/90 backdrop-blur-md text-white rounded-2xl shadow-2xl border border-white/10 px-5 py-3 flex items-center gap-4 transition-all duration-300 transform translate-y-full opacity-0 pointer-events-none">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
+            </div>
+            <div>
+                <div class="text-xs font-bold flex items-center gap-1.5 whitespace-nowrap">
+                    <span>So Sánh Sản Phẩm</span>
+                    <span id="compareCountBadge" class="px-1.5 py-0.2 bg-blue-500 text-white rounded-full text-[10px] font-black">0</span>
+                </div>
+                <p class="text-[10px] text-slate-400">Tối đa 4 sản phẩm</p>
+            </div>
+        </div>
+
+        <!-- Thumbnails container -->
+        <div id="compareThumbnailsContainer" class="flex items-center gap-2"></div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-2 pl-2 border-l border-white/10 shrink-0">
+            <button type="button" id="compareActionBtn" onclick="TechStoreCompare.goToComparePage()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center gap-1.5 whitespace-nowrap">
+                <span>So Sánh Ngay</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            </button>
+            <button type="button" onclick="TechStoreCompare.clearAll()" title="Xóa tất cả" class="p-2 hover:bg-white/10 text-slate-400 hover:text-rose-400 rounded-xl transition text-xs font-bold">
+                ✕
+            </button>
+        </div>
+    </div>
 
     <!-- Server Toast Trigger if TempData present -->
     @if (TempData["SuccessMessage"] != null)
@@ -261,6 +353,7 @@
     <script src="~/js/toast.js"></script>
     <script src="~/js/cart_drawer.js"></script>
     <script src="~/js/search_suggest.js"></script>
+    <script src="~/js/modules/compare.js"></script>
     <script>
         // Load initial Wishlist badge count
         (async function() {
