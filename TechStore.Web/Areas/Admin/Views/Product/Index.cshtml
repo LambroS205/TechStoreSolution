@@ -9,6 +9,7 @@
     int? categoryId = ViewBag.CategoryId as int?;
     int? brandId = ViewBag.BrandId as int?;
     bool? isActive = ViewBag.IsActive as bool?;
+    string? stockStatus = ViewBag.StockStatus as string;
     int currentPage = ViewBag.CurrentPage ?? 1;
     int totalPages = ViewBag.TotalPages ?? 1;
     int totalItems = ViewBag.TotalItems ?? 0;
@@ -51,7 +52,7 @@
         </div>
 
         <!-- Filter Form -->
-        <form method="get" action="/Admin/Product" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-2 border-t border-slate-100">
+        <form method="get" action="/Admin/Product" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-2 border-t border-slate-100">
             <!-- Search -->
             <div class="lg:col-span-2">
                 <div class="relative">
@@ -82,13 +83,23 @@
                 </select>
             </div>
 
+            <!-- Stock Status Filter -->
+            <div>
+                <select name="stockStatus" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    <option value="">-- Tình trạng kho --</option>
+                    <option value="in_stock" selected="@(stockStatus == "in_stock")">Còn hàng (&gt; 5)</option>
+                    <option value="low_stock" selected="@(stockStatus == "low_stock")">Sắp hết (1 - 5)</option>
+                    <option value="out_of_stock" selected="@(stockStatus == "out_of_stock")">Hết hàng (0)</option>
+                </select>
+            </div>
+
             <!-- Action Buttons -->
             <div class="flex items-center gap-2">
                 <button type="submit" class="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl transition-colors">
                     Lọc
                 </button>
                 <a href="/Admin/Product" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition-colors">
-                    Xóa lọc
+                    Xóa
                 </a>
             </div>
         </form>
@@ -165,9 +176,14 @@
 
                                 <!-- Total Stock -->
                                 <td class="py-3.5 px-4 text-center">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold @(totalStock == 0 ? "bg-rose-100 text-rose-700" : totalStock <= 20 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800")">
-                                        @totalStock
-                                    </span>
+                                    <div class="inline-flex flex-col items-center">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold @(totalStock == 0 ? "bg-rose-100 text-rose-700" : totalStock <= 5 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800")">
+                                            @totalStock
+                                        </span>
+                                        <span class="text-[10px] mt-0.5 @(totalStock == 0 ? "text-rose-600 font-bold" : totalStock <= 5 ? "text-amber-600 font-semibold" : "text-slate-400 font-medium")">
+                                            @(totalStock == 0 ? "Hết hàng" : totalStock <= 5 ? "Sắp hết" : "Còn hàng")
+                                        </span>
+                                    </div>
                                 </td>
 
                                 <!-- Featured Toggle -->
@@ -219,7 +235,7 @@
                 <div class="flex items-center gap-1">
                     @for (int i = 1; i <= totalPages; i++)
                     {
-                        <a href="/Admin/Product?search=@search&categoryId=@categoryId&brandId=@brandId&page=@i" class="px-3 py-1.5 rounded-lg font-semibold @(i == currentPage ? "bg-blue-600 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700") transition-colors">
+                        <a href="/Admin/Product?search=@search&categoryId=@categoryId&brandId=@brandId&stockStatus=@stockStatus&page=@i" class="px-3 py-1.5 rounded-lg font-semibold @(i == currentPage ? "bg-blue-600 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700") transition-colors">
                             @i
                         </a>
                     }

@@ -172,12 +172,68 @@ public class OrderController : Controller
     [HasPermission("Orders.Edit")]
     public async Task<IActionResult> UpdateStatus(int orderId, string newStatus, string? note = null)
     {
-        var order = await _context.Orders.FindAsync(orderId);
+        var order = await _context.Orders
+            .Include(o => o.OrderDetails)
+            .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
         if (order == null) return NotFound();
 
         string oldStatus = order.OrderStatus;
         if (oldStatus != newStatus)
         {
+            // 1. Khi chuyển sang trạng thái Cancelled (Hủy đơn): hoàn lại tồn kho & lượt dùng coupon
+            if (newStatus == "Cancelled" && oldStatus != "Cancelled")
+            {
+                foreach (var detail in order.OrderDetails)
+                {
+                    var variant = await _context.ProductVariants.FindAsync(detail.VariantId);
+                    if (variant != null)
+                    {
+                        variant.StockQuantity += detail.Quantity;
+                    }
+                }
+
+                if (order.CouponId.HasValue)
+                {
+                    var coupon = await _context.Coupons.FindAsync(order.CouponId.Value);
+                    if (coupon != null && coupon.UsageCount > 0)
+                    {
+                        coupon.UsageCount--;
+                    }
+                }
+
+                if (order.PaymentStatus == "Paid")
+                {
+                    order.PaymentStatus = "Refunded";
+                }
+            }
+            // 2. Nếu mở lại đơn hàng từ Cancelled: kiểm tra và trừ lại tồn kho
+            else if (oldStatus == "Cancelled" && newStatus != "Cancelled")
+            {
+                foreach (var detail in order.OrderDetails)
+                {
+                    var variant = await _context.ProductVariants.FindAsync(detail.VariantId);
+                    if (variant != null)
+                    {
+                        if (variant.StockQuantity < detail.Quantity)
+                        {
+                            TempData["ErrorMessage"] = $"Không thể mở lại đơn hàng. Sản phẩm '{detail.ProductName}' không đủ tồn kho (còn {variant.StockQuantity}, cần {detail.Quantity}).";
+                            return RedirectToAction(nameof(Detail), new { id = orderId });
+                        }
+                        variant.StockQuantity -= detail.Quantity;
+                    }
+                }
+
+                if (order.CouponId.HasValue)
+                {
+                    var coupon = await _context.Coupons.FindAsync(order.CouponId.Value);
+                    if (coupon != null)
+                    {
+                        coupon.UsageCount++;
+                    }
+                }
+            }
+
             order.OrderStatus = newStatus;
             if (newStatus == "Delivered" && order.PaymentMethod == "COD")
             {
@@ -212,6 +268,26 @@ public class OrderController : Controller
         }
 
         return RedirectToAction(nameof(Detail), new { id = orderId });
+    }
+
+    /// <summary>
+    /// Trang in phiếu giao hàng / hóa đơn bán lẻ chuyên dụng cho Admin
+    /// </summary>
+    [HttpGet]
+    [HasPermission("Orders.View")]
+    public async Task<IActionResult> PrintInvoice(int id)
+    {
+        var order = await _context.Orders
+            .Include(o => o.OrderDetails)
+                .ThenInclude(od => od.Variant)
+                    .ThenInclude(v => v.Product)
+            .Include(o => o.User)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.OrderId == id);
+
+        if (order == null) return NotFound();
+
+        return View(order);
     }
 
     /// <summary>

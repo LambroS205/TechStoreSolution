@@ -46,6 +46,7 @@ public class ProductController : Controller
         int? categoryId,
         int? brandId,
         bool? isActive,
+        string? stockStatus,
         int page = 1)
     {
         const int pageSize = 10;
@@ -81,6 +82,23 @@ public class ProductController : Controller
             query = query.Where(p => p.IsActive == isActive.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(stockStatus))
+        {
+            switch (stockStatus.ToLower())
+            {
+                case "in_stock":
+                    query = query.Where(p => (p.Variants.Where(v => v.IsActive).Sum(v => (int?)v.StockQuantity) ?? 0) > 5);
+                    break;
+                case "low_stock":
+                    query = query.Where(p => (p.Variants.Where(v => v.IsActive).Sum(v => (int?)v.StockQuantity) ?? 0) > 0 
+                                          && (p.Variants.Where(v => v.IsActive).Sum(v => (int?)v.StockQuantity) ?? 0) <= 5);
+                    break;
+                case "out_of_stock":
+                    query = query.Where(p => (p.Variants.Where(v => v.IsActive).Sum(v => (int?)v.StockQuantity) ?? 0) == 0);
+                    break;
+            }
+        }
+
         var totalItems = await query.CountAsync();
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
@@ -96,6 +114,7 @@ public class ProductController : Controller
         ViewBag.CategoryId = categoryId;
         ViewBag.BrandId = brandId;
         ViewBag.IsActive = isActive;
+        ViewBag.StockStatus = stockStatus;
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = totalPages;
         ViewBag.TotalItems = totalItems;
