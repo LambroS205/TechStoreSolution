@@ -101,8 +101,40 @@ public class HomeController : Controller
         return RedirectToAction(nameof(Contact));
     }
 
+    [Route("/error/{code:int}")]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error() => View();
+    public IActionResult StatusCodeHandler(int code)
+    {
+        Response.StatusCode = code;
+        if (code == 404)
+        {
+            return View("NotFound");
+        }
+
+        return View("Error", new TechStore.Web.Models.ErrorViewModel
+        {
+            StatusCode = code,
+            RequestId = System.Diagnostics.Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+            Message = code switch
+            {
+                401 => "Bạn cần đăng nhập để truy cập trang này.",
+                403 => "Bạn không có quyền truy cập vào nội dung này.",
+                500 => "Máy chủ gặp sự cố ngoài ý muốn. Vui lòng thử lại sau.",
+                _ => "Đã có lỗi xảy ra trong quá trình xử lý yêu cầu."
+            }
+        });
+    }
+
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error()
+    {
+        return View(new TechStore.Web.Models.ErrorViewModel
+        {
+            StatusCode = 500,
+            RequestId = System.Diagnostics.Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+            Message = "Đã xảy ra lỗi ngoài ý muốn. Đội ngũ kỹ thuật đang kiểm tra xử lý."
+        });
+    }
 }
 
 public class ContactFormViewModel

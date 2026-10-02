@@ -1,25 +1,49 @@
-﻿@model ErrorViewModel
+@model TechStore.Web.Models.ErrorViewModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = "Đã Xảy Ra Lỗi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    int status = Model?.StatusCode ?? 500;
 }
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<div class="max-w-xl mx-auto px-4 py-16 text-center">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sm:p-12 space-y-6">
+        <!-- Visual Icon -->
+        <div class="w-16 h-16 mx-auto rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center font-black text-3xl shadow-xs">
+            ⚠️
+        </div>
 
-@if (Model.ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
-}
+        <div class="space-y-2">
+            <span class="px-3 py-1 bg-rose-100 text-rose-800 text-xs font-bold rounded-full uppercase tracking-wider">
+                Mã lỗi: @status
+            </span>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">
+                Đã xảy ra sự cố không mong muốn
+            </h1>
+            <p class="text-sm text-slate-500">
+                @(Model?.Message ?? "Hệ thống gặp sự cố trong quá trình xử lý yêu cầu của bạn. Đội ngũ kỹ thuật đã được thông báo và đang khắc phục.")
+            </p>
+        </div>
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+        @if (Model?.ShowRequestId == true)
+        {
+            <div class="p-3 bg-slate-50 rounded-xl text-left border border-slate-200">
+                <p class="text-xs text-slate-400 font-mono">
+                    <span class="font-bold text-slate-600">Mã yêu cầu (Request ID):</span> @Model.RequestId
+                </p>
+            </div>
+        }
+
+        <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a href="/" class="w-full sm:w-auto px-6 py-3 bg-bestbuy-blue hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md">
+                🏠 Về Trang Chủ
+            </a>
+            <button onclick="window.history.back()" class="w-full sm:w-auto px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all">
+                Quay Lại Trang Trước
+            </button>
+        </div>
+
+        <div class="text-xs text-slate-400 pt-2 border-t border-slate-100">
+            Nếu lỗi tiếp tục lặp lại, vui lòng liên hệ <a href="mailto:support@techstore.vn" class="font-bold text-bestbuy-blue hover:underline">support@techstore.vn</a> hoặc hotline <a href="tel:18006868" class="font-bold text-bestbuy-blue hover:underline">1800 6868</a>.
+        </div>
+    </div>
+</div>

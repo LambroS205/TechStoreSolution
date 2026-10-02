@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -11,6 +12,7 @@ namespace TechStore.Web.Controllers.Api;
 
 [ApiController]
 [Route("api/cart")]
+[EnableRateLimiting("ApiPolicy")]
 public class CartApiController : ControllerBase
 {
     private readonly TechStoreDbContext _context;

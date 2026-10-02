@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -11,6 +12,7 @@ namespace TechStore.Web.Controllers.Api;
 
 [ApiController]
 [Route("api/wishlist")]
+[EnableRateLimiting("ApiPolicy")]
 public class WishlistApiController : ControllerBase
 {
     private readonly TechStoreDbContext _context;

@@ -62,6 +62,11 @@ public class CheckoutController : Controller
     /// <summary>
     /// Tiếp nhận đơn hàng từ Client (tiếp nhận mảng items, coupon và thông tin giao hàng)
     /// </summary>
+    /// <summary>
+    /// Bộ đếm nguyên tử đảm bảo OrderCode không bao giờ trùng lặp trong cùng một tiến trình
+    /// </summary>
+    private static int _orderSequence = 0;
+
     [HttpPost]
     [Route("checkout/place-order")]
     [ValidateAntiForgeryToken]
@@ -94,139 +99,154 @@ public class CheckoutController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        // 2. Kiểm tra các biến thể trong CSDL để tính tổng tiền chính xác
-        var variantIds = items.Select(i => i.VariantId).ToList();
-        var variants = await _context.ProductVariants
-            .Include(v => v.Product)
-            .Where(v => variantIds.Contains(v.VariantId) && v.IsActive)
-            .ToListAsync();
-
-        decimal subTotal = 0;
-        var orderDetails = new List<OrderDetail>();
-
-        foreach (var req in items)
+        // ===== BỌC TOÀN BỘ QUÁ TRÌNH ĐẶT HÀNG TRONG DATABASE TRANSACTION =====
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
         {
-            var variant = variants.FirstOrDefault(v => v.VariantId == req.VariantId);
-            if (variant != null && variant.StockQuantity >= req.Quantity)
+            // 2. Kiểm tra các biến thể trong CSDL để tính tổng tiền chính xác
+            var variantIds = items.Select(i => i.VariantId).ToList();
+            var variants = await _context.ProductVariants
+                .Include(v => v.Product)
+                .Where(v => variantIds.Contains(v.VariantId) && v.IsActive)
+                .ToListAsync();
+
+            decimal subTotal = 0;
+            var orderDetails = new List<OrderDetail>();
+
+            foreach (var req in items)
             {
-                decimal itemTotal = variant.SalePrice * req.Quantity;
-                subTotal += itemTotal;
-
-                orderDetails.Add(new OrderDetail
+                var variant = variants.FirstOrDefault(v => v.VariantId == req.VariantId);
+                if (variant != null && variant.StockQuantity >= req.Quantity)
                 {
-                    VariantId = variant.VariantId,
-                    ProductName = variant.Product.Name,
-                    VariantName = variant.VariantName,
-                    SKU = variant.SKU,
-                    UnitPrice = variant.SalePrice,
-                    Quantity = req.Quantity
-                });
+                    decimal itemTotal = variant.SalePrice * req.Quantity;
+                    subTotal += itemTotal;
 
-                // Trừ tồn kho sản phẩm
-                variant.StockQuantity -= req.Quantity;
+                    orderDetails.Add(new OrderDetail
+                    {
+                        VariantId = variant.VariantId,
+                        ProductName = variant.Product.Name,
+                        VariantName = variant.VariantName,
+                        SKU = variant.SKU,
+                        UnitPrice = variant.SalePrice,
+                        Quantity = req.Quantity
+                    });
+
+                    // Trừ tồn kho sản phẩm
+                    variant.StockQuantity -= req.Quantity;
+                }
             }
-        }
 
-        if (!orderDetails.Any())
+            if (!orderDetails.Any())
+            {
+                await transaction.RollbackAsync();
+                TempData["ErrorMessage"] = "Các sản phẩm trong giỏ đã hết hàng!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // 3. Xử lý giảm giá (nếu có mã coupon)
+            decimal discountAmount = 0;
+            int? appliedCouponId = null;
+            if (!string.IsNullOrWhiteSpace(model.CouponCode))
+            {
+                var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.Code == model.CouponCode.Trim() && c.IsActive);
+                if (coupon != null && subTotal >= coupon.MinOrderAmount && coupon.UsageCount < coupon.UsageLimit)
+                {
+                    appliedCouponId = coupon.CouponId;
+                    if (coupon.DiscountType == "Percentage")
+                    {
+                        discountAmount = (subTotal * coupon.DiscountValue) / 100m;
+                        if (coupon.MaxDiscountAmount.HasValue && discountAmount > coupon.MaxDiscountAmount.Value)
+                            discountAmount = coupon.MaxDiscountAmount.Value;
+                    }
+                    else
+                    {
+                        discountAmount = coupon.DiscountValue;
+                    }
+                    coupon.UsageCount++;
+                }
+            }
+
+            decimal shippingFee = 0; // Miễn phí vận chuyển toàn quốc phong cách Best Buy
+            decimal totalAmount = Math.Max(subTotal + shippingFee - discountAmount, 0);
+
+            // 4. Lấy UserId nếu khách đã đăng nhập
+            int? userId = null;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int uid))
+            {
+                userId = uid;
+            }
+
+            // 5. Tạo đơn hàng (Order) — Dùng Interlocked.Increment + Timestamp đảm bảo OrderCode duy nhất
+            int seq = Interlocked.Increment(ref _orderSequence) % 10000;
+            string orderCode = $"ORD{DateTime.UtcNow:yyyyMMddHHmmss}-{seq:D4}";
+            var order = new Order
+            {
+                OrderCode = orderCode,
+                UserId = userId,
+                CustomerName = model.CustomerName,
+                CustomerPhone = model.CustomerPhone,
+                CustomerEmail = model.CustomerEmail,
+                ShippingAddress = $"{model.AddressDetail}, {model.Ward}, {model.District}, {model.Province}",
+                OrderNotes = model.OrderNotes,
+                CouponId = appliedCouponId,
+                DiscountAmount = discountAmount,
+                SubTotal = subTotal,
+                ShippingFee = shippingFee,
+                TotalAmount = totalAmount,
+                PaymentMethod = model.PaymentMethod == "VietQR" ? "VietQR" : "COD",
+                PaymentStatus = "Pending",
+                OrderStatus = "Pending",
+                CreatedAt = DateTime.UtcNow,
+                OrderDetails = orderDetails
+            };
+
+            await _context.Orders.AddAsync(order);
+            await _context.SaveChangesAsync();
+
+            // 5.1 Ghi nhận lịch sử khởi tạo đơn hàng
+            await _context.OrderStatusHistories.AddAsync(new OrderStatusHistory
+            {
+                OrderId = order.OrderId,
+                PreviousStatus = null,
+                NewStatus = "Pending",
+                Note = "Khách hàng hoàn tất đặt hàng trên hệ thống TechStore",
+                ChangedBy = userId,
+                ChangedAt = DateTime.UtcNow
+            });
+
+            // 6. Ghi nhận lịch sử biến động xuất kho bán hàng
+            int createdById = userId ?? 1;
+            foreach (var detail in order.OrderDetails)
+            {
+                await _context.InventoryTransactions.AddAsync(new InventoryTransaction
+                {
+                    VariantId = detail.VariantId,
+                    TransactionType = "EXPORT_ORDER",
+                    Quantity = detail.Quantity,
+                    UnitPrice = detail.UnitPrice,
+                    ReferenceCode = order.OrderCode,
+                    Note = $"Xuất kho bán hàng theo đơn #{order.OrderCode}",
+                    CreatedBy = createdById,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            // Lưu tất cả trong một lần duy nhất và commit transaction
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            // 7. Gửi email xác nhận đặt hàng kèm hóa đơn & mã VietQR (ngoài transaction vì không rollback được email)
+            await _emailService.SendOrderConfirmationEmailAsync(order);
+
+            return RedirectToAction(nameof(Success), new { orderCode = order.OrderCode });
+        }
+        catch (Exception)
         {
-            TempData["ErrorMessage"] = "Các sản phẩm trong giỏ đã hết hàng!";
+            await transaction.RollbackAsync();
+            TempData["ErrorMessage"] = "Đã xảy ra lỗi trong quá trình xử lý đơn hàng. Vui lòng thử lại!";
             return RedirectToAction(nameof(Index));
         }
-
-        // 3. Xử lý giảm giá (nếu có mã coupon)
-        decimal discountAmount = 0;
-        int? appliedCouponId = null;
-        if (!string.IsNullOrWhiteSpace(model.CouponCode))
-        {
-            var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.Code == model.CouponCode.Trim() && c.IsActive);
-            if (coupon != null && subTotal >= coupon.MinOrderAmount && coupon.UsageCount < coupon.UsageLimit)
-            {
-                appliedCouponId = coupon.CouponId;
-                if (coupon.DiscountType == "Percentage")
-                {
-                    discountAmount = (subTotal * coupon.DiscountValue) / 100m;
-                    if (coupon.MaxDiscountAmount.HasValue && discountAmount > coupon.MaxDiscountAmount.Value)
-                        discountAmount = coupon.MaxDiscountAmount.Value;
-                }
-                else
-                {
-                    discountAmount = coupon.DiscountValue;
-                }
-                coupon.UsageCount++;
-            }
-        }
-
-        decimal shippingFee = 0; // Miễn phí vận chuyển toàn quốc phong cách Best Buy
-        decimal totalAmount = Math.Max(subTotal + shippingFee - discountAmount, 0);
-
-        // 4. Lấy UserId nếu khách đã đăng nhập
-        int? userId = null;
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int uid))
-        {
-            userId = uid;
-        }
-
-        // 5. Tạo đơn hàng (Order)
-        string orderCode = $"ORD{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
-        var order = new Order
-        {
-            OrderCode = orderCode,
-            UserId = userId,
-            CustomerName = model.CustomerName,
-            CustomerPhone = model.CustomerPhone,
-            CustomerEmail = model.CustomerEmail,
-            ShippingAddress = $"{model.AddressDetail}, {model.Ward}, {model.District}, {model.Province}",
-            OrderNotes = model.OrderNotes,
-            CouponId = appliedCouponId,
-            DiscountAmount = discountAmount,
-            SubTotal = subTotal,
-            ShippingFee = shippingFee,
-            TotalAmount = totalAmount,
-            PaymentMethod = model.PaymentMethod == "VietQR" ? "VietQR" : "COD",
-            PaymentStatus = "Pending",
-            OrderStatus = "Pending",
-            CreatedAt = DateTime.UtcNow,
-            OrderDetails = orderDetails
-        };
-
-        await _context.Orders.AddAsync(order);
-        await _context.SaveChangesAsync();
-
-        // 5.1 Ghi nhận lịch sử khởi tạo đơn hàng
-        await _context.OrderStatusHistories.AddAsync(new OrderStatusHistory
-        {
-            OrderId = order.OrderId,
-            PreviousStatus = null,
-            NewStatus = "Pending",
-            Note = "Khách hàng hoàn tất đặt hàng trên hệ thống TechStore",
-            ChangedBy = userId,
-            ChangedAt = DateTime.UtcNow
-        });
-        await _context.SaveChangesAsync();
-
-        // 6. Ghi nhận lịch sử biến động xuất kho bán hàng
-        int createdById = userId ?? 1;
-        foreach (var detail in order.OrderDetails)
-        {
-            await _context.InventoryTransactions.AddAsync(new InventoryTransaction
-            {
-                VariantId = detail.VariantId,
-                TransactionType = "EXPORT_ORDER",
-                Quantity = detail.Quantity,
-                UnitPrice = detail.UnitPrice,
-                ReferenceCode = order.OrderCode,
-                Note = $"Xuất kho bán hàng theo đơn #{order.OrderCode}",
-                CreatedBy = createdById,
-                CreatedAt = DateTime.UtcNow
-            });
-        }
-        await _context.SaveChangesAsync();
-
-        // 7. Gửi email xác nhận đặt hàng kèm hóa đơn & mã VietQR
-        await _emailService.SendOrderConfirmationEmailAsync(order);
-
-        return RedirectToAction(nameof(Success), new { orderCode = order.OrderCode });
     }
 
     /// <summary>

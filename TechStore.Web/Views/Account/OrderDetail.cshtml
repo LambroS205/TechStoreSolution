@@ -34,6 +34,17 @@
         </div>
 
         <div class="flex items-center gap-2">
+            @if (Model.OrderStatus == "Pending")
+            {
+                <form action="/account/order/@Model.OrderCode/cancel" method="post" 
+                      onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng #@Model.OrderCode? Hành động này không thể hoàn tác!');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="px-4 py-2 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        <span>Hủy Đơn</span>
+                    </button>
+                </form>
+            }
             <button onclick="window.print()" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                 <span>In Hóa Đơn</span>

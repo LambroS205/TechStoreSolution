@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -9,6 +10,7 @@ namespace TechStore.Web.Controllers.Api;
 
 [ApiController]
 [Route("api/product")]
+[EnableRateLimiting("ApiPolicy")]
 public class ProductApiController : ControllerBase
 {
     private readonly TechStoreDbContext _context;

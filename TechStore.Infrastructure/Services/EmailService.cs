@@ -217,4 +217,98 @@ public class EmailService : IEmailService
 
         return sb.ToString();
     }
+
+    public async Task SendPasswordResetEmailAsync(string toEmail, string fullName, string resetLink)
+    {
+        try
+        {
+            string htmlContent = $@"
+<!DOCTYPE html>
+<html lang=""vi"">
+<head>
+    <meta charset=""UTF-8"">
+    <title>Khôi Phục Mật Khẩu TechStore</title>
+    <style>
+        body {{ font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #334155; }}
+        .container {{ max-width: 550px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }}
+        .header {{ background-color: #0046be; color: #ffffff; padding: 24px; text-align: center; }}
+        .header h1 {{ margin: 0; font-size: 22px; font-weight: 900; }}
+        .content {{ padding: 28px; }}
+        .btn {{ display: inline-block; background-color: #fff200; color: #0f172a; padding: 14px 32px; border-radius: 12px; font-weight: 900; font-size: 14px; text-decoration: none; margin: 20px 0; }}
+        .footer {{ background-color: #f8fafc; padding: 16px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; }}
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""header"">
+            <h1>🔐 Khôi Phục Mật Khẩu</h1>
+        </div>
+        <div class=""content"">
+            <h2 style=""margin-top:0;font-size:18px;color:#0f172a;"">Xin chào {fullName},</h2>
+            <p style=""font-size:14px;line-height:1.7;"">
+                Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản TechStore của bạn.
+                Nhấn nút bên dưới để tạo mật khẩu mới:
+            </p>
+            <div style=""text-align:center;"">
+                <a href=""{resetLink}"" class=""btn"">ĐẶT LẠI MẬT KHẨU</a>
+            </div>
+            <p style=""font-size:12px;color:#64748b;line-height:1.6;"">
+                ⏰ Liên kết này có hiệu lực trong <strong>30 phút</strong>.<br>
+                Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này. Tài khoản của bạn vẫn an toàn.
+            </p>
+            <p style=""font-size:11px;color:#94a3b8;margin-top:20px;word-break:break-all;"">
+                Nếu nút không hoạt động, sao chép đường dẫn sau vào trình duyệt:<br>{resetLink}
+            </p>
+        </div>
+        <div class=""footer"">
+            &copy; {DateTime.UtcNow.Year} TechStore Electronics. Mọi quyền được bảo lưu.
+        </div>
+    </div>
+</body>
+</html>";
+
+            // Lưu bản sao cục bộ
+            string emailDir = Path.Combine(_env.WebRootPath, "uploads", "emails");
+            if (!Directory.Exists(emailDir))
+            {
+                Directory.CreateDirectory(emailDir);
+            }
+            string filePath = Path.Combine(emailDir, $"reset-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N[..8]}.html");
+            await File.WriteAllTextAsync(filePath, htmlContent, Encoding.UTF8);
+            _logger.LogInformation("Password reset email generated: {FilePath}", filePath);
+
+            // Gửi email qua SMTP nếu có cấu hình
+            string? smtpHost = _configuration["Smtp:Host"];
+            if (!string.IsNullOrEmpty(smtpHost) && !string.IsNullOrEmpty(toEmail))
+            {
+                int port = int.TryParse(_configuration["Smtp:Port"], out int p) ? p : 587;
+                string? user = _configuration["Smtp:Username"];
+                string? pass = _configuration["Smtp:Password"];
+                string fromEmail = _configuration["Smtp:FromEmail"] ?? "no-reply@techstore.vn";
+                string fromName = _configuration["Smtp:FromName"] ?? "TechStore Siêu Thị Công Nghệ";
+
+                using var client = new SmtpClient(smtpHost, port)
+                {
+                    Credentials = new NetworkCredential(user, pass),
+                    EnableSsl = true
+                };
+
+                using var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(fromEmail, fromName),
+                    Subject = "[TechStore] Yêu Cầu Đặt Lại Mật Khẩu",
+                    Body = htmlContent,
+                    IsBodyHtml = true
+                };
+                mailMessage.To.Add(toEmail);
+
+                await client.SendMailAsync(mailMessage);
+                _logger.LogInformation("Password reset email sent to {Email}", toEmail);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send password reset email to {Email}", toEmail);
+        }
+    }
 }

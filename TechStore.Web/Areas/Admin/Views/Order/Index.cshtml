@@ -50,6 +50,35 @@
         </div>
     </div>
 
+    <!-- Filters & Action Bar -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <form method="get" class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+            <input type="text" name="search" value="@ViewBag.CurrentSearch" placeholder="Tìm theo mã đơn, SĐT, tên..."
+                   class="bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64" />
+            <select name="status" onchange="this.form.submit()" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="All" selected="@(ViewBag.CurrentStatus == "All")">Tất cả trạng thái</option>
+                <option value="Pending" selected="@(ViewBag.CurrentStatus == "Pending")">Chờ xử lý (Pending)</option>
+                <option value="Processing" selected="@(ViewBag.CurrentStatus == "Processing")">Đang đóng gói (Processing)</option>
+                <option value="Shipping" selected="@(ViewBag.CurrentStatus == "Shipping")">Đang giao (Shipping)</option>
+                <option value="Delivered" selected="@(ViewBag.CurrentStatus == "Delivered")">Đã giao (Delivered)</option>
+                <option value="Cancelled" selected="@(ViewBag.CurrentStatus == "Cancelled")">Đã hủy (Cancelled)</option>
+            </select>
+            <button type="submit" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-colors">
+                Lọc
+            </button>
+            @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch) || (ViewBag.CurrentStatus != null && ViewBag.CurrentStatus != "All"))
+            {
+                <a href="/Admin/Order" class="text-xs text-slate-500 hover:text-slate-800 font-medium">Đặt lại</a>
+            }
+        </form>
+
+        <a href="/Admin/Order/ExportCsv?status=@ViewBag.CurrentStatus&paymentStatus=@ViewBag.CurrentPaymentStatus&search=@ViewBag.CurrentSearch"
+           class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all shadow-xs flex items-center gap-2 shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            <span>Xuất Excel / CSV</span>
+        </a>
+    </div>
+
     <!-- Orders Table -->
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <table class="w-full text-left text-sm text-slate-600">

@@ -374,6 +374,80 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Addresses));
     }
 
+    /// <summary>
+    /// Hủy đơn hàng — chỉ cho phép khi trạng thái đơn là Pending
+    /// </summary>
+    [HttpPost]
+    [Route("account/order/{orderCode}/cancel")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelOrder(string orderCode)
+    {
+        var user = await GetCurrentUserAsync();
+        if (user == null) return RedirectToAction("Login", "Auth");
+
+        var order = await _context.Orders
+            .Include(o => o.OrderDetails)
+            .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
+
+        if (order == null) return NotFound();
+
+        // Kiểm tra quyền sở hữu đơn hàng
+        bool isOwner = order.UserId == user.UserId || (order.CustomerEmail == user.Email && !string.IsNullOrEmpty(user.Email));
+        if (!isOwner)
+        {
+            return Forbid();
+        }
+
+        // Chỉ cho phép hủy khi đơn hàng ở trạng thái Pending
+        if (order.OrderStatus != "Pending")
+        {
+            TempData["ErrorMessage"] = "Không thể hủy đơn hàng đã được xử lý. Vui lòng liên hệ tổng đài 1800 6868 để được hỗ trợ.";
+            return RedirectToAction(nameof(OrderDetail), new { orderCode });
+        }
+
+        // Hoàn lại tồn kho cho các sản phẩm trong đơn
+        foreach (var detail in order.OrderDetails)
+        {
+            var variant = await _context.ProductVariants.FindAsync(detail.VariantId);
+            if (variant != null)
+            {
+                variant.StockQuantity += detail.Quantity;
+            }
+        }
+
+        // Hoàn lại lượt sử dụng coupon (nếu có)
+        if (order.CouponId.HasValue)
+        {
+            var coupon = await _context.Coupons.FindAsync(order.CouponId.Value);
+            if (coupon != null && coupon.UsageCount > 0)
+            {
+                coupon.UsageCount--;
+            }
+        }
+
+        // Cập nhật trạng thái đơn hàng
+        string previousStatus = order.OrderStatus;
+        order.OrderStatus = "Cancelled";
+        order.PaymentStatus = order.PaymentStatus == "Paid" ? "Refunded" : "Failed";
+        order.UpdatedAt = DateTime.UtcNow;
+
+        // Ghi nhận lịch sử trạng thái
+        await _context.OrderStatusHistories.AddAsync(new TechStore.Core.Entities.OrderStatusHistory
+        {
+            OrderId = order.OrderId,
+            PreviousStatus = previousStatus,
+            NewStatus = "Cancelled",
+            Note = "Khách hàng tự hủy đơn hàng",
+            ChangedBy = user.UserId,
+            ChangedAt = DateTime.UtcNow
+        });
+
+        await _context.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = $"Đã hủy đơn hàng #{orderCode} thành công.";
+        return RedirectToAction(nameof(Orders));
+    }
+
     private async Task<User?> GetCurrentUserAsync()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);

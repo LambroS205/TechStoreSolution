@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Core.Entities;
 using TechStore.Core.Interfaces;
@@ -13,16 +14,19 @@ using TechStore.Infrastructure.Data;
 
 namespace TechStore.Web.Controllers;
 
+[EnableRateLimiting("AuthPolicy")]
 public class AuthController : Controller
 {
     private readonly TechStoreDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly IEmailService _emailService;
     private readonly PasswordHasher<User> _passwordHasher;
 
-    public AuthController(TechStoreDbContext context, IAuditLogService auditLogService)
+    public AuthController(TechStoreDbContext context, IAuditLogService auditLogService, IEmailService emailService)
     {
         _context = context;
         _auditLogService = auditLogService;
+        _emailService = emailService;
         _passwordHasher = new PasswordHasher<User>();
     }
 
@@ -292,6 +296,149 @@ public class AuthController : Controller
         return RedirectToAction("Index", "Home");
     }
 
+    /// <summary>
+    /// Trang yêu cầu khôi phục mật khẩu — nhập email để nhận link reset
+    /// </summary>
+    [HttpGet]
+    [Route("auth/forgot-password")]
+    public IActionResult ForgotPassword()
+    {
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToAction("Index", "Home");
+
+        return View(new ForgotPasswordViewModel());
+    }
+
+    /// <summary>
+    /// Xử lý yêu cầu gửi email khôi phục mật khẩu
+    /// </summary>
+    [HttpPost]
+    [Route("auth/forgot-password")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        // Luôn hiển thị thông báo thành công dù email có tồn tại hay không (chống enumeration)
+        string successMsg = "Nếu địa chỉ email này đã được đăng ký, bạn sẽ nhận được liên kết đặt lại mật khẩu trong vài phút. Vui lòng kiểm tra hộp thư (cả thư rác/spam).";
+
+        if (string.IsNullOrWhiteSpace(model.Email))
+        {
+            ModelState.AddModelError("Email", "Vui lòng nhập địa chỉ email!");
+            return View(model);
+        }
+
+        string normalizedEmail = model.Email.Trim().ToUpperInvariant();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail && u.IsActive);
+
+        if (user != null)
+        {
+            // Vô hiệu hóa tất cả token cũ chưa dùng
+            var oldTokens = await _context.PasswordResetTokens
+                .Where(t => t.UserId == user.UserId && !t.IsUsed)
+                .ToListAsync();
+            foreach (var t in oldTokens) t.IsUsed = true;
+
+            // Tạo token mới có hiệu lực 30 phút
+            string token = Guid.NewGuid().ToString("N");
+            var resetToken = new PasswordResetToken
+            {
+                UserId = user.UserId,
+                Token = token,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(30),
+                IsUsed = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.PasswordResetTokens.AddAsync(resetToken);
+            await _context.SaveChangesAsync();
+
+            // Tạo link reset
+            string resetLink = $"{Request.Scheme}://{Request.Host}/auth/reset-password?token={token}";
+
+            // Gửi email
+            await _emailService.SendPasswordResetEmailAsync(user.Email, user.FullName, resetLink);
+
+            await _auditLogService.LogAsync("ForgotPassword", "Security", user.UserId.ToString(), null, new { Email = user.Email });
+        }
+
+        TempData["SuccessMessage"] = successMsg;
+        return View(model);
+    }
+
+    /// <summary>
+    /// Trang nhập mật khẩu mới khi có token hợp lệ
+    /// </summary>
+    [HttpGet]
+    [Route("auth/reset-password")]
+    public async Task<IActionResult> ResetPassword(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            TempData["ErrorMessage"] = "Liên kết đặt lại mật khẩu không hợp lệ!";
+            return RedirectToAction(nameof(ForgotPassword));
+        }
+
+        var resetToken = await _context.PasswordResetTokens
+            .FirstOrDefaultAsync(t => t.Token == token && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow);
+
+        if (resetToken == null)
+        {
+            TempData["ErrorMessage"] = "Liên kết đã hết hạn hoặc đã được sử dụng. Vui lòng yêu cầu lại!";
+            return RedirectToAction(nameof(ForgotPassword));
+        }
+
+        return View(new ResetPasswordViewModel { Token = token });
+    }
+
+    /// <summary>
+    /// Xử lý đặt lại mật khẩu mới
+    /// </summary>
+    [HttpPost]
+    [Route("auth/reset-password")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        if (string.IsNullOrWhiteSpace(model.NewPassword) || model.NewPassword.Length < 6)
+        {
+            ModelState.AddModelError("NewPassword", "Mật khẩu mới phải có ít nhất 6 ký tự!");
+            return View(model);
+        }
+
+        if (model.NewPassword != model.ConfirmPassword)
+        {
+            ModelState.AddModelError("ConfirmPassword", "Mật khẩu xác nhận không khớp!");
+            return View(model);
+        }
+
+        var resetToken = await _context.PasswordResetTokens
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Token == model.Token && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow);
+
+        if (resetToken == null)
+        {
+            TempData["ErrorMessage"] = "Liên kết đã hết hạn hoặc đã được sử dụng. Vui lòng yêu cầu lại!";
+            return RedirectToAction(nameof(ForgotPassword));
+        }
+
+        // Cập nhật mật khẩu mới
+        var user = resetToken.User;
+        user.PasswordHash = _passwordHasher.HashPassword(user, model.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        resetToken.IsUsed = true;
+
+        await _context.SaveChangesAsync();
+
+        await _auditLogService.LogAsync("ResetPassword", "Security", user.UserId.ToString(), null, new { Username = user.Username });
+
+        TempData["SuccessMessage"] = "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.";
+        return RedirectToAction(nameof(Login));
+    }
+
     [HttpGet]
     [Route("auth/logout")]
     public async Task<IActionResult> Logout()
@@ -317,3 +464,15 @@ public class RegisterViewModel
     public string Password { get; set; } = string.Empty;
     public string ConfirmPassword { get; set; } = string.Empty;
 }
+
+public class ForgotPasswordViewModel
+{
+    public string Email { get; set; } = string.Empty;
+}
+
+public class ResetPasswordViewModel
+{
+    public string Token { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmPassword { get; set; } = string.Empty;
+}

@@ -1,11 +1,16 @@
 using System;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using TechStore.Core.Interfaces;
 using TechStore.Infrastructure.Data;
 using TechStore.Infrastructure.Services;
@@ -56,7 +61,56 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
-// 6. Thêm Controllers với Razor Views & Web API Controllers
+// 6. Cấu hình Rate Limiting — Chống DDoS và Brute-force Attack (phân vùng theo địa chỉ IP)
+builder.Services.AddRateLimiter(options =>
+{
+    // Policy chung: 120 request/phút mỗi IP
+    options.AddPolicy("GeneralPolicy", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+
+    // Policy nghiêm ngặt cho Auth endpoints: 10 request/phút mỗi IP
+    options.AddPolicy("AuthPolicy", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+
+    // Policy cho API endpoints: 60 request/phút mỗi IP
+    options.AddPolicy("ApiPolicy", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.ContentType = "text/html; charset=utf-8";
+        await context.HttpContext.Response.WriteAsync(
+            "<h2>⚠️ Quá nhiều yêu cầu</h2><p>Bạn đã gửi quá nhiều yêu cầu trong thời gian ngắn. Vui lòng thử lại sau 1 phút.</p>",
+            cancellationToken);
+    };
+});
+
+// 7. Thêm Controllers với Razor Views & Web API Controllers
 // Trong .NET 10, Hot Reload đã được tích hợp sẵn mặc định nên không cần gói AddRazorRuntimeCompilation
 builder.Services.AddControllersWithViews();
 
@@ -72,20 +126,55 @@ using (var scope = app.Services.CreateScope())
 // Pipeline xử lý HTTP Requests
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
+// Global Exception Handler — Bắt mọi lỗi chưa xử lý, log chi tiết và trả về trang lỗi thân thiện
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionHandler = context.Features.Get<IExceptionHandlerFeature>();
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+        if (exceptionHandler?.Error != null)
+        {
+            logger.LogError(exceptionHandler.Error,
+                "Unhandled exception at {Path}: {Message}",
+                context.Request.Path, exceptionHandler.Error.Message);
+        }
+
+        // Nếu là API request thì trả JSON
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new { success = false, message = "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau!" });
+        }
+        else
+        {
+            // Chuyển tiếp về trang Error
+            context.Response.Redirect("/error/500");
+        }
+    });
+});
+
+// Điều hướng mã trạng thái HTTP (404, 403, 500) sang view tùy chỉnh
+app.UseStatusCodePagesWithReExecute("/error/{0}");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 
+// Rate Limiting Middleware — phải đặt sau UseRouting, trước UseAuthentication
+app.UseRateLimiter();
+
 // Thứ tự Middleware bắt buộc: Authentication -> Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 7. Định tuyến khu vực Area (Admin Panel) và Storefront (Giao diện mua sắm)
+// 8. Định tuyến khu vực Area (Admin Panel) và Storefront (Giao diện mua sắm)
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
@@ -97,4 +186,4 @@ app.MapControllerRoute(
 // Map các Web API Controllers
 app.MapControllers();
 
-app.Run();
+app.Run();

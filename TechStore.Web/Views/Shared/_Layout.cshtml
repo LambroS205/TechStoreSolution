@@ -23,6 +23,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - @siteName</title>
     <link rel="icon" type="image/x-icon" href="@(string.IsNullOrEmpty(faviconUrl) ? "/favicon.ico" : faviconUrl)" />
+
+    <!-- SEO & Metadata -->
+    <meta name="description" content="@(ViewData["MetaDescription"] ?? footerAbout)" />
+    <meta name="keywords" content="@(ViewData["MetaKeywords"] ?? "điện thoại, laptop, linh kiện, phụ kiện công nghệ chính hãng, apple, samsung, techstore")" />
+    <meta name="author" content="@siteName" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="@(ViewData["CanonicalUrl"] ?? $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}")" />
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="@(ViewData["OgType"] ?? "website")" />
+    <meta property="og:url" content="@($"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}")" />
+    <meta property="og:title" content="@ViewData["Title"] - @siteName" />
+    <meta property="og:description" content="@(ViewData["MetaDescription"] ?? footerAbout)" />
+    <meta property="og:image" content="@(ViewData["OgImage"] ?? $"{Context.Request.Scheme}://{Context.Request.Host}/images/og-banner.jpg")" />
+    <meta property="og:site_name" content="@siteName" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@ViewData["Title"] - @siteName" />
+    <meta name="twitter:description" content="@(ViewData["MetaDescription"] ?? footerAbout)" />
+    <meta name="twitter:image" content="@(ViewData["OgImage"] ?? $"{Context.Request.Scheme}://{Context.Request.Host}/images/og-banner.jpg")" />
+
+    @await RenderSectionAsync("StructuredData", required: false)
+
     <!-- Tailwind CSS CDN & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">

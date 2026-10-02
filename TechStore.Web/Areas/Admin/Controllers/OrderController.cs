@@ -53,7 +53,55 @@ public class OrderController : Controller
             .CountAsync(o => o.PaymentMethod == "VietQR" && o.PaymentStatus == "Pending");
 
         ViewBag.CurrentStatus = status ?? "All";
+        ViewBag.CurrentPaymentStatus = paymentStatus;
+        ViewBag.CurrentSearch = search;
         return View(orders);
+    }
+
+    /// <summary>
+    /// Xuất danh sách đơn hàng ra file CSV hỗ trợ Excel (UTF-8 có BOM không bị lỗi tiếng Việt)
+    /// </summary>
+    [HttpGet]
+    [HasPermission("Orders.View")]
+    public async Task<IActionResult> ExportCsv(string? status, string? paymentStatus, string? search)
+    {
+        var query = _context.Orders
+            .Include(o => o.OrderDetails)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) && status != "All")
+            query = query.Where(o => o.OrderStatus == status);
+
+        if (!string.IsNullOrWhiteSpace(paymentStatus))
+            query = query.Where(o => o.PaymentStatus == paymentStatus);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(o => o.OrderCode.Contains(search) || o.CustomerPhone.Contains(search) || o.CustomerName.Contains(search));
+
+        var orders = await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
+
+        var builder = new System.Text.StringBuilder();
+        // Dòng tiêu đề
+        builder.AppendLine("Mã Đơn Hàng,Khách Hàng,Số Điện Thoại,Email,Địa Chỉ Giao Hàng,Phương Thức Thanh Toán,Trạng Thái TT,Trạng Thái Đơn,Tạm Tính,Giảm Giá,Tổng Tiền,Ghi Chú,Thời Gian Đặt");
+
+        foreach (var order in orders)
+        {
+            string cleanAddress = $"\"{(order.ShippingAddress ?? "").Replace("\"", "\"\"")}\"";
+            string cleanName = $"\"{(order.CustomerName ?? "").Replace("\"", "\"\"")}\"";
+            string cleanNotes = $"\"{(order.OrderNotes ?? "").Replace("\"", "\"\"")}\"";
+            builder.AppendLine($"{order.OrderCode},{cleanName},{order.CustomerPhone},{order.CustomerEmail},{cleanAddress},{order.PaymentMethod},{order.PaymentStatus},{order.OrderStatus},{order.SubTotal},{order.DiscountAmount},{order.TotalAmount},{cleanNotes},{order.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+        }
+
+        // Thêm UTF-8 BOM để Excel tự động nhận diện tiếng Việt có dấu
+        var preamble = System.Text.Encoding.UTF8.GetPreamble();
+        var bytes = System.Text.Encoding.UTF8.GetBytes(builder.ToString());
+        var fileBytes = new byte[preamble.Length + bytes.Length];
+        Buffer.BlockCopy(preamble, 0, fileBytes, 0, preamble.Length);
+        Buffer.BlockCopy(bytes, 0, fileBytes, preamble.Length, bytes.Length);
+
+        string fileName = $"TechStore_Orders_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+        return File(fileBytes, "text/csv; charset=utf-8", fileName);
     }
 
     /// <summary>

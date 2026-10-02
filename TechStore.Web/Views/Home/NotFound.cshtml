@@ -1,0 +1,69 @@
+@{
+    ViewData["Title"] = "Không Tìm Thấy Trang (404)";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="max-w-4xl mx-auto px-4 py-16 text-center">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sm:p-14 space-y-8">
+        <!-- Visual 404 Badge -->
+        <div class="relative inline-block">
+            <span class="text-8xl sm:text-9xl font-black text-slate-100 select-none">404</span>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <span class="px-5 py-2 bg-bestbuy-yellow text-slate-900 font-black text-lg sm:text-xl rounded-2xl shadow-sm border border-yellow-300 transform -rotate-3">
+                    🔍 Trang Không Tồn Tại
+                </span>
+            </div>
+        </div>
+
+        <!-- Headline & Description -->
+        <div class="max-w-xl mx-auto space-y-3">
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                Rất tiếc! Chúng tôi không tìm thấy nội dung này
+            </h1>
+            <p class="text-sm text-slate-500 leading-relaxed">
+                Đường dẫn bạn vừa truy cập có thể đã bị thay đổi, xóa bỏ hoặc tạm thời không khả dụng. 
+                Hãy thử tìm kiếm sản phẩm bạn quan tâm bên dưới.
+            </p>
+        </div>
+
+        <!-- Search Box -->
+        <div class="max-w-lg mx-auto">
+            <form action="/products" method="get" class="relative flex items-center">
+                <input type="text" name="q" placeholder="Tìm kiếm iPhone 16, MacBook M3, Tai nghe..." 
+                       class="w-full bg-slate-50 border border-slate-300 rounded-2xl py-3.5 pl-5 pr-28 text-sm focus:outline-none focus:ring-2 focus:ring-bestbuy-blue focus:bg-white transition-all shadow-inner" />
+                <button type="submit" 
+                        class="absolute right-1.5 top-1.5 bottom-1.5 px-5 bg-bestbuy-blue hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <span>Tìm</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Quick Links / Popular Categories -->
+        <div class="pt-4 border-t border-slate-100">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Danh mục gợi ý dành cho bạn</p>
+            <div class="flex flex-wrap items-center justify-center gap-2.5">
+                <a href="/" class="px-4 py-2.5 bg-slate-100 hover:bg-bestbuy-blue hover:text-white text-slate-700 text-xs font-bold rounded-xl transition-all">
+                    🏠 Trang Chủ
+                </a>
+                <a href="/products" class="px-4 py-2.5 bg-slate-100 hover:bg-bestbuy-blue hover:text-white text-slate-700 text-xs font-bold rounded-xl transition-all">
+                    🛍️ Tất Cả Sản Phẩm
+                </a>
+                <a href="/category/dien-thoai" class="px-4 py-2.5 bg-slate-100 hover:bg-bestbuy-blue hover:text-white text-slate-700 text-xs font-bold rounded-xl transition-all">
+                    📱 Điện Thoại
+                </a>
+                <a href="/category/laptop" class="px-4 py-2.5 bg-slate-100 hover:bg-bestbuy-blue hover:text-white text-slate-700 text-xs font-bold rounded-xl transition-all">
+                    💻 Laptop
+                </a>
+                <a href="/contact" class="px-4 py-2.5 bg-slate-100 hover:bg-bestbuy-blue hover:text-white text-slate-700 text-xs font-bold rounded-xl transition-all">
+                    📞 Liên Hệ Hỗ Trợ
+                </a>
+            </div>
+        </div>
+
+        <!-- Support Hotline -->
+        <div class="text-xs text-slate-400">
+            Cần trợ giúp ngay? Gọi tổng đài miễn phí: <a href="tel:18006868" class="font-bold text-bestbuy-blue hover:underline">1800 6868</a> (8:00 - 21:30)
+        </div>
+    </div>
+</div>

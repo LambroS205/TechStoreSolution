@@ -57,6 +57,9 @@ public class TechStoreDbContext : DbContext
     // DbSets: Phân hệ Cấu hình giao diện và hệ thống động (CMS Site Settings)
     public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
 
+    // DbSets: Phân hệ Khôi phục mật khẩu (Password Reset)
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -540,6 +543,25 @@ public class TechStoreDbContext : DbContext
 
             entity.HasIndex(e => e.Key).IsUnique();
             entity.HasIndex(e => e.Group);
+        });
+
+        // 27. Cấu hình bảng PasswordResetTokens (Khôi phục mật khẩu)
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.ToTable("PasswordResetTokens");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Token).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.ExpiresAt).IsRequired();
+            entity.Property(e => e.IsUsed).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.Token);
+            entity.HasIndex(e => e.UserId);
         });
     }
 }
