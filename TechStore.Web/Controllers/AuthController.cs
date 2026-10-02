@@ -204,14 +204,23 @@ public class AuthController : Controller
             ModelState.AddModelError("Email", "Địa chỉ email không hợp lệ!");
         }
 
-        if (string.IsNullOrWhiteSpace(model.Password) || model.Password.Length < 6)
+        if (!ValidatePasswordComplexity(model.Password, out string pwdError))
         {
-            ModelState.AddModelError("Password", "Mật khẩu phải có độ dài tối thiểu 6 ký tự!");
+            ModelState.AddModelError("Password", pwdError);
         }
 
         if (model.Password != model.ConfirmPassword)
         {
             ModelState.AddModelError("ConfirmPassword", "Mật khẩu xác nhận không khớp với mật khẩu!");
+        }
+
+        if (!string.IsNullOrWhiteSpace(model.PhoneNumber))
+        {
+            string phone = model.PhoneNumber.Trim();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^(03|05|07|08|09)\d{8}$"))
+            {
+                ModelState.AddModelError("PhoneNumber", "Số điện thoại không hợp lệ (cần đúng 10 số, bắt đầu bằng 03, 05, 07, 08, 09)!");
+            }
         }
 
         string normalizedUsername = (model.Username ?? "").Trim().ToUpperInvariant();
@@ -403,9 +412,9 @@ public class AuthController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
-        if (string.IsNullOrWhiteSpace(model.NewPassword) || model.NewPassword.Length < 6)
+        if (!ValidatePasswordComplexity(model.NewPassword, out string pwdError))
         {
-            ModelState.AddModelError("NewPassword", "Mật khẩu mới phải có ít nhất 6 ký tự!");
+            ModelState.AddModelError("NewPassword", pwdError);
             return View(model);
         }
 
@@ -445,6 +454,27 @@ public class AuthController : Controller
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToAction("Index", "Home");
+    }
+
+    private static bool ValidatePasswordComplexity(string? password, out string error)
+    {
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8)
+        {
+            error = "Mật khẩu phải có độ dài tối thiểu 8 ký tự!";
+            return false;
+        }
+        if (password.Contains(' '))
+        {
+            error = "Mật khẩu không được chứa khoảng trắng!";
+            return false;
+        }
+        if (!password.Any(char.IsLetter) || !password.Any(char.IsDigit))
+        {
+            error = "Mật khẩu phải bao gồm cả chữ cái và chữ số!";
+            return false;
+        }
+        error = string.Empty;
+        return true;
     }
 }
 

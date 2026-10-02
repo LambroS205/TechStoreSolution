@@ -19,10 +19,27 @@ public class LocalFileStorageService : IFileStorageService
         _environment = environment;
     }
 
+    private static readonly System.Collections.Generic.HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".webp", ".gif"
+    };
+
+    private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
+
     public async Task<string> SaveFileAsync(Stream fileStream, string originalFileName, string folderName)
     {
         if (fileStream == null || fileStream.Length == 0)
             throw new ArgumentException("Luồng dữ liệu tập tin trống.", nameof(fileStream));
+
+        if (fileStream.Length > MaxFileSizeBytes)
+            throw new InvalidOperationException("Kích thước tập tin vượt quá giới hạn cho phép (tối đa 5MB).");
+
+        string ext = Path.GetExtension(originalFileName).ToLowerInvariant();
+        if (string.IsNullOrEmpty(ext) || !AllowedExtensions.Contains(ext))
+            throw new InvalidOperationException($"Định dạng tập tin '{ext}' không hợp lệ. Hệ thống chỉ cho phép tải lên các định dạng ảnh: .jpg, .jpeg, .png, .webp, .gif");
+
+        string cleanFolderName = Regex.Replace(folderName, @"[^a-zA-Z0-9_\-]", "").Trim();
+        if (string.IsNullOrEmpty(cleanFolderName)) cleanFolderName = "misc";
 
         string webRootPath = _environment.WebRootPath;
         if (string.IsNullOrEmpty(webRootPath))
@@ -30,13 +47,12 @@ public class LocalFileStorageService : IFileStorageService
             webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         }
 
-        string targetDirectory = Path.Combine(webRootPath, "uploads", folderName);
+        string targetDirectory = Path.Combine(webRootPath, "uploads", cleanFolderName);
         if (!Directory.Exists(targetDirectory))
         {
             Directory.CreateDirectory(targetDirectory);
         }
 
-        string ext = Path.GetExtension(originalFileName).ToLowerInvariant();
         string rawName = Path.GetFileNameWithoutExtension(originalFileName);
         string safeName = Regex.Replace(rawName, @"[^a-zA-Z0-9_\-]", "-").Trim('-');
         if (string.IsNullOrEmpty(safeName)) safeName = "image";

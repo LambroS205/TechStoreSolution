@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
@@ -112,7 +113,10 @@ builder.Services.AddRateLimiter(options =>
 
 // 7. Thêm Controllers với Razor Views & Web API Controllers
 // Trong .NET 10, Hot Reload đã được tích hợp sẵn mặc định nên không cần gói AddRazorRuntimeCompilation
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+});
 
 var app = builder.Build();
 

@@ -201,9 +201,9 @@ public class UserController : Controller
     [HasPermission("Users.Edit")]
     public async Task<IActionResult> ResetPassword(int id, string newPassword)
     {
-        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
         {
-            TempData["ErrorMessage"] = "Mật khẩu mới phải có tối thiểu 6 ký tự.";
+            TempData["ErrorMessage"] = "Mật khẩu mới phải có tối thiểu 8 ký tự.";
             return RedirectToAction(nameof(Detail), new { id });
         }
 

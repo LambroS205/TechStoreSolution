@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,10 +13,12 @@ namespace TechStore.Web.Controllers;
 public class ProductController : Controller
 {
     private readonly TechStoreDbContext _context;
+    private readonly IMemoryCache _cache;
 
-    public ProductController(TechStoreDbContext context)
+    public ProductController(TechStoreDbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     /// <summary>
@@ -106,9 +109,18 @@ public class ProductController : Controller
             .Take(pageSize)
             .ToListAsync();
 
-        // Chuẩn bị dữ liệu cho Sidebar bộ lọc
-        var allBrands = await _context.Brands.Where(b => b.IsActive).ToListAsync();
-        var allCategories = await _context.Categories.Where(c => c.IsActive).ToListAsync();
+        // Chuẩn bị dữ liệu cho Sidebar bộ lọc với IMemoryCache (30 phút)
+        var allBrands = await _cache.GetOrCreateAsync("all_active_brands", entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+            return _context.Brands.AsNoTracking().Where(b => b.IsActive).ToListAsync();
+        }) ?? new List<Brand>();
+
+        var allCategories = await _cache.GetOrCreateAsync("all_active_categories", entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+            return _context.Categories.AsNoTracking().Where(c => c.IsActive).ToListAsync();
+        }) ?? new List<Category>();
 
         var viewModel = new ProductListViewModel
         {
@@ -142,6 +154,7 @@ public class ProductController : Controller
             .Include(p => p.Brand)
             .Include(p => p.Variants.Where(v => v.IsActive))
             .Include(p => p.Images)
+            .AsSplitQuery() // Tối ưu tránh Cartesian Product warning (EF Core 20504)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Slug == slug && p.IsActive);
 
@@ -150,19 +163,17 @@ public class ProductController : Controller
             return NotFound();
         }
 
-        // Tăng lượt xem sản phẩm
-        var dbProduct = await _context.Products.FindAsync(product.ProductId);
-        if (dbProduct != null)
-        {
-            dbProduct.ViewCount++;
-            await _context.SaveChangesAsync();
-        }
+        // Tăng lượt xem sản phẩm bằng Atomic ExecuteUpdateAsync không gây lock bảng
+        await _context.Products
+            .Where(p => p.ProductId == product.ProductId)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.ViewCount, p => p.ViewCount + 1));
 
-        // Lấy sản phẩm tương tự cùng danh mục
+        // Lấy sản phẩm tương tự cùng danh mục (sắp xếp rõ ràng trước khi Take để loại bỏ EF Core 10102)
         var relatedProducts = await _context.Products
             .Include(p => p.Variants.Where(v => v.IsActive))
             .AsNoTracking()
             .Where(p => p.CategoryId == product.CategoryId && p.ProductId != product.ProductId && p.IsActive)
+            .OrderByDescending(p => p.CreatedAt)
             .Take(4)
             .ToListAsync();
 
@@ -235,20 +246,41 @@ public class ProductController : Controller
             return RedirectToAction("Login", "Auth", new { returnUrl = $"/product/{slug}" });
         }
 
-        var review = new ProductReview
+        string? cleanComment = comment?.Trim();
+        if (cleanComment?.Length > 1000)
         {
-            ProductId = product.ProductId,
-            UserId = userId,
-            Rating = rating,
-            Comment = comment?.Trim(),
-            IsApproved = true,
-            CreatedAt = DateTime.UtcNow
-        };
+            cleanComment = cleanComment[..1000];
+        }
 
-        await _context.ProductReviews.AddAsync(review);
-        await _context.SaveChangesAsync();
+        // Kiểm tra xem người dùng đã từng đánh giá sản phẩm này chưa
+        var existingReview = await _context.ProductReviews
+            .FirstOrDefaultAsync(r => r.ProductId == product.ProductId && r.UserId == userId);
 
-        TempData["SuccessMessage"] = "Cảm ơn bạn đã gửi đánh giá cho sản phẩm!";
+        if (existingReview != null)
+        {
+            existingReview.Rating = rating;
+            existingReview.Comment = cleanComment;
+            existingReview.CreatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Bạn đã cập nhật đánh giá cho sản phẩm thành công!";
+        }
+        else
+        {
+            var review = new ProductReview
+            {
+                ProductId = product.ProductId,
+                UserId = userId,
+                Rating = rating,
+                Comment = cleanComment,
+                IsApproved = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.ProductReviews.AddAsync(review);
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Cảm ơn bạn đã gửi đánh giá cho sản phẩm!";
+        }
+
         return RedirectToAction(nameof(Detail), new { slug });
     }
 }

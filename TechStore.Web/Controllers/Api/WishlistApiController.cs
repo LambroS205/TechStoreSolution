@@ -13,6 +13,7 @@ namespace TechStore.Web.Controllers.Api;
 [ApiController]
 [Route("api/wishlist")]
 [EnableRateLimiting("ApiPolicy")]
+[IgnoreAntiforgeryToken]
 public class WishlistApiController : ControllerBase
 {
     private readonly TechStoreDbContext _context;

@@ -115,25 +115,43 @@ public class CheckoutController : Controller
 
             foreach (var req in items)
             {
-                var variant = variants.FirstOrDefault(v => v.VariantId == req.VariantId);
-                if (variant != null && variant.StockQuantity >= req.Quantity)
+                if (req.Quantity <= 0 || req.Quantity > 50)
                 {
-                    decimal itemTotal = variant.SalePrice * req.Quantity;
-                    subTotal += itemTotal;
-
-                    orderDetails.Add(new OrderDetail
-                    {
-                        VariantId = variant.VariantId,
-                        ProductName = variant.Product.Name,
-                        VariantName = variant.VariantName,
-                        SKU = variant.SKU,
-                        UnitPrice = variant.SalePrice,
-                        Quantity = req.Quantity
-                    });
-
-                    // Trừ tồn kho sản phẩm
-                    variant.StockQuantity -= req.Quantity;
+                    await transaction.RollbackAsync();
+                    TempData["ErrorMessage"] = "Số lượng sản phẩm trong giỏ hàng không hợp lệ (từ 1 đến 50)!";
+                    return RedirectToAction(nameof(Index));
                 }
+
+                var variant = variants.FirstOrDefault(v => v.VariantId == req.VariantId);
+                if (variant == null)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["ErrorMessage"] = "Có sản phẩm trong giỏ hàng không còn tồn tại hoặc đã ngừng kinh doanh!";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                if (variant.StockQuantity < req.Quantity)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["ErrorMessage"] = $"Sản phẩm '{variant.VariantName}' chỉ còn {variant.StockQuantity} sản phẩm trong kho (bạn đặt {req.Quantity})!";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                decimal itemTotal = variant.SalePrice * req.Quantity;
+                subTotal += itemTotal;
+
+                orderDetails.Add(new OrderDetail
+                {
+                    VariantId = variant.VariantId,
+                    ProductName = variant.Product.Name,
+                    VariantName = variant.VariantName,
+                    SKU = variant.SKU,
+                    UnitPrice = variant.SalePrice,
+                    Quantity = req.Quantity
+                });
+
+                // Trừ tồn kho sản phẩm
+                variant.StockQuantity -= req.Quantity;
             }
 
             if (!orderDetails.Any())
@@ -148,20 +166,11 @@ public class CheckoutController : Controller
             int? appliedCouponId = null;
             if (!string.IsNullOrWhiteSpace(model.CouponCode))
             {
-                var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.Code == model.CouponCode.Trim() && c.IsActive);
-                if (coupon != null && subTotal >= coupon.MinOrderAmount && coupon.UsageCount < coupon.UsageLimit)
+                var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.Code == model.CouponCode.Trim());
+                if (coupon != null && TechStore.Core.Common.CouponCalculator.TryValidate(coupon, subTotal, DateTime.UtcNow, out _))
                 {
                     appliedCouponId = coupon.CouponId;
-                    if (coupon.DiscountType == "Percentage")
-                    {
-                        discountAmount = (subTotal * coupon.DiscountValue) / 100m;
-                        if (coupon.MaxDiscountAmount.HasValue && discountAmount > coupon.MaxDiscountAmount.Value)
-                            discountAmount = coupon.MaxDiscountAmount.Value;
-                    }
-                    else
-                    {
-                        discountAmount = coupon.DiscountValue;
-                    }
+                    discountAmount = TechStore.Core.Common.CouponCalculator.CalculateDiscount(coupon, subTotal);
                     coupon.UsageCount++;
                 }
             }

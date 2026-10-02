@@ -228,6 +228,9 @@ public class TechStoreDbContext : DbContext
             entity.Property(e => e.Slug).HasMaxLength(250).IsRequired();
             entity.Property(e => e.FeaturedImage).HasMaxLength(500).IsRequired();
             entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => new { e.CategoryId, e.IsActive });
+            entity.HasIndex(e => new { e.BrandId, e.IsActive });
+            entity.HasIndex(e => new { e.IsActive, e.IsFeatured });
 
             entity.HasOne(e => e.Category)
                   .WithMany(c => c.Products)
@@ -271,7 +274,11 @@ public class TechStoreDbContext : DbContext
             entity.Property(e => e.ShippingFee).HasPrecision(18, 2);
             entity.Property(e => e.DiscountAmount).HasPrecision(18, 2);
             entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+
             entity.HasIndex(e => e.OrderCode).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
+            entity.HasIndex(e => e.OrderStatus);
+            entity.HasIndex(e => e.CustomerPhone);
 
             entity.HasOne(e => e.User)
                   .WithMany()

@@ -13,6 +13,7 @@ namespace TechStore.Web.Controllers.Api;
 [ApiController]
 [Route("api/cart")]
 [EnableRateLimiting("ApiPolicy")]
+[IgnoreAntiforgeryToken]
 public class CartApiController : ControllerBase
 {
     private readonly TechStoreDbContext _context;
@@ -61,11 +62,12 @@ public class CartApiController : ControllerBase
             foreach (var req in items)
             {
                 if (!validVariants.ContainsKey(req.VariantId)) continue;
+                int cleanQty = Math.Clamp(req.Quantity, 1, 50);
 
                 var existingItem = cart.CartItems.FirstOrDefault(ci => ci.VariantId == req.VariantId);
                 if (existingItem != null)
                 {
-                    existingItem.Quantity += req.Quantity; // Cộng dồn số lượng
+                    existingItem.Quantity = Math.Min(existingItem.Quantity + cleanQty, 50);
                 }
                 else
                 {
@@ -73,7 +75,7 @@ public class CartApiController : ControllerBase
                     {
                         CartId = cart.CartId,
                         VariantId = req.VariantId,
-                        Quantity = req.Quantity,
+                        Quantity = cleanQty,
                         AddedAt = DateTime.UtcNow
                     });
                 }
@@ -132,8 +134,9 @@ public class CartApiController : ControllerBase
             var variant = variants.FirstOrDefault(v => v.VariantId == req.VariantId);
             if (variant != null)
             {
-                // Giới hạn số lượng không vượt quá tồn kho thực tế
-                int validQuantity = Math.Min(req.Quantity, Math.Max(variant.StockQuantity, 1));
+                // Giới hạn số lượng từ 1 đến tồn kho thực tế (tối đa 50)
+                int maxAvailable = Math.Max(variant.StockQuantity, 1);
+                int validQuantity = Math.Clamp(req.Quantity, 1, Math.Min(maxAvailable, 50));
                 decimal lineTotal = variant.SalePrice * validQuantity;
                 subTotal += lineTotal;
                 totalCount += validQuantity;
@@ -178,45 +181,19 @@ public class CartApiController : ControllerBase
         var now = DateTime.UtcNow;
         var coupon = await _context.Coupons
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Code == request.CouponCode.Trim() && c.IsActive && c.StartDate <= now && c.EndDate >= now);
+            .FirstOrDefaultAsync(c => c.Code == request.CouponCode.Trim());
 
-        if (coupon == null)
+        if (!TechStore.Core.Common.CouponCalculator.TryValidate(coupon, request.SubTotal, now, out string errorMsg))
         {
-            return BadRequest(new { success = false, message = "Mã giảm giá không tồn tại hoặc đã hết hạn sử dụng!" });
-        }
-
-        if (coupon.UsageCount >= coupon.UsageLimit)
-        {
-            return BadRequest(new { success = false, message = "Mã giảm giá đã hết lượt sử dụng!" });
+            return BadRequest(new { success = false, message = errorMsg });
         }
 
-        if (request.SubTotal < coupon.MinOrderAmount)
-        {
-            return BadRequest(new
-            {
-                success = false,
-                message = $"Mã này chỉ áp dụng cho đơn hàng từ {coupon.MinOrderAmount:N0} đ trở lên!"
-            });
-        }
-
-        decimal discount = 0;
-        if (coupon.DiscountType == "Percentage")
-        {
-            discount = (request.SubTotal * coupon.DiscountValue) / 100m;
-            if (coupon.MaxDiscountAmount.HasValue && discount > coupon.MaxDiscountAmount.Value)
-            {
-                discount = coupon.MaxDiscountAmount.Value;
-            }
-        }
-        else
-        {
-            discount = coupon.DiscountValue;
-        }
+        decimal discount = TechStore.Core.Common.CouponCalculator.CalculateDiscount(coupon!, request.SubTotal);
 
         return Ok(new
         {
             success = true,
-            couponId = coupon.CouponId,
+            couponId = coupon!.CouponId,
             couponCode = coupon.Code,
             description = coupon.Description,
             discountAmount = discount,

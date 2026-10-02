@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -272,6 +272,12 @@ namespace TechStore.Web.Areas.Admin.Controllers
             if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password) || string.IsNullOrWhiteSpace(dto.FullName))
             {
                 TempData["ErrorMessage"] = "Vui lòng điền đầy đủ các trường bắt buộc!";
+                return RedirectToAction(nameof(Matrix), new { tab = "user" });
+            }
+
+            if (dto.Password.Length < 8)
+            {
+                TempData["ErrorMessage"] = "Mật khẩu khởi tạo phải có độ dài tối thiểu 8 ký tự!";
                 return RedirectToAction(nameof(Matrix), new { tab = "user" });
             }
 

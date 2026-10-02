@@ -94,12 +94,34 @@ public class AccountController : Controller
         }
 
         user.FullName = dto.FullName.Trim();
-        user.PhoneNumber = dto.PhoneNumber?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
+        {
+            string phone = dto.PhoneNumber.Trim();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^(03|05|07|08|09)\d{8}$"))
+            {
+                TempData["ErrorMessage"] = "Số điện thoại không hợp lệ (cần đúng 10 số, bắt đầu bằng 03, 05, 07, 08, 09)!";
+                return RedirectToAction(nameof(Profile));
+            }
+            user.PhoneNumber = phone;
+        }
+        else
+        {
+            user.PhoneNumber = null;
+        }
 
         if (avatarFile != null && avatarFile.Length > 0)
         {
-            using var stream = avatarFile.OpenReadStream();
-            user.AvatarUrl = await _fileStorageService.SaveFileAsync(stream, avatarFile.FileName, "avatars");
+            try
+            {
+                using var stream = avatarFile.OpenReadStream();
+                user.AvatarUrl = await _fileStorageService.SaveFileAsync(stream, avatarFile.FileName, "avatars");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction(nameof(Profile));
+            }
         }
 
         user.UpdatedAt = DateTime.UtcNow;
@@ -129,9 +151,9 @@ public class AccountController : Controller
             return RedirectToAction(nameof(Profile));
         }
 
-        if (dto.NewPassword.Length < 6)
+        if (dto.NewPassword.Length < 8 || !dto.NewPassword.Any(char.IsLetter) || !dto.NewPassword.Any(char.IsDigit) || dto.NewPassword.Contains(' '))
         {
-            TempData["ErrorMessage"] = "Mật khẩu mới phải có ít nhất 6 ký tự!";
+            TempData["ErrorMessage"] = "Mật khẩu mới phải có tối thiểu 8 ký tự, gồm cả chữ cái và chữ số, không chứa khoảng trắng!";
             return RedirectToAction(nameof(Profile));
         }
 
