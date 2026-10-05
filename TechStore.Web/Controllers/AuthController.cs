@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using TechStore.Core.Entities;
 using TechStore.Core.Interfaces;
 using TechStore.Infrastructure.Data;
+using TechStore.Web.Models;
 
 namespace TechStore.Web.Controllers;
 
@@ -73,35 +74,31 @@ public class AuthController : Controller
             return View(model);
         }
 
-        // 2. Xác thực mật khẩu an toàn và tự động nâng cấp mã băm chuẩn Identity
+        // 2. Xác thực mật khẩu an toàn chuẩn ASP.NET Core Identity PBKDF2
         bool isPasswordValid = false;
+        try
+        {
+            var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
+            isPasswordValid = verifyResult == PasswordVerificationResult.Success ||
+                              verifyResult == PasswordVerificationResult.SuccessRehashNeeded;
 
-        // Trường hợp 1: Nhận diện mật khẩu khởi tạo ban đầu "Admin@123" hoặc plain-text để tự động sửa chữa
-        if ((model.Password == "Admin@123" && user.Username == "admin") || user.PasswordHash == model.Password)
-        {
-            isPasswordValid = true;
-            // Tự động sinh mã băm Base-64 chuẩn Identity PBKDF2 HMAC-SHA512 và cập nhật vào CSDL
-            user.PasswordHash = _passwordHasher.HashPassword(user, model.Password);
-            await _context.SaveChangesAsync();
-        }
-        else
-        {
-            // Trường hợp 2: Xác thực mã băm chuẩn Identity được bọc try-catch chống sập ứng dụng
-            try
+            if (verifyResult == PasswordVerificationResult.SuccessRehashNeeded)
             {
-                var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
-                isPasswordValid = verifyResult == PasswordVerificationResult.Success ||
-                                  verifyResult == PasswordVerificationResult.SuccessRehashNeeded;
-
-                if (verifyResult == PasswordVerificationResult.SuccessRehashNeeded)
-                {
-                    user.PasswordHash = _passwordHasher.HashPassword(user, model.Password);
-                    await _context.SaveChangesAsync();
-                }
+                user.PasswordHash = _passwordHasher.HashPassword(user, model.Password);
+                await _context.SaveChangesAsync();
             }
-            catch (Exception)
+        }
+        catch (Exception)
+        {
+            // Dự phòng nâng cấp an toàn cho mật khẩu cũ dạng plain-text
+            if (!string.IsNullOrEmpty(user.PasswordHash) && user.PasswordHash == model.Password)
             {
-                // Nếu chuỗi băm cũ trong DB bị sai chuẩn Base64 hoặc hỏng, không làm sập ứng dụng
+                isPasswordValid = true;
+                user.PasswordHash = _passwordHasher.HashPassword(user, model.Password);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
                 isPasswordValid = false;
             }
         }
@@ -477,32 +474,4 @@ public class AuthController : Controller
         return true;
     }
 }
-
-public class LoginViewModel
-{
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public bool RememberMe { get; set; } = false;
-}
-
-public class RegisterViewModel
-{
-    public string Username { get; set; } = string.Empty;
-    public string FullName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string? PhoneNumber { get; set; }
-    public string Password { get; set; } = string.Empty;
-    public string ConfirmPassword { get; set; } = string.Empty;
-}
-
-public class ForgotPasswordViewModel
-{
-    public string Email { get; set; } = string.Empty;
-}
-
-public class ResetPasswordViewModel
-{
-    public string Token { get; set; } = string.Empty;
-    public string NewPassword { get; set; } = string.Empty;
-    public string ConfirmPassword { get; set; } = string.Empty;
-}
+

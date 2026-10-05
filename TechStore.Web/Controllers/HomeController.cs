@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Core.Entities;
 using TechStore.Infrastructure.Data;
+using TechStore.Web.Models;
 
 namespace TechStore.Web.Controllers;
 
@@ -143,22 +144,4 @@ public class HomeController : Controller
             Message = "Đã xảy ra lỗi ngoài ý muốn. Đội ngũ kỹ thuật đang kiểm tra xử lý."
         });
     }
-}
-
-public class ContactFormViewModel
-{
-    public string FullName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string? PhoneNumber { get; set; }
-    public string Subject { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
-}
-
-public class HomeViewModel
-{
-    public List<Banner> HeroSliders { get; set; } = new();
-    public List<Banner> SubBanners { get; set; } = new();
-    public List<Category> Categories { get; set; } = new();
-    public List<Product> FeaturedProducts { get; set; } = new();
-    public List<Brand> Brands { get; set; } = new();
-}
+}

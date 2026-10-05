@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using TechStore.Core.Entities;
 using TechStore.Infrastructure.Data;
 using TechStore.Web.Controllers.Api;
+using TechStore.Web.Models;
 
 namespace TechStore.Web.Controllers;
 
@@ -292,19 +293,4 @@ public class CheckoutController : Controller
 
         return View(order);
     }
-}
-
-public class PlaceOrderViewModel
-{
-    public string CustomerName { get; set; } = string.Empty;
-    public string CustomerPhone { get; set; } = string.Empty;
-    public string? CustomerEmail { get; set; }
-    public string Province { get; set; } = string.Empty;
-    public string District { get; set; } = string.Empty;
-    public string Ward { get; set; } = string.Empty;
-    public string AddressDetail { get; set; } = string.Empty;
-    public string? OrderNotes { get; set; }
-    public string PaymentMethod { get; set; } = "COD"; // "COD" hoặc "VietQR"
-    public string? CouponCode { get; set; }
-    public string CartItemsJson { get; set; } = "[]";
-}
+}

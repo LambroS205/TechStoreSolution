@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using TechStore.Core.Entities;
 using TechStore.Core.Interfaces;
 using TechStore.Infrastructure.Data;
+using TechStore.Web.Models;
 
 namespace TechStore.Web.Controllers;
 
@@ -163,24 +164,17 @@ public class AccountController : Controller
             return RedirectToAction(nameof(Profile));
         }
 
-        // Kiểm tra mật khẩu hiện tại
+        // Kiểm tra mật khẩu hiện tại bằng PasswordHasher chuẩn bảo mật
         bool isPasswordValid = false;
-        if (user.PasswordHash == dto.CurrentPassword)
+        try
         {
-            isPasswordValid = true;
+            var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword);
+            isPasswordValid = verifyResult == PasswordVerificationResult.Success ||
+                              verifyResult == PasswordVerificationResult.SuccessRehashNeeded;
         }
-        else
+        catch
         {
-            try
-            {
-                var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword);
-                isPasswordValid = verifyResult == PasswordVerificationResult.Success ||
-                                  verifyResult == PasswordVerificationResult.SuccessRehashNeeded;
-            }
-            catch
-            {
-                isPasswordValid = false;
-            }
+            isPasswordValid = false;
         }
 
         if (!isPasswordValid)
@@ -510,30 +504,3 @@ public class AccountController : Controller
     }
 }
 
-public class ProfileViewModel
-{
-    public int UserId { get; set; }
-    public string Username { get; set; } = string.Empty;
-    public string FullName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string? PhoneNumber { get; set; }
-    public string? AvatarUrl { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public int TotalOrders { get; set; }
-    public decimal TotalSpent { get; set; }
-    public int ActiveOrdersCount { get; set; }
-    public string RoleName { get; set; } = string.Empty;
-}
-
-public class ProfileUpdateDto
-{
-    public string FullName { get; set; } = string.Empty;
-    public string? PhoneNumber { get; set; }
-}
-
-public class ChangePasswordDto
-{
-    public string CurrentPassword { get; set; } = string.Empty;
-    public string NewPassword { get; set; } = string.Empty;
-    public string ConfirmPassword { get; set; } = string.Empty;
-}

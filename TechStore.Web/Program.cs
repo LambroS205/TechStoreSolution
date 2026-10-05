@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TechStore.Core.Interfaces;
 using TechStore.Infrastructure.Data;
+using TechStore.Infrastructure.Repositories;
 using TechStore.Infrastructure.Services;
 using TechStore.Web.Security;
 
@@ -44,6 +45,10 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISiteSettingsService, SiteSettingsService>();
+
+// Đăng ký Repository & Unit of Work pattern (Clean Architecture)
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // 4. Cấu hình Xác thực bằng Cookie (Cookie Authentication)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -168,6 +173,16 @@ app.UseStatusCodePagesWithReExecute("/error/{0}");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Security Headers bảo vệ ứng dụng (chống MIME-sniffing, Clickjacking, XSS)
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "SAMEORIGIN");
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    await next();
+});
 
 app.UseRouting();
 

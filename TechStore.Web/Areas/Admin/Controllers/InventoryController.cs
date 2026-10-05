@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using TechStore.Core.Entities;
 using TechStore.Core.Interfaces;
 using TechStore.Infrastructure.Data;
+using TechStore.Web.Areas.Admin.Models;
 using TechStore.Web.Security;
 
 namespace TechStore.Web.Areas.Admin.Controllers;
@@ -251,22 +252,3 @@ public class InventoryController : Controller
     }
 }
 
-public class ImportInventoryViewModel
-{
-    [Required(ErrorMessage = "Vui lòng chọn sản phẩm / biến thể cần nhập kho!")]
-    public int VariantId { get; set; }
-
-    public int? SupplierId { get; set; }
-
-    [Required(ErrorMessage = "Vui lòng nhập số lượng nhập kho!")]
-    [Range(1, 100000, ErrorMessage = "Số lượng nhập kho phải lớn hơn 0!")]
-    public int Quantity { get; set; } = 10;
-
-    [Required(ErrorMessage = "Vui lòng nhập giá nhập đơn vị!")]
-    [Range(0, 1000000000, ErrorMessage = "Giá nhập đơn vị không hợp lệ!")]
-    public decimal UnitPrice { get; set; }
-
-    public string? ReferenceCode { get; set; }
-
-    public string? Note { get; set; }
-}

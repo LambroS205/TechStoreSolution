@@ -12,6 +12,7 @@ using TechStore.Core.Common;
 using TechStore.Core.Entities;
 using TechStore.Core.Interfaces;
 using TechStore.Infrastructure.Data;
+using TechStore.Web.Areas.Admin.Models;
 using TechStore.Web.Security;
 
 namespace TechStore.Web.Areas.Admin.Controllers;
@@ -665,57 +666,3 @@ public class ProductController : Controller
     }
 }
 
-public class ProductCreateViewModel
-{
-    public string Name { get; set; } = string.Empty;
-    public string? Slug { get; set; }
-    public int CategoryId { get; set; }
-    public int BrandId { get; set; }
-    public string? FeaturedImage { get; set; }
-    public int WarrantyMonths { get; set; } = 12;
-    public string? ShortDescription { get; set; }
-    public string? FullDescription { get; set; }
-    public bool IsFeatured { get; set; } = false;
-    public bool IsActive { get; set; } = true;
-
-    // Initial Variant
-    public string DefaultSku { get; set; } = string.Empty;
-    public string? DefaultBarcode { get; set; }
-    public string? DefaultVariantName { get; set; }
-    public decimal DefaultOriginalPrice { get; set; }
-    public decimal DefaultSalePrice { get; set; }
-    public int DefaultStockQuantity { get; set; } = 10;
-}
-
-public class ProductEditViewModel
-{
-    public int ProductId { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Slug { get; set; } = string.Empty;
-    public int CategoryId { get; set; }
-    public int BrandId { get; set; }
-    public string? FeaturedImage { get; set; }
-    public int WarrantyMonths { get; set; }
-    public string? ShortDescription { get; set; }
-    public string? FullDescription { get; set; }
-    public bool IsFeatured { get; set; }
-    public bool IsActive { get; set; }
-
-    public List<ProductVariant> Variants { get; set; } = new();
-    public List<ProductImage> GalleryImages { get; set; } = new();
-}
-
-public class SaveVariantDto
-{
-    public int VariantId { get; set; }
-    public int ProductId { get; set; }
-    public string SKU { get; set; } = string.Empty;
-    public string? Barcode { get; set; }
-    public string VariantName { get; set; } = string.Empty;
-    public decimal OriginalPrice { get; set; }
-    public decimal SalePrice { get; set; }
-    public int StockQuantity { get; set; }
-    public int WeightGrams { get; set; } = 200;
-    public string? ThumbnailImage { get; set; }
-    public bool IsActive { get; set; } = true;
-}

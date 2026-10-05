@@ -1,23 +1,24 @@
-@model TechStore.Core.Entities.Product
+@model ProductDetailViewModel
 @{
-    ViewData["Title"] = Model.Name;
-    ViewData["MetaDescription"] = !string.IsNullOrWhiteSpace(Model.ShortDescription) ? Model.ShortDescription : $"{Model.Name} chính hãng giá tốt, bảo hành chính hãng tại TechStore.";
-    ViewData["OgImage"] = Model.FeaturedImage;
+    var product = Model.Product;
+    ViewData["Title"] = product.Name;
+    ViewData["MetaDescription"] = !string.IsNullOrWhiteSpace(product.ShortDescription) ? product.ShortDescription : $"{product.Name} chính hãng giá tốt, bảo hành chính hãng tại TechStore.";
+    ViewData["OgImage"] = product.FeaturedImage;
     ViewData["OgType"] = "product";
-    ViewData["CanonicalUrl"] = $"{Context.Request.Scheme}://{Context.Request.Host}/product/{Model.Slug}";
+    ViewData["CanonicalUrl"] = $"{Context.Request.Scheme}://{Context.Request.Host}/product/{product.Slug}";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var variants = Model.Variants.Where(v => v.IsActive).ToList();
+    var variants = product.Variants.Where(v => v.IsActive).ToList();
     var defaultVariant = variants.FirstOrDefault();
-    var reviews = (List<TechStore.Core.Entities.ProductReview>?)ViewBag.Reviews ?? new List<TechStore.Core.Entities.ProductReview>();
-    double avgRating = (double)(ViewBag.AverageRating ?? 5.0);
-    int totalReviews = (int)(ViewBag.TotalReviews ?? 0);
-    int count5 = (int)(ViewBag.Count5 ?? 0);
-    int count4 = (int)(ViewBag.Count4 ?? 0);
-    int count3 = (int)(ViewBag.Count3 ?? 0);
-    int count2 = (int)(ViewBag.Count2 ?? 0);
-    int count1 = (int)(ViewBag.Count1 ?? 0);
-    bool hasPurchased = (bool)(ViewBag.HasPurchased ?? false);
-    bool hasReviewed = (bool)(ViewBag.HasReviewed ?? false);
+    var reviews = Model.Reviews;
+    double avgRating = Model.AverageRating;
+    int totalReviews = Model.TotalReviews;
+    int count5 = Model.Count5;
+    int count4 = Model.Count4;
+    int count3 = Model.Count3;
+    int count2 = Model.Count2;
+    int count1 = Model.Count1;
+    bool hasPurchased = Model.HasPurchased;
+    bool hasReviewed = Model.HasReviewed;
 }
 
 @section StructuredData {
@@ -25,17 +26,17 @@
     {
       "@@context": "https://schema.org/",
       "@@type": "Product",
-      "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Name)),
-      "image": "@Model.FeaturedImage",
-      "description": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(string.IsNullOrWhiteSpace(Model.ShortDescription) ? Model.Name : Model.ShortDescription)),
-      "sku": "PROD-@Model.ProductId",
+      "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(product.Name)),
+      "image": "@product.FeaturedImage",
+      "description": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(string.IsNullOrWhiteSpace(product.ShortDescription) ? product.Name : product.ShortDescription)),
+      "sku": "PROD-@product.ProductId",
       "brand": {
         "@@type": "Brand",
-        "name": "@(Model.Brand?.Name ?? "TechStore")"
+        "name": "@(product.Brand?.Name ?? "TechStore")"
       },
       "offers": {
         "@@type": "Offer",
-        "url": "@($"{Context.Request.Scheme}://{Context.Request.Host}/product/{Model.Slug}")",
+        "url": "@($"{Context.Request.Scheme}://{Context.Request.Host}/product/{product.Slug}")",
         "priceCurrency": "VND",
         "price": "@(defaultVariant?.SalePrice ?? 0)",
         "availability": "@(defaultVariant?.StockQuantity > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock")",
@@ -67,14 +68,14 @@
         {
           "@@type": "ListItem",
           "position": 2,
-          "name": "@Model.Category.Name",
-          "item": "@($"{Context.Request.Scheme}://{Context.Request.Host}/category/{Model.Category.Slug}")"
+          "name": "@product.Category.Name",
+          "item": "@($"{Context.Request.Scheme}://{Context.Request.Host}/category/{product.Category.Slug}")"
         },
         {
           "@@type": "ListItem",
           "position": 3,
-          "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Name)),
-          "item": "@($"{Context.Request.Scheme}://{Context.Request.Host}/product/{Model.Slug}")"
+          "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(product.Name)),
+          "item": "@($"{Context.Request.Scheme}://{Context.Request.Host}/product/{product.Slug}")"
         }
       ]
     }
@@ -86,9 +87,9 @@
     <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
         <a href="/" class="hover:text-blue-600">Trang chủ</a>
         <span>/</span>
-        <a href="/category/@Model.Category.Slug" class="hover:text-blue-600">@Model.Category.Name</a>
+        <a href="/category/@product.Category.Slug" class="hover:text-blue-600">@product.Category.Name</a>
         <span>/</span>
-        <span class="text-slate-800 font-bold truncate">@Model.Name</span>
+        <span class="text-slate-800 font-bold truncate">@product.Name</span>
     </div>
 
     @if (TempData["SuccessMessage"] != null)
@@ -112,22 +113,22 @@
         <!-- Left: Image Gallery & Thumbnail Slider -->
         <div class="space-y-4">
             <div class="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-100 relative overflow-hidden group">
-                <img id="mainProductImage" src="@Model.FeaturedImage" alt="@Model.Name" class="max-h-96 w-auto object-contain transition-transform duration-300 group-hover:scale-105" onerror="this.src='/assets/images/placeholder.png'" />
+                <img id="mainProductImage" src="@product.FeaturedImage" alt="@product.Name" class="max-h-96 w-auto object-contain transition-transform duration-300 group-hover:scale-105" onerror="this.src='/assets/images/placeholder.png'" />
                 <span class="absolute top-4 left-4 px-3 py-1 text-xs font-black bg-[#0046be] text-white rounded-lg shadow-sm">
                     Chính Hãng 100%
                 </span>
             </div>
 
             <!-- Thumbnail Strip -->
-            @if (Model.Images != null && Model.Images.Any())
+            @if (product.Images != null && product.Images.Any())
             {
                 <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                    <button type="button" onclick="switchGalleryImage('@Model.FeaturedImage', this)" 
+                    <button type="button" onclick="switchGalleryImage('@product.FeaturedImage', this)" 
                             class="gallery-thumb w-16 h-16 rounded-xl border-2 border-[#0046be] p-1 bg-white hover:opacity-90 shrink-0 transition shadow-xs focus:outline-none">
-                        <img src="@Model.FeaturedImage" alt="Main Thumbnail" class="w-full h-full object-contain rounded-lg" onerror="this.src='/assets/images/placeholder.png'" />
+                        <img src="@product.FeaturedImage" alt="Main Thumbnail" class="w-full h-full object-contain rounded-lg" onerror="this.src='/assets/images/placeholder.png'" />
                     </button>
 
-                    @foreach (var img in Model.Images.OrderBy(i => i.DisplayOrder))
+                    @foreach (var img in product.Images.OrderBy(i => i.DisplayOrder))
                     {
                         <button type="button" onclick="switchGalleryImage('@img.ImageUrl', this)" 
                                 class="gallery-thumb w-16 h-16 rounded-xl border-2 border-slate-200 p-1 bg-white hover:border-[#0046be] shrink-0 transition shadow-xs focus:outline-none">
@@ -143,13 +144,13 @@
             <div class="space-y-3">
                 <div class="flex items-center gap-2">
                     <span class="px-2.5 py-0.5 text-xs font-bold bg-slate-100 text-slate-700 rounded-md border border-slate-200">
-                        @Model.Brand.Name
+                        @product.Brand.Name
                     </span>
-                    <span class="text-xs text-slate-400">Mã SP: #@Model.ProductId</span>
+                    <span class="text-xs text-slate-400">Mã SP: #@product.ProductId</span>
                     <span id="variantSkuDisplay" class="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">SKU: @defaultVariant?.SKU</span>
                 </div>
 
-                <h1 class="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">@Model.Name</h1>
+                <h1 class="text-2xl lg:text-3xl font-black text-slate-900 leading-tight">@product.Name</h1>
 
                 <!-- Đánh giá sao & Đã bán -->
                 <div class="flex items-center gap-3 pt-0.5 text-xs">
@@ -176,7 +177,7 @@
                     </span>
                 </div>
 
-                <p class="text-xs text-slate-500 leading-relaxed">@Model.ShortDescription</p>
+                <p class="text-xs text-slate-500 leading-relaxed">@product.ShortDescription</p>
 
                 <!-- Giá bán thay đổi thời gian thực -->
                 <div class="p-4 bg-blue-50/60 rounded-2xl border border-blue-100 flex items-baseline gap-3">
@@ -199,7 +200,7 @@
                             @foreach (var v in variants)
                             {
                                 <button type="button" 
-                                        onclick="selectVariant(@v.VariantId, '@v.VariantName', @v.SalePrice, @v.OriginalPrice, @v.StockQuantity, '@(string.IsNullOrEmpty(v.ThumbnailImage) ? Model.FeaturedImage : v.ThumbnailImage)', '@v.SKU')"
+                                        onclick="selectVariant(@v.VariantId, '@v.VariantName', @v.SalePrice, @v.OriginalPrice, @v.StockQuantity, '@(string.IsNullOrEmpty(v.ThumbnailImage) ? product.FeaturedImage : v.ThumbnailImage)', '@v.SKU')"
                                         id="variantBtn_@v.VariantId"
                                         class="variant-btn p-3 text-left border rounded-xl transition-all @(v.VariantId == defaultVariant?.VariantId ? "border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20" : "border-slate-200 hover:border-slate-300 bg-white")">
                                     <div class="font-bold text-xs text-slate-900">@v.VariantName</div>
@@ -231,8 +232,8 @@
                     <span>Thêm Vào Giỏ</span>
                 </button>
                 <!-- Nút Yêu thích (Wishlist) -->
-                <button type="button" onclick="toggleWishlist(@Model.ProductId, this)" 
-                        id="wishlistBtn_@Model.ProductId"
+                <button type="button" onclick="toggleWishlist(@product.ProductId, this)" 
+                        id="wishlistBtn_@product.ProductId"
                         class="p-3.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 rounded-xl transition-all flex items-center justify-center shadow-xs" 
                         title="Thêm vào danh sách yêu thích">
                     <svg class="w-5 h-5 transition-transform active:scale-125" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
@@ -240,15 +241,15 @@
                 <!-- Nút So Sánh (Compare) -->
                 <button type="button" 
                         onclick="TechStoreCompare.toggleFromButton(this)" 
-                        id="compareBtn_@Model.ProductId"
-                        data-product-id="@Model.ProductId"
-                        data-product-name="@Model.Name"
-                        data-product-slug="@Model.Slug"
+                        id="compareBtn_@product.ProductId"
+                        data-product-id="@product.ProductId"
+                        data-product-name="@product.Name"
+                        data-product-slug="@product.Slug"
                         data-product-price="@(defaultVariant?.SalePrice ?? 0)"
                         data-product-orig-price="@(defaultVariant?.OriginalPrice ?? 0)"
-                        data-product-image="@Model.FeaturedImage"
-                        data-product-brand="@Model.Brand.Name"
-                        data-product-category="@Model.Category.Name"
+                        data-product-image="@product.FeaturedImage"
+                        data-product-brand="@product.Brand.Name"
+                        data-product-category="@product.Category.Name"
                         class="compare-toggle-btn p-3.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-500 rounded-xl transition-all flex items-center justify-center shadow-xs" 
                         title="So sánh với sản phẩm khác">
                     <svg class="w-5 h-5 transition-transform active:scale-125" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
@@ -261,7 +262,7 @@
     <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-4">
         <h3 class="text-lg font-black text-slate-900 pb-3 border-b border-slate-100">Mô Tả Chi Tiết Thiết Bị</h3>
         <div class="prose max-w-none text-slate-700 text-sm leading-relaxed">
-            @Html.Raw(Model.FullDescription ?? Model.ShortDescription)
+            @Html.Raw(product.FullDescription ?? product.ShortDescription)
         </div>
     </div>
 
@@ -337,7 +338,7 @@
                         }
                     </h4>
 
-                    <form action="/product/@Model.Slug/review" method="post" class="space-y-4">
+                    <form action="/product/@product.Slug/review" method="post" class="space-y-4">
                         @Html.AntiForgeryToken()
 
                         <!-- Star Rating Picker -->
@@ -376,7 +377,7 @@
                         </div>
                         <h4 class="font-bold text-slate-900 text-sm">Bạn đã trải nghiệm thiết bị này?</h4>
                         <p class="text-xs text-slate-500 max-w-md mx-auto">Vui lòng đăng nhập tài khoản TechStore để chia sẻ nhận xét và đánh giá trải nghiệm thực tế với cộng đồng.</p>
-                        <a href="/auth/login?returnUrl=/product/@Model.Slug" class="inline-flex items-center gap-2 px-5 py-2.5 bg-bestbuy-blue text-white font-bold text-xs rounded-xl shadow-md hover:bg-bestbuy-darkblue transition-all">
+                        <a href="/auth/login?returnUrl=/product/@product.Slug" class="inline-flex items-center gap-2 px-5 py-2.5 bg-bestbuy-blue text-white font-bold text-xs rounded-xl shadow-md hover:bg-bestbuy-darkblue transition-all">
                             <span>Đăng Nhập Để Viết Đánh Giá</span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         </a>
@@ -439,6 +440,56 @@
             }
         </div>
     </div>
+
+    <!-- Related Products Section -->
+    @if (Model.RelatedProducts != null && Model.RelatedProducts.Any())
+    {
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div class="space-y-1">
+                    <h3 class="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <span>🔥 Sản Phẩm Tương Tự Cùng Phân Khúc</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Các thiết bị công nghệ cùng danh mục @product.Category.Name bạn có thể quan tâm</p>
+                </div>
+                <a href="/category/@product.Category.Slug" class="text-xs text-blue-600 hover:underline font-bold flex items-center gap-1">
+                    Xem tất cả
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                </a>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                @foreach (var rp in Model.RelatedProducts)
+                {
+                    var rpMinVariant = rp.Variants?.OrderBy(v => v.SalePrice).FirstOrDefault();
+                    decimal rpSalePrice = rpMinVariant?.SalePrice ?? 0;
+                    decimal rpOrigPrice = rpMinVariant?.OriginalPrice ?? 0;
+                    <div class="group bg-slate-50 hover:bg-white p-4 rounded-2xl border border-slate-200/70 hover:border-blue-400 transition-all shadow-2xs hover:shadow-sm flex flex-col justify-between">
+                        <div>
+                            <div class="aspect-square w-full rounded-xl overflow-hidden bg-white p-3 mb-3 flex items-center justify-center border border-slate-100">
+                                <img src="@rp.FeaturedImage" alt="@rp.Name" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" onerror="this.src='/assets/images/placeholder.png'" />
+                            </div>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">@rp.Brand?.Name</span>
+                            <h4 class="text-xs font-bold text-slate-800 line-clamp-2 group-hover:text-blue-600 transition-colors mt-0.5">
+                                <a href="/product/@rp.Slug">@rp.Name</a>
+                            </h4>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-black text-rose-600">@rpSalePrice.ToString("N0") đ</p>
+                                @if (rpOrigPrice > rpSalePrice)
+                                {
+                                    <p class="text-[10px] text-slate-400 line-through">@rpOrigPrice.ToString("N0") đ</p>
+                                }
+                            </div>
+                            <a href="/product/@rp.Slug" class="px-2.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-bold transition-colors">
+                                Chi tiết
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 
     <!-- Recently Viewed Products Section -->
     <div id="recentlyViewedSection" class="hidden bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-6">
@@ -567,12 +618,12 @@
     (function initRecentlyViewed() {
         try {
             const currentItem = {
-                id: @Model.ProductId,
-                name: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Name)),
-                slug: '@Model.Slug',
-                image: '@Model.FeaturedImage',
+                id: @product.ProductId,
+                name: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(product.Name)),
+                slug: '@product.Slug',
+                image: '@product.FeaturedImage',
                 price: @(defaultVariant?.SalePrice ?? 0),
-                category: '@Model.Category.Name'
+                category: '@product.Category.Name'
             };
 
             const STORAGE_KEY = 'techstore_recently_viewed';

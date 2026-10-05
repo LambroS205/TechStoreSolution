@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Core.Entities;
 using TechStore.Infrastructure.Data;
+using TechStore.Web.Areas.Admin.Models;
 using TechStore.Web.Security;
 
 namespace TechStore.Web.Areas.Admin.Controllers;
@@ -77,13 +78,3 @@ public class AuditLogController : Controller
     }
 }
 
-public class AuditLogIndexViewModel
-{
-    public List<AuditLog> Logs { get; set; } = new();
-    public string CurrentModule { get; set; } = "All";
-    public string? SearchQuery { get; set; }
-    public int CurrentPage { get; set; } = 1;
-    public int TotalPages { get; set; } = 1;
-    public int TotalCount { get; set; }
-    public List<string> AvailableModules { get; set; } = new();
-}

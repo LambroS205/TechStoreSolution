@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Core.Entities;
 using TechStore.Infrastructure.Data;
+using TechStore.Web.Models;
 
 namespace TechStore.Web.Controllers;
 
@@ -177,22 +178,37 @@ public class ProductController : Controller
             .Take(4)
             .ToListAsync();
 
-        ViewBag.RelatedProducts = relatedProducts;
+        // Tính toán thống kê đánh giá tối ưu bằng SQL aggregation trực tiếp
+        var stats = await _context.ProductReviews
+            .Where(r => r.ProductId == product.ProductId && r.IsApproved)
+            .GroupBy(r => 1)
+            .Select(g => new
+            {
+                Total = g.Count(),
+                Avg = g.Average(r => (double)r.Rating),
+                C5 = g.Count(r => r.Rating == 5),
+                C4 = g.Count(r => r.Rating == 4),
+                C3 = g.Count(r => r.Rating == 3),
+                C2 = g.Count(r => r.Rating == 2),
+                C1 = g.Count(r => r.Rating == 1)
+            })
+            .FirstOrDefaultAsync();
 
-        // Lấy danh sách đánh giá sản phẩm & tính toán thống kê
+        int totalReviews = stats?.Total ?? 0;
+        double averageRating = stats != null && stats.Total > 0 ? Math.Round(stats.Avg, 1) : 5.0;
+        int count5 = stats?.C5 ?? 0;
+        int count4 = stats?.C4 ?? 0;
+        int count3 = stats?.C3 ?? 0;
+        int count2 = stats?.C2 ?? 0;
+        int count1 = stats?.C1 ?? 0;
+
+        // Lấy danh sách đánh giá mới nhất (giới hạn tối đa 20 đánh giá tránh tràn RAM)
         var reviews = await _context.ProductReviews
             .Include(r => r.User)
             .Where(r => r.ProductId == product.ProductId && r.IsApproved)
             .OrderByDescending(r => r.CreatedAt)
+            .Take(20)
             .ToListAsync();
-
-        int totalReviews = reviews.Count;
-        double averageRating = reviews.Any() ? Math.Round(reviews.Average(r => r.Rating), 1) : 5.0;
-        int count5 = reviews.Count(r => r.Rating == 5);
-        int count4 = reviews.Count(r => r.Rating == 4);
-        int count3 = reviews.Count(r => r.Rating == 3);
-        int count2 = reviews.Count(r => r.Rating == 2);
-        int count1 = reviews.Count(r => r.Rating == 1);
 
         bool hasPurchased = false;
         bool hasReviewed = false;
@@ -204,22 +220,28 @@ public class ProductController : Controller
                 hasPurchased = await _context.Orders
                     .Where(o => o.UserId == uid)
                     .AnyAsync(o => o.OrderDetails.Any(od => od.Variant.ProductId == product.ProductId));
-                hasReviewed = reviews.Any(r => r.UserId == uid);
+                hasReviewed = await _context.ProductReviews
+                    .AnyAsync(r => r.ProductId == product.ProductId && r.UserId == uid);
             }
         }
 
-        ViewBag.Reviews = reviews;
-        ViewBag.TotalReviews = totalReviews;
-        ViewBag.AverageRating = averageRating;
-        ViewBag.Count5 = count5;
-        ViewBag.Count4 = count4;
-        ViewBag.Count3 = count3;
-        ViewBag.Count2 = count2;
-        ViewBag.Count1 = count1;
-        ViewBag.HasPurchased = hasPurchased;
-        ViewBag.HasReviewed = hasReviewed;
+        var viewModel = new ProductDetailViewModel
+        {
+            Product = product,
+            RelatedProducts = relatedProducts,
+            Reviews = reviews,
+            TotalReviews = totalReviews,
+            AverageRating = averageRating,
+            Count5 = count5,
+            Count4 = count4,
+            Count3 = count3,
+            Count2 = count2,
+            Count1 = count1,
+            HasPurchased = hasPurchased,
+            HasReviewed = hasReviewed
+        };
 
-        return View(product);
+        return View(viewModel);
     }
 
     /// <summary>
@@ -283,22 +305,4 @@ public class ProductController : Controller
 
         return RedirectToAction(nameof(Detail), new { slug });
     }
-}
-
-public class ProductListViewModel
-{
-    public List<Product> Products { get; set; } = new();
-    public Category? CurrentCategory { get; set; }
-    public List<Brand> Brands { get; set; } = new();
-    public List<Category> Categories { get; set; } = new();
-    public int CurrentPage { get; set; }
-    public int TotalPages { get; set; }
-    public int TotalItems { get; set; }
-
-    public string? SelectedBrand { get; set; }
-    public string? SelectedStorage { get; set; }
-    public string? SelectedRam { get; set; }
-    public decimal? SelectedMinPrice { get; set; }
-    public decimal? SelectedMaxPrice { get; set; }
-    public string SelectedSort { get; set; } = "default";
-}
+}

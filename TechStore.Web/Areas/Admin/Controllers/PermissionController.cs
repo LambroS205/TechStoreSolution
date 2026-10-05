@@ -11,6 +11,7 @@ using Microsoft.Extensions.Caching.Memory;
 using TechStore.Core.Entities;
 using TechStore.Core.Interfaces;
 using TechStore.Infrastructure.Data;
+using TechStore.Web.Areas.Admin.Models;
 using TechStore.Web.Security;
 
 namespace TechStore.Web.Areas.Admin.Controllers
@@ -329,46 +330,4 @@ namespace TechStore.Web.Areas.Admin.Controllers
             return RedirectToAction(nameof(Matrix), new { tab = "user", userId = newUser.UserId });
         }
     }
-
-    public class PermissionMatrixViewModel
-    {
-        public string ActiveTab { get; set; } = "role"; // "role" hoặc "user"
-        public List<Role> Roles { get; set; } = new();
-        public int CurrentRoleId { get; set; }
-        public Role? CurrentRole { get; set; }
-
-        public List<User> SubAdmins { get; set; } = new();
-        public int CurrentUserId { get; set; }
-        public User? CurrentUser { get; set; }
-
-        public Dictionary<string, List<Permission>> GroupedPermissions { get; set; } = new();
-        public HashSet<int> AssignedPermissionIds { get; set; } = new();
-
-        public HashSet<int> UserInheritedRolePermissionIds { get; set; } = new();
-        public HashSet<int> UserGrantedCustomPermissionIds { get; set; } = new();
-        public HashSet<int> UserDeniedCustomPermissionIds { get; set; } = new();
-    }
-
-    public class SaveRolePermissionsDto
-    {
-        public int RoleId { get; set; }
-        public List<int> PermissionIds { get; set; } = new();
-    }
-
-    public class SaveUserCustomPermissionsDto
-    {
-        public int UserId { get; set; }
-        public List<int> GrantedPermissionIds { get; set; } = new();
-        public List<int> DeniedPermissionIds { get; set; } = new();
-    }
-
-    public class CreateSubAdminDto
-    {
-        public string Username { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
-        public string? Email { get; set; }
-        public string? PhoneNumber { get; set; }
-        public string Password { get; set; } = string.Empty;
-        public int RoleId { get; set; }
-    }
-}
+}
