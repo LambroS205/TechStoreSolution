@@ -2,6 +2,13 @@
 @{
     ViewData["Title"] = Model.CurrentCategory != null ? Model.CurrentCategory.Name : "Tất Cả Sản Phẩm Công Nghệ";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    bool hasActiveFilters = !string.IsNullOrEmpty(Model.SelectedBrand) ||
+                           !string.IsNullOrEmpty(Model.SelectedStorage) ||
+                           !string.IsNullOrEmpty(Model.SelectedRam) ||
+                           Model.SelectedMinPrice.HasValue ||
+                           Model.SelectedMaxPrice.HasValue ||
+                           !string.IsNullOrEmpty(ViewBag.SearchQuery);
 }
 
 <div class="max-w-7xl mx-auto px-4 py-6">
@@ -19,34 +26,65 @@
 
     <div class="flex flex-col lg:flex-row gap-6">
         <!-- 1. Left Sidebar: Bộ Lọc Thông Số Kỹ Thuật (Best Buy Filters) -->
-        <aside class="w-full lg:w-64 shrink-0 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-6 self-start">
+        <aside class="w-full lg:w-64 shrink-0 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-6 self-start">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 class="font-black text-slate-900 text-sm uppercase tracking-wider">Bộ Lọc Tìm Kiếm</h3>
-                <a href="/products" class="text-xs text-blue-600 font-bold hover:underline">Xóa lọc</a>
+                <h3 class="font-black text-slate-900 text-sm uppercase tracking-wider flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                    <span>Bộ Lọc</span>
+                </h3>
+                @if (hasActiveFilters)
+                {
+                    <a href="/products" class="text-xs text-rose-600 font-bold hover:underline">Xóa tất cả</a>
+                }
             </div>
 
             <!-- Lọc Danh mục -->
             <div>
-                <h4 class="font-bold text-slate-800 text-xs mb-2">Danh Mục</h4>
-                <div class="space-y-1.5 text-xs">
+                <h4 class="font-extrabold text-slate-900 text-xs mb-2">Danh Mục</h4>
+                <div class="space-y-1 text-xs">
+                    <a href="/products" class="block px-2.5 py-1.5 rounded-xl @(Model.CurrentCategory == null ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50")">
+                        Tất cả sản phẩm
+                    </a>
                     @foreach (var c in Model.Categories)
                     {
-                        <a href="/category/@c.Slug" class="block px-2 py-1.5 rounded-lg @(Model.CurrentCategory?.CategoryId == c.CategoryId ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50")">
+                        <a href="/category/@c.Slug" class="block px-2.5 py-1.5 rounded-xl @(Model.CurrentCategory?.CategoryId == c.CategoryId ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50")">
                             @c.Name
                         </a>
                     }
                 </div>
             </div>
 
+            <!-- Lọc Mức Giá -->
+            <div>
+                <h4 class="font-extrabold text-slate-900 text-xs mb-2">Mức Giá</h4>
+                <div class="space-y-1.5 text-xs">
+                    <button type="button" onclick="setPriceFilter(null, null)" class="w-full text-left px-2.5 py-1.5 rounded-xl font-medium transition @(!Model.SelectedMinPrice.HasValue && !Model.SelectedMaxPrice.HasValue ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50")">
+                        Tất cả mức giá
+                    </button>
+                    <button type="button" onclick="setPriceFilter(null, 10000000)" class="w-full text-left px-2.5 py-1.5 rounded-xl font-medium transition @(!Model.SelectedMinPrice.HasValue && Model.SelectedMaxPrice == 10000000 ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50")">
+                        Dưới 10 triệu
+                    </button>
+                    <button type="button" onclick="setPriceFilter(10000000, 25000000)" class="w-full text-left px-2.5 py-1.5 rounded-xl font-medium transition @(Model.SelectedMinPrice == 10000000 && Model.SelectedMaxPrice == 25000000 ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50")">
+                        10 triệu - 25 triệu
+                    </button>
+                    <button type="button" onclick="setPriceFilter(25000000, 40000000)" class="w-full text-left px-2.5 py-1.5 rounded-xl font-medium transition @(Model.SelectedMinPrice == 25000000 && Model.SelectedMaxPrice == 40000000 ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50")">
+                        25 triệu - 40 triệu
+                    </button>
+                    <button type="button" onclick="setPriceFilter(40000000, null)" class="w-full text-left px-2.5 py-1.5 rounded-xl font-medium transition @(Model.SelectedMinPrice == 40000000 && !Model.SelectedMaxPrice.HasValue ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50")">
+                        Trên 40 triệu
+                    </button>
+                </div>
+            </div>
+
             <!-- Lọc Thương hiệu -->
             <div>
-                <h4 class="font-bold text-slate-800 text-xs mb-2">Thương Hiệu</h4>
-                <div class="space-y-1 text-xs">
+                <h4 class="font-extrabold text-slate-900 text-xs mb-2">Thương Hiệu</h4>
+                <div class="space-y-1 text-xs max-h-48 overflow-y-auto no-scrollbar">
                     @foreach (var b in Model.Brands)
                     {
-                        <label class="flex items-center gap-2 cursor-pointer py-1 text-slate-700 select-none">
+                        <label class="flex items-center gap-2 cursor-pointer py-1 px-1 rounded-lg hover:bg-slate-50 text-slate-700 select-none">
                             <input type="radio" name="brand_filter" value="@b.Slug" onchange="applyFilter('brand', this.value)" @(Model.SelectedBrand == b.Slug ? "checked" : "") class="text-blue-600 rounded" />
-                            <span>@b.Name</span>
+                            <span class="font-semibold">@b.Name</span>
                         </label>
                     }
                 </div>
@@ -54,11 +92,12 @@
 
             <!-- Lọc Bộ Nhớ Lưu Trữ (Storage: 256GB, 512GB, 1TB) -->
             <div>
-                <h4 class="font-bold text-slate-800 text-xs mb-2">Dung Lượng Bộ Nhớ</h4>
+                <h4 class="font-extrabold text-slate-900 text-xs mb-2">Dung Lượng Bộ Nhớ</h4>
                 <div class="grid grid-cols-2 gap-1.5 text-xs">
                     @foreach (var s in new[] { "256GB", "512GB", "1TB", "2TB" })
                     {
-                        <button type="button" onclick="applyFilter('storage', '@s')" class="p-1.5 border rounded-lg font-semibold @(Model.SelectedStorage == s ? "bg-blue-600 text-white border-blue-600" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100")">
+                        var isSel = Model.SelectedStorage == s;
+                        <button type="button" onclick="applyFilter('storage', '@(isSel ? "" : s)')" class="p-2 border rounded-xl font-bold transition @(isSel ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100")">
                             @s
                         </button>
                     }
@@ -67,11 +106,12 @@
 
             <!-- Lọc Dung Lượng RAM (16GB, 24GB, 32GB) -->
             <div>
-                <h4 class="font-bold text-slate-800 text-xs mb-2">Dung Lượng RAM</h4>
+                <h4 class="font-extrabold text-slate-900 text-xs mb-2">Dung Lượng RAM</h4>
                 <div class="grid grid-cols-2 gap-1.5 text-xs">
                     @foreach (var r in new[] { "16GB", "24GB", "32GB", "48GB" })
                     {
-                        <button type="button" onclick="applyFilter('ram', '@r')" class="p-1.5 border rounded-lg font-semibold @(Model.SelectedRam == r ? "bg-blue-600 text-white border-blue-600" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100")">
+                        var isSel = Model.SelectedRam == r;
+                        <button type="button" onclick="applyFilter('ram', '@(isSel ? "" : r)')" class="p-2 border rounded-xl font-bold transition @(isSel ? "bg-blue-600 text-white border-blue-600 shadow-sm" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100")">
                             @r
                         </button>
                     }
@@ -82,18 +122,18 @@
         <!-- 2. Right Main: Grid Danh Sách Sản Phẩm -->
         <div class="flex-1 space-y-4">
             <!-- Header List & Sort Bar -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
+            <div class="bg-white p-4 rounded-3xl border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
                 <div>
-                    <h1 class="font-black text-slate-900 text-lg">
+                    <h1 class="font-black text-slate-900 text-lg sm:text-xl">
                         @(Model.CurrentCategory?.Name ?? "Tất Cả Sản Phẩm")
                     </h1>
-                    <p class="text-xs text-slate-500 font-medium">Hiển thị @Model.TotalItems sản phẩm phù hợp</p>
+                    <p class="text-xs text-slate-500 font-medium">Tìm thấy <strong class="text-blue-600 font-bold">@Model.TotalItems</strong> sản phẩm công nghệ chính hãng</p>
                 </div>
 
                 <!-- Dropdown Sắp xếp -->
                 <div class="flex items-center gap-2 text-xs">
-                    <span class="text-slate-500 font-semibold">Sắp xếp:</span>
-                    <select onchange="applyFilter('sort', this.value)" class="border border-slate-300 rounded-lg p-2 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500">
+                    <span class="text-slate-500 font-bold whitespace-nowrap">Sắp xếp:</span>
+                    <select onchange="applyFilter('sort', this.value)" class="border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                         <option value="default" selected="@(Model.SelectedSort == "default")">Nổi bật nhất</option>
                         <option value="price_asc" selected="@(Model.SelectedSort == "price_asc")">Giá tăng dần</option>
                         <option value="price_desc" selected="@(Model.SelectedSort == "price_desc")">Giá giảm dần</option>
@@ -102,12 +142,67 @@
                 </div>
             </div>
 
+            <!-- Active Filter Chips Strip -->
+            @if (hasActiveFilters)
+            {
+                <div class="flex flex-wrap items-center gap-2 bg-slate-100/70 p-3 rounded-2xl border border-slate-200 text-xs">
+                    <span class="font-bold text-slate-500 text-[11px] uppercase">Đang lọc:</span>
+                    @if (!string.IsNullOrEmpty(ViewBag.SearchQuery))
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-slate-800 rounded-xl border border-slate-200 font-bold shadow-sm">
+                            <span>Từ khóa: "@ViewBag.SearchQuery"</span>
+                            <button onclick="removeFilter('q')" class="text-slate-400 hover:text-rose-600 font-black">✕</button>
+                        </span>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.SelectedBrand))
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-slate-800 rounded-xl border border-slate-200 font-bold shadow-sm">
+                            <span>Hãng: @Model.SelectedBrand</span>
+                            <button onclick="removeFilter('brand')" class="text-slate-400 hover:text-rose-600 font-black">✕</button>
+                        </span>
+                    }
+                    @if (Model.SelectedMinPrice.HasValue || Model.SelectedMaxPrice.HasValue)
+                    {
+                        string priceLabel = "";
+                        if (!Model.SelectedMinPrice.HasValue && Model.SelectedMaxPrice == 10000000) priceLabel = "< 10 triệu";
+                        else if (Model.SelectedMinPrice == 10000000 && Model.SelectedMaxPrice == 25000000) priceLabel = "10tr - 25 triệu";
+                        else if (Model.SelectedMinPrice == 25000000 && Model.SelectedMaxPrice == 40000000) priceLabel = "25tr - 40 triệu";
+                        else if (Model.SelectedMinPrice == 40000000) priceLabel = "> 40 triệu";
+                        else priceLabel = $"{(Model.SelectedMinPrice.HasValue ? Model.SelectedMinPrice.Value.ToString("N0") + "đ" : "0đ")} - {(Model.SelectedMaxPrice.HasValue ? Model.SelectedMaxPrice.Value.ToString("N0") + "đ" : "...")}";
+
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-slate-800 rounded-xl border border-slate-200 font-bold shadow-sm">
+                            <span>Giá: @priceLabel</span>
+                            <button onclick="clearPriceFilter()" class="text-slate-400 hover:text-rose-600 font-black">✕</button>
+                        </span>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.SelectedStorage))
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-slate-800 rounded-xl border border-slate-200 font-bold shadow-sm">
+                            <span>Bộ nhớ: @Model.SelectedStorage</span>
+                            <button onclick="removeFilter('storage')" class="text-slate-400 hover:text-rose-600 font-black">✕</button>
+                        </span>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.SelectedRam))
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-slate-800 rounded-xl border border-slate-200 font-bold shadow-sm">
+                            <span>RAM: @Model.SelectedRam</span>
+                            <button onclick="removeFilter('ram')" class="text-slate-400 hover:text-rose-600 font-black">✕</button>
+                        </span>
+                    }
+                    <a href="/products" class="text-rose-600 hover:underline font-bold ml-auto text-xs">Xóa tất cả</a>
+                </div>
+            }
+
             <!-- Product Grid -->
             @if (!Model.Products.Any())
             {
-                <div class="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-3">
-                    <p class="text-slate-600 font-semibold text-sm">Không tìm thấy sản phẩm nào khớp với bộ lọc!</p>
-                    <a href="/products" class="inline-block px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg">Đặt lại bộ lọc</a>
+                <div class="bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-3">
+                    <div class="w-16 h-16 mx-auto bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <p class="text-slate-800 font-bold text-sm">Không tìm thấy sản phẩm nào khớp với bộ lọc!</p>
+                    <p class="text-slate-400 text-xs">Hãy thử mở rộng khoảng giá hoặc chọn thương hiệu khác.</p>
+                    <a href="/products" class="inline-block px-5 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-blue-700 transition">Đặt lại bộ lọc</a>
                 </div>
             }
             else
@@ -118,15 +213,18 @@
                         var minVariant = p.Variants.OrderBy(v => v.SalePrice).FirstOrDefault();
                         decimal salePrice = minVariant?.SalePrice ?? 0;
                         decimal origPrice = minVariant?.OriginalPrice ?? 0;
+                        int discountPercent = origPrice > salePrice ? (int)Math.Round((1 - salePrice / origPrice) * 100) : 0;
+                        int totalStock = p.Variants.Sum(v => v.StockQuantity);
 
-                        <div class="bg-white rounded-2xl border border-slate-200 hover:border-blue-400 hover:shadow-lg transition-all p-4 flex flex-col justify-between group">
+                        <div class="bg-white rounded-3xl border border-slate-200 hover:border-blue-400 hover:shadow-xl transition-all p-4 flex flex-col justify-between group relative">
                             <div>
-                                <div class="h-44 bg-slate-50 rounded-xl overflow-hidden flex items-center justify-center p-3 mb-3 relative">
+                                <div class="h-48 bg-slate-50 rounded-2xl overflow-hidden flex items-center justify-center p-3 mb-3 relative">
                                     <img src="@p.FeaturedImage" alt="@p.Name" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300" onerror="this.src='/assets/images/placeholder.png'" />
+                                    
                                     <!-- Compare Toggle Button -->
                                     <button type="button" 
                                             onclick="event.preventDefault(); TechStoreCompare.toggleFromButton(this)" 
-                                            class="compare-toggle-btn absolute top-2 left-2 px-2 py-1 text-[10px] font-bold rounded-lg border border-slate-200 bg-white/95 text-slate-600 hover:text-blue-600 hover:border-blue-400 shadow-sm transition flex items-center gap-1 z-10"
+                                            class="compare-toggle-btn absolute top-2.5 left-2.5 px-2.5 py-1 text-[10px] font-bold rounded-xl border border-slate-200 bg-white/95 text-slate-600 hover:text-blue-600 hover:border-blue-400 shadow-sm transition flex items-center gap-1 z-10"
                                             data-product-id="@p.ProductId"
                                             data-product-name="@p.Name"
                                             data-product-slug="@p.Slug"
@@ -139,11 +237,39 @@
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
                                         <span class="compare-btn-text">So sánh</span>
                                     </button>
-                                    <span class="absolute top-2 right-2 px-2 py-0.5 text-[10px] font-bold bg-white/90 text-slate-700 rounded-md border border-slate-200">
+
+                                    @if (discountPercent > 0)
+                                    {
+                                        <span class="absolute bottom-2.5 left-2.5 px-2 py-0.5 text-[10px] font-black bg-rose-600 text-white rounded-lg shadow-sm">
+                                            -@discountPercent%
+                                        </span>
+                                    }
+
+                                    <span class="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-bold bg-white/95 text-slate-700 rounded-lg border border-slate-200 shadow-sm">
                                         @p.Brand.Name
                                     </span>
+
+                                    @if (totalStock == 0)
+                                    {
+                                        <span class="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center text-white text-xs font-black uppercase">
+                                            Tạm Hết Hàng
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <!-- Quick View Trigger Button -->
+                                        <button type="button" onclick="openQuickView(@p.ProductId)" class="absolute inset-x-3 bottom-2.5 py-2 bg-slate-900/90 hover:bg-black text-white text-xs font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm shadow-md flex items-center justify-center gap-1.5">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                            <span>Xem nhanh</span>
+                                        </button>
+                                    }
                                 </div>
-                                <a href="/product/@p.Slug" class="font-bold text-slate-900 text-sm line-clamp-2 hover:text-blue-600 leading-snug">
+
+                                <div class="flex items-center gap-1 text-amber-500 text-xs mb-1">
+                                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                                    <span class="text-[11px] text-slate-400 font-bold ml-1">5.0</span>
+                                </div>
+                                <a href="/product/@p.Slug" class="font-black text-slate-900 text-sm line-clamp-2 hover:text-blue-600 transition-colors leading-snug">
                                     @p.Name
                                 </a>
                                 <p class="text-[11px] text-slate-500 mt-1 line-clamp-1 font-medium">@p.ShortDescription</p>
@@ -157,26 +283,180 @@
                                         <div class="text-xs text-slate-400 line-through">@origPrice.ToString("N0") đ</div>
                                     }
                                 </div>
-                                @if (minVariant != null)
+                                @if (minVariant != null && totalStock > 0)
                                 {
-                                    <button onclick="addToCart(@minVariant.VariantId, 1, true)" class="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm active:scale-95">
+                                    <button onclick="addToCart(@minVariant.VariantId, 1, true)" class="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition active:scale-95" title="Thêm vào giỏ hàng">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                                     </button>
+                                }
+                                else
+                                {
+                                    <span class="text-[11px] font-bold text-slate-400">Liên hệ</span>
                                 }
                             </div>
                         </div>
                     }
                 </div>
+
+                <!-- 3. Pagination Controls -->
+                @if (Model.TotalPages > 1)
+                {
+                    <div class="pt-6 flex items-center justify-center gap-2">
+                        @if (Model.CurrentPage > 1)
+                        {
+                            <button type="button" onclick="goToPage(@(Model.CurrentPage - 1))" class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center gap-1 shadow-sm transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                                <span>Trước</span>
+                            </button>
+                        }
+
+                        @for (int p = 1; p <= Model.TotalPages; p++)
+                        {
+                            var isCur = p == Model.CurrentPage;
+                            <button type="button" onclick="goToPage(@p)" class="w-9 h-9 rounded-xl font-black text-xs transition shadow-sm @(isCur ? "bg-blue-600 text-white" : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50")">
+                                @p
+                            </button>
+                        }
+
+                        @if (Model.CurrentPage < Model.TotalPages)
+                        {
+                            <button type="button" onclick="goToPage(@(Model.CurrentPage + 1))" class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-bold text-xs flex items-center gap-1 shadow-sm transition">
+                                <span>Sau</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                        }
+                    </div>
+                }
             }
         </div>
     </div>
 </div>
 
+<!-- Reusable Quick View Modal Dialog -->
+<dialog id="quickViewDialog" closedby="any" class="backdrop:bg-slate-900/60 backdrop:backdrop-blur-sm rounded-3xl p-0 border border-slate-200 shadow-2xl max-w-3xl w-full m-auto">
+    <div id="quickViewContent" class="p-6 relative">
+        <div class="flex items-center justify-center py-16">
+            <svg class="animate-spin w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+        </div>
+    </div>
+</dialog>
+
 <script>
     function applyFilter(key, value) {
         const url = new URL(window.location.href);
-        url.searchParams.set(key, value);
+        if (value) {
+            url.searchParams.set(key, value);
+        } else {
+            url.searchParams.delete(key);
+        }
         url.searchParams.set('page', 1);
         window.location.href = url.toString();
+    }
+
+    function removeFilter(key) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete(key);
+        url.searchParams.set('page', 1);
+        window.location.href = url.toString();
+    }
+
+    function setPriceFilter(min, max) {
+        const url = new URL(window.location.href);
+        if (min !== null) url.searchParams.set('minPrice', min);
+        else url.searchParams.delete('minPrice');
+
+        if (max !== null) url.searchParams.set('maxPrice', max);
+        else url.searchParams.delete('maxPrice');
+
+        url.searchParams.set('page', 1);
+        window.location.href = url.toString();
+    }
+
+    function clearPriceFilter() {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('minPrice');
+        url.searchParams.delete('maxPrice');
+        url.searchParams.set('page', 1);
+        window.location.href = url.toString();
+    }
+
+    function goToPage(page) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', page);
+        window.location.href = url.toString();
+    }
+
+    // Quick View Modal
+    async function openQuickView(productId) {
+        const dialog = document.getElementById('quickViewDialog');
+        const content = document.getElementById('quickViewContent');
+        if (!dialog || !content) return;
+
+        dialog.showModal();
+        content.innerHTML = `
+            <div class="flex items-center justify-center py-16">
+                <svg class="animate-spin w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+            </div>
+        `;
+
+        try {
+            const res = await fetch(`/api/product/quick-view/${productId}`);
+            if (!res.ok) throw new Error('Không thể tải thông tin sản phẩm');
+            const p = await res.json();
+
+            const minVariant = p.variants && p.variants.length > 0 ? p.variants[0] : null;
+            const price = minVariant ? (minVariant.salePrice ?? minVariant.price).toLocaleString('vi-VN') + ' đ' : 'Liên hệ';
+            const brand = p.brandName || p.brand || '';
+            const category = p.categoryName || p.category || '';
+            const stock = minVariant ? (minVariant.stockQuantity ?? minVariant.stock ?? 0) : 0;
+
+            let specsHtml = '';
+            if (p.specifications && typeof p.specifications === 'object') {
+                specsHtml = '<div class="grid grid-cols-2 gap-2 mt-3 text-[11px]">';
+                const entries = Array.isArray(p.specifications) ? p.specifications : Object.entries(p.specifications);
+                entries.slice(0, 4).forEach(item => {
+                    const name = Array.isArray(item) ? item[0] : item.name;
+                    const val = Array.isArray(item) ? item[1] : item.value;
+                    specsHtml += `<div class="p-2 bg-slate-50 rounded-xl border border-slate-100"><span class="text-slate-400 block">${name}</span><strong class="text-slate-800 line-clamp-1">${val}</strong></div>`;
+                });
+                specsHtml += '</div>';
+            }
+
+            content.innerHTML = `
+                <button type="button" onclick="document.getElementById('quickViewDialog').close()" class="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">✕</button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="h-64 bg-slate-50 rounded-2xl p-4 flex items-center justify-center">
+                        <img src="${p.featuredImage}" alt="${p.name}" class="max-h-full max-w-full object-contain" onerror="this.src='/assets/images/placeholder.png'" />
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 text-[10px] font-black uppercase">${brand}</span>
+                            <span class="text-[11px] text-slate-400">${category}</span>
+                        </div>
+                        <h3 class="text-lg font-black text-slate-900 leading-snug">${p.name}</h3>
+                        <div class="text-xl font-black text-blue-600">${price}</div>
+                        <p class="text-xs text-slate-500 line-clamp-3">${p.shortDescription || ''}</p>
+                        ${specsHtml}
+                        <div class="pt-3 flex gap-2.5">
+                            ${minVariant && stock > 0 ? `
+                                <button type="button" onclick="addToCart(${minVariant.variantId}, 1, true); document.getElementById('quickViewDialog').close();" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition">
+                                    Thêm Vào Giỏ Hàng
+                                </button>
+                            ` : '<span class="text-xs font-bold text-slate-400">Tạm hết hàng</span>'}
+                            <a href="/product/${p.slug}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition text-center">
+                                Chi tiết
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (e) {
+            content.innerHTML = `
+                <div class="p-6 text-center text-rose-600 text-xs font-bold">
+                    Có lỗi xảy ra khi tải sản phẩm. Vui lòng thử lại.
+                    <button type="button" onclick="document.getElementById('quickViewDialog').close()" class="mt-4 block mx-auto px-4 py-2 bg-slate-100 rounded-xl">Đóng</button>
+                </div>
+            `;
+        }
     }
 </script>

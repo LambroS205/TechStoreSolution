@@ -6,10 +6,11 @@ namespace TechStore.Core.Enums;
 public enum OrderStatus
 {
     Pending = 0,    // Chờ tiếp nhận / chờ xác nhận
-    Processing = 1, // Đang đóng gói / xử lý tại kho
-    Shipping = 2,   // Đang vận chuyển giao hàng
-    Delivered = 3,  // Đã giao hàng thành công
-    Cancelled = 4   // Đã hủy đơn
+    Confirmed = 1,  // Đã xác nhận / Đã thanh toán thành công
+    Processing = 2, // Đang đóng gói / xử lý tại kho
+    Shipping = 3,   // Đang vận chuyển giao hàng
+    Delivered = 4,  // Đã giao hàng thành công
+    Cancelled = 5   // Đã hủy đơn
 }
 
 public static class OrderStatusExtensions
@@ -19,6 +20,7 @@ public static class OrderStatusExtensions
         return (status ?? "").Trim().ToLowerInvariant() switch
         {
             "pending" => "Chờ xử lý",
+            "confirmed" => "Đã xác nhận",
             "processing" => "Đang đóng gói",
             "shipping" => "Đang giao hàng",
             "delivered" => "Đã giao thành công",
@@ -32,6 +34,7 @@ public static class OrderStatusExtensions
         return (status ?? "").Trim().ToLowerInvariant() switch
         {
             "pending" => "bg-amber-50 text-amber-700 border-amber-200",
+            "confirmed" => "bg-sky-50 text-sky-700 border-sky-200",
             "processing" => "bg-blue-50 text-blue-700 border-blue-200",
             "shipping" => "bg-indigo-50 text-indigo-700 border-indigo-200",
             "delivered" => "bg-emerald-50 text-emerald-700 border-emerald-200",

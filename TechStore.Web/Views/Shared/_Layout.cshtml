@@ -112,43 +112,46 @@
                             <span>@(User.FindFirst("FullName")?.Value ?? User.Identity.Name)</span>
                             <svg class="w-3 h-3 text-slate-300 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                         </button>
-                        <div class="absolute right-0 top-full mt-1 w-48 bg-white text-slate-800 rounded-2xl shadow-xl border border-slate-200 py-1.5 hidden group-hover:block z-50 divide-y divide-slate-100">
-                            <div class="px-3.5 py-2">
-                                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tài khoản</p>
-                                <p class="text-xs font-bold text-slate-900 truncate">@(User.FindFirst("FullName")?.Value ?? User.Identity.Name)</p>
-                            </div>
-                            <div class="py-1">
-                                <a href="/account/profile" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-medium">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                    <span>Hồ sơ cá nhân</span>
-                                </a>
-                                <a href="/account/orders" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-medium">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                                    <span>Đơn hàng của tôi</span>
-                                </a>
-                                <a href="/account/wishlist" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:text-rose-600 hover:bg-slate-50 font-medium">
-                                    <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                                    <span>Sản phẩm yêu thích</span>
-                                </a>
-                                <a href="/account/addresses" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-medium">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                    <span>Sổ địa chỉ nhận hàng</span>
-                                </a>
-                            </div>
-                            @if (User.IsInRole("SuperAdmin") || User.IsInRole("StaffProduct") || User.IsInRole("StaffOrder") || User.IsInRole("StaffMarketing"))
-                            {
+                        <!-- User Menu Dropdown with Hover Bridge -->
+                        <div class="absolute right-0 top-full pt-1.5 w-52 hidden group-hover:block z-50 before:content-[''] before:absolute before:-top-3 before:left-0 before:right-0 before:h-3">
+                            <div class="bg-white text-slate-800 rounded-2xl shadow-xl border border-slate-200 py-1.5 divide-y divide-slate-100">
+                                <div class="px-3.5 py-2">
+                                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tài khoản</p>
+                                    <p class="text-xs font-bold text-slate-900 truncate">@(User.FindFirst("FullName")?.Value ?? User.Identity.Name)</p>
+                                </div>
                                 <div class="py-1">
-                                    <a href="/Admin/Dashboard" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-blue-600 hover:bg-blue-50 font-bold">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                        <span>Kênh Quản Trị</span>
+                                    <a href="/account/profile" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-medium">
+                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                        <span>Hồ sơ cá nhân</span>
+                                    </a>
+                                    <a href="/account/orders" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-medium">
+                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                                        <span>Đơn hàng của tôi</span>
+                                    </a>
+                                    <a href="/account/wishlist" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:text-rose-600 hover:bg-slate-50 font-medium">
+                                        <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                        <span>Sản phẩm yêu thích</span>
+                                    </a>
+                                    <a href="/account/addresses" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-medium">
+                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                        <span>Sổ địa chỉ nhận hàng</span>
                                     </a>
                                 </div>
-                            }
-                            <div class="py-1">
-                                <a href="/auth/logout" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-rose-600 hover:bg-rose-50 font-bold">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                                    <span>Đăng xuất</span>
-                                </a>
+                                @if (User.IsInRole("SuperAdmin") || User.IsInRole("StaffProduct") || User.IsInRole("StaffOrder") || User.IsInRole("StaffMarketing"))
+                                {
+                                    <div class="py-1">
+                                        <a href="/Admin/Dashboard" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-blue-600 hover:bg-blue-50 font-bold">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                            <span>Kênh Quản Trị</span>
+                                        </a>
+                                    </div>
+                                }
+                                <div class="py-1">
+                                    <a href="/auth/logout" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-rose-600 hover:bg-rose-50 font-bold">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                        <span>Đăng xuất</span>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -192,7 +195,7 @@
                 }
             </a>
 
-            <!-- Search Bar with Live Autocomplete -->
+            <!-- Desktop Search Bar with Live Autocomplete -->
             <div class="flex-1 max-w-2xl relative hidden sm:block">
                 <form action="/products" method="get" class="relative">
                     <input type="text" id="headerSearchInput" name="q" value="@ViewBag.SearchQuery" 
@@ -210,7 +213,7 @@
                 </div>
             </div>
 
-            <!-- Actions: Hotline & Cart Drawer Toggle Button -->
+            <!-- Actions: Hotline, Wishlist & Cart Drawer Toggle Button -->
             <div class="flex items-center gap-3 shrink-0">
                 <div class="hidden lg:flex items-center gap-2 pr-2 border-r border-blue-400/40 text-xs">
                     <span class="p-2 bg-blue-700/60 rounded-full">
@@ -235,6 +238,20 @@
                     <span id="cartBadgeCount" class="w-5 h-5 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-bold">0</span>
                 </button>
             </div>
+        </div>
+
+        <!-- Mobile Search Bar (Only on small screens) -->
+        <div class="sm:hidden px-4 pb-2.5 pt-0.5 relative">
+            <form action="/products" method="get" class="relative">
+                <input type="text" id="mobileSearchInput" name="q" value="@ViewBag.SearchQuery" 
+                       placeholder="Tìm iPhone, Galaxy, MacBook..." 
+                       autocomplete="off"
+                       class="w-full bg-white text-slate-900 text-xs rounded-full pl-4 pr-10 py-2 outline-none focus:ring-2 focus:ring-bestbuy-yellow placeholder-slate-400 font-medium" />
+                <button type="submit" class="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-bestbuy-blue text-white flex items-center justify-center">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                </button>
+            </form>
+            <div id="mobileSearchSuggestions" class="absolute left-4 right-4 mt-1 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden hidden z-50 divide-y divide-slate-100 max-h-80 overflow-y-auto"></div>
         </div>
 
         <!-- Navigation Categories Bar -->
@@ -307,10 +324,10 @@
                 <ul class="space-y-2 text-xs">
                     <li><a href="/order/tracking" class="hover:text-blue-600 font-bold text-blue-600 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Tra cứu đơn hàng trực tuyến</a></li>
                     <li><a href="/checkout" class="hover:text-blue-600">Hướng dẫn thanh toán VietQR</a></li>
-                    <li><a href="/compare" class="hover:text-blue-600">So sánh sản phẩm</a></li>
-                    <li><a href="#" class="hover:text-blue-600">Chính sách giao hàng toàn quốc</a></li>
-                    <li><a href="#" class="hover:text-blue-600">Quy chế đổi trả 30 ngày</a></li>
-                    <li><a href="#" class="hover:text-blue-600">Tra cứu bảo hành điện tử</a></li>
+                    <li><a href="/compare" class="hover:text-blue-600">So sánh thông số kỹ thuật</a></li>
+                    <li><button type="button" onclick="document.getElementById('modalDeliveryPolicy').showModal()" class="hover:text-blue-600 text-left">Chính sách giao hàng toàn quốc</button></li>
+                    <li><button type="button" onclick="document.getElementById('modalReturnPolicy').showModal()" class="hover:text-blue-600 text-left">Quy chế đổi trả 30 ngày</button></li>
+                    <li><button type="button" onclick="document.getElementById('modalWarrantyPolicy').showModal()" class="hover:text-blue-600 text-left">Tra cứu chính sách bảo hành</button></li>
                 </ul>
             </div>
 
@@ -369,6 +386,83 @@
         </div>
     </div>
 
+    <!-- Modals: Native Dialogs with closedby="any" -->
+    <!-- Modal 1: Chính sách giao hàng -->
+    <dialog id="modalDeliveryPolicy" closedby="any" class="backdrop:bg-slate-900/60 backdrop:backdrop-blur-sm rounded-3xl p-0 border border-slate-200 shadow-2xl max-w-lg w-full m-auto">
+        <div class="p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">🚚</span>
+                    <h3 class="text-base font-extrabold text-slate-900">Chính Sách Giao Hàng Toàn Quốc</h3>
+                </div>
+                <button type="button" onclick="this.closest('dialog').close()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            <div class="py-4 space-y-3.5 text-xs text-slate-600 leading-relaxed">
+                <div class="p-3 bg-blue-50/60 rounded-xl border border-blue-100">
+                    <strong class="text-blue-900 block font-bold mb-1">⚡ Giao Hỏa Tốc 2 Giờ (Nội thành Hà Nội & TP.HCM)</strong>
+                    <p>Áp dụng cho các đơn hàng xác nhận trước 17:00 hàng ngày, kỹ thuật viên trực tiếp giao máy và hướng dẫn cài đặt.</p>
+                </div>
+                <div class="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100">
+                    <strong class="text-emerald-900 block font-bold mb-1">🎁 Miễn Phí Vận Chuyển Toàn Quốc</strong>
+                    <p>Miễn phí 100% cước chuyển phát nhanh cho tất cả các đơn hàng từ 1.000.000đ trở lên qua đối tác Viettel Post & GHTK.</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <strong class="text-slate-900 block font-bold mb-1">📦 Đồng Kiểm Khi Nhận Hàng</strong>
+                    <p>Quý khách được phép mở hộp kiểm tra nguyên seal, trùng khớp số Serial/IMEI trước khi thanh toán cho nhân viên giao hàng.</p>
+                </div>
+            </div>
+            <button type="button" onclick="this.closest('dialog').close()" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-black transition">Đã Hiểu</button>
+        </div>
+    </dialog>
+
+    <!-- Modal 2: Quy chế đổi trả -->
+    <dialog id="modalReturnPolicy" closedby="any" class="backdrop:bg-slate-900/60 backdrop:backdrop-blur-sm rounded-3xl p-0 border border-slate-200 shadow-2xl max-w-lg w-full m-auto">
+        <div class="p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">🔄</span>
+                    <h3 class="text-base font-extrabold text-slate-900">Quy Chế Đổi Trả 30 Ngày</h3>
+                </div>
+                <button type="button" onclick="this.closest('dialog').close()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            <div class="py-4 space-y-3.5 text-xs text-slate-600 leading-relaxed">
+                <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-100">
+                    <strong class="text-amber-900 block font-bold mb-1">🛡️ 1 Đổi 1 Trong 30 Ngày Đầu Tiên</strong>
+                    <p>Nếu sản phẩm xuất hiện lỗi phần cứng do nhà sản xuất (Apple, Samsung, Sony...), TechStore đổi ngay máy mới 100% nguyên seal.</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <strong class="text-slate-900 block font-bold mb-1">📋 Điều Kiện Đổi Trả Đơn Giản</strong>
+                    <p>Khách hàng chỉ cần giữ hóa đơn mua hàng (hoặc số điện thoại đặt hàng), hộp sản phẩm và đầy đủ phụ kiện đi kèm ban đầu.</p>
+                </div>
+            </div>
+            <button type="button" onclick="this.closest('dialog').close()" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-black transition">Đã Hiểu</button>
+        </div>
+    </dialog>
+
+    <!-- Modal 3: Tra cứu bảo hành -->
+    <dialog id="modalWarrantyPolicy" closedby="any" class="backdrop:bg-slate-900/60 backdrop:backdrop-blur-sm rounded-3xl p-0 border border-slate-200 shadow-2xl max-w-lg w-full m-auto">
+        <div class="p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">🛡️</span>
+                    <h3 class="text-base font-extrabold text-slate-900">Chính Sách Bảo Hành Chính Hãng</h3>
+                </div>
+                <button type="button" onclick="this.closest('dialog').close()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            <div class="py-4 space-y-3.5 text-xs text-slate-600 leading-relaxed">
+                <div class="p-3 bg-purple-50/60 rounded-xl border border-purple-100">
+                    <strong class="text-purple-900 block font-bold mb-1">✨ Bảo Hành Điện Tử Toàn Quốc</strong>
+                    <p>Tất cả sản phẩm bán ra đều được kích hoạt bảo hành điện tử chính hãng qua số IMEI/Serial. Khách hàng có thể mang máy đến bất kỳ Trung tâm Bảo hành Ủy quyền (AASP, Samsung Care+...) hoặc showroom TechStore gần nhất.</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <strong class="text-slate-900 block font-bold mb-1">📞 Hotline Kỹ Thuật Hỗ Trợ 24/7</strong>
+                    <p>Đội ngũ kỹ thuật viên sẵn sàng hướng dẫn cấu hình máy, cài đặt sao lưu dữ liệu miễn phí trọn đời sản phẩm.</p>
+                </div>
+            </div>
+            <button type="button" onclick="this.closest('dialog').close()" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-black transition">Đã Hiểu</button>
+        </div>
+    </dialog>
+
     <!-- Server Toast Trigger if TempData present -->
     @if (TempData["SuccessMessage"] != null)
     {
@@ -400,7 +494,44 @@
                 }
             } catch(e) {}
         })();
+
+        // Light dismiss for native dialog elements
+        document.querySelectorAll('dialog').forEach(dialog => {
+            dialog.addEventListener('click', (e) => {
+                if (e.target === dialog) dialog.close();
+            });
+        });
     </script>
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <!-- Guest to Authenticated Cart Synchronization -->
+        <script>
+            (async function syncGuestCartOnLogin() {
+                try {
+                    const raw = localStorage.getItem('techstore_cart');
+                    if (raw) {
+                        const items = JSON.parse(raw);
+                        if (Array.isArray(items) && items.length > 0) {
+                            const res = await fetch('/api/cart/sync-local-storage', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ items: items.map(i => ({ productVariantId: i.variantId, quantity: i.quantity })) })
+                            });
+                            if (res.ok) {
+                                if (window.showToast) {
+                                    showToast('Giỏ hàng đã được đồng bộ với tài khoản của bạn!', 'info');
+                                }
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.error('Cart sync error:', e);
+                }
+            })();
+        </script>
+    }
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -1,22 +1,36 @@
 <!-- Backdrop Mờ -->
-<div id="cartBackdrop" onclick="toggleCartDrawer()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden transition-opacity duration-300"></div>
+<div id="cartBackdrop" onclick="toggleCartDrawer(false)" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden transition-opacity duration-300"></div>
 
 <!-- Slide-over Drawer Panel -->
 <div id="cartDrawer" class="fixed inset-y-0 right-0 max-w-md w-full bg-white z-50 shadow-2xl flex flex-col justify-between translate-x-full transition-transform duration-300 ease-in-out">
     <!-- Drawer Header -->
-    <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-        <div class="flex items-center gap-2">
-            <span class="p-2 bg-blue-50 text-blue-600 rounded-lg">
+    <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+        <div class="flex items-center gap-2.5">
+            <span class="p-2 bg-blue-100 text-blue-600 rounded-xl">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
             </span>
             <div>
-                <h3 class="font-bold text-slate-900 text-base">Giỏ Hàng Của Bạn</h3>
+                <h3 class="font-extrabold text-slate-900 text-base leading-tight">Giỏ Hàng Của Bạn</h3>
                 <p id="drawerItemCount" class="text-xs text-slate-500 font-medium">0 sản phẩm</p>
             </div>
         </div>
-        <button onclick="toggleCartDrawer()" class="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/50 transition-colors">
+        <button onclick="toggleCartDrawer(false)" class="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-200/60 transition-colors" aria-label="Đóng giỏ hàng">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
+    </div>
+
+    <!-- Free Shipping Progress Bar Strip -->
+    <div id="drawerShippingProgress" class="bg-blue-50/70 border-b border-blue-100 px-4 py-2.5 shrink-0 text-xs">
+        <div class="flex items-center justify-between text-[11px] font-semibold text-slate-700 mb-1.5">
+            <span id="shippingProgressText" class="flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" /></svg>
+                <span>Mua thêm <strong id="shippingRemaining" class="text-blue-600 font-bold">1.000.000đ</strong> để nhận <strong>Freeship</strong></span>
+            </span>
+            <span id="shippingStatusBadge" class="text-[10px] uppercase font-bold text-slate-400">Đơn từ 1.000.000đ</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+            <div id="shippingProgressBar" class="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
     </div>
 
     <!-- Drawer Body: Danh sách mặt hàng từ LocalStorage render qua JS -->
@@ -25,11 +39,22 @@
     </div>
 
     <!-- Drawer Footer: Tạm tính & Nút Đặt Hàng -->
-    <div class="p-4 border-t border-slate-200 bg-slate-50 space-y-3">
+    <div class="p-4 border-t border-slate-200 bg-slate-50 space-y-3 shrink-0">
+        <!-- Mã giảm giá có sẵn (1-touch chips) -->
+        <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase text-slate-500">Mã giảm giá khả dụng:</span>
+                <span class="text-[10px] text-blue-600 font-semibold cursor-pointer" onclick="document.getElementById('drawerCouponInput').focus()">Nhập tay</span>
+            </div>
+            <div id="drawerAvailableCoupons" class="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto no-scrollbar">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+
         <!-- Áp dụng mã giảm giá nhanh -->
         <div class="flex gap-2">
-            <input type="text" id="drawerCouponInput" placeholder="Nhập mã: TECHSTORE100" class="flex-1 text-xs border border-slate-300 rounded-lg px-3 py-2 uppercase font-bold outline-none focus:ring-2 focus:ring-blue-500" />
-            <button onclick="applyDrawerCoupon()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg transition-colors">Áp dụng</button>
+            <input type="text" id="drawerCouponInput" placeholder="Nhập mã ưu đãi..." class="flex-1 text-xs border border-slate-300 rounded-xl px-3 py-2 uppercase font-bold outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+            <button onclick="applyDrawerCoupon()" class="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-colors">Áp dụng</button>
         </div>
         <div id="couponMsg" class="text-[11px] font-medium hidden"></div>
 
@@ -40,17 +65,20 @@
                 <span id="drawerSubTotal" class="font-bold text-slate-900">0 đ</span>
             </div>
             <div id="drawerDiscountRow" class="flex justify-between text-emerald-600 hidden">
-                <span>Giảm giá:</span>
+                <span class="flex items-center gap-1">
+                    <span>Giảm giá:</span>
+                    <button onclick="removeDrawerCoupon()" class="text-rose-500 hover:underline text-[10px] font-bold" title="Hủy mã">(Xóa)</button>
+                </span>
                 <span id="drawerDiscountAmount" class="font-bold">-0 đ</span>
             </div>
             <div class="flex justify-between text-sm pt-2 border-t border-slate-200">
                 <strong class="text-slate-900">Tổng thanh toán:</strong>
-                <strong id="drawerFinalTotal" class="text-base text-blue-600 font-extrabold">0 đ</strong>
+                <strong id="drawerFinalTotal" class="text-base text-blue-600 font-black">0 đ</strong>
             </div>
         </div>
 
         <!-- Nút Điều hướng sang Trang Checkout -->
-        <a href="/checkout" id="drawerCheckoutBtn" class="w-full py-3 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-sm rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all">
+        <a href="/checkout" id="drawerCheckoutBtn" class="w-full py-3.5 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-sm rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99]">
             <span>Tiến Hành Đặt Hàng</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
         </a>

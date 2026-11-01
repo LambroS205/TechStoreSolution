@@ -23,13 +23,13 @@ public class HomeController : Controller
     }
 
     /// <summary>
-    /// Trang chủ hiển thị Hero Banner động, Danh mục sản phẩm & Thiết bị công nghệ nổi bật
+    /// Trang chủ hiển thị Hero Banner động, Danh mục sản phẩm, Flash Sale, Voucher & Thiết bị công nghệ nổi bật
     /// </summary>
     public async Task<IActionResult> Index()
     {
         var viewModel = await _cache.GetOrCreateAsync("home_page_viewmodel", async entry =>
         {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
 
             // 1. Lấy danh sách Slider Hero chính đang hoạt động
             var heroSliders = await _context.Banners
@@ -58,16 +58,55 @@ public class HomeController : Controller
                 .Include(p => p.Brand)
                 .Include(p => p.Category)
                 .Include(p => p.Variants.Where(v => v.IsActive))
+                .Include(p => p.Reviews.Where(r => r.IsApproved))
                 .AsNoTracking()
                 .Where(p => p.IsActive && p.IsFeatured)
                 .OrderByDescending(p => p.CreatedAt)
                 .Take(8)
                 .ToListAsync();
 
-            // 5. Danh sách thương hiệu đối tác
+            // 5. Flash Sale: Top 4 sản phẩm có mức giảm giá tốt nhất
+            var allSaleCandidates = await _context.Products
+                .Include(p => p.Brand)
+                .Include(p => p.Category)
+                .Include(p => p.Variants.Where(v => v.IsActive))
+                .Include(p => p.Reviews.Where(r => r.IsApproved))
+                .AsNoTracking()
+                .Where(p => p.IsActive && p.Variants.Any(v => v.IsActive && v.OriginalPrice > v.SalePrice))
+                .ToListAsync();
+
+            var flashSaleProducts = allSaleCandidates
+                .OrderByDescending(p =>
+                {
+                    var minV = p.Variants.OrderBy(v => v.SalePrice).FirstOrDefault();
+                    if (minV == null || minV.OriginalPrice <= minV.SalePrice) return 0;
+                    return (minV.OriginalPrice - minV.SalePrice) / minV.OriginalPrice;
+                })
+                .Take(4)
+                .ToList();
+
+            // 6. Danh sách thương hiệu đối tác
             var brands = await _context.Brands
                 .AsNoTracking()
                 .Where(b => b.IsActive)
+                .OrderBy(b => b.BrandId)
+                .ToListAsync();
+
+            // 7. Mã giảm giá đang hoạt động công khai
+            var activeCoupons = await _context.Coupons
+                .AsNoTracking()
+                .Where(c => c.IsActive && c.EndDate > DateTime.UtcNow && c.UsageCount < c.UsageLimit)
+                .OrderByDescending(c => c.DiscountValue)
+                .Take(4)
+                .ToListAsync();
+
+            // 8. Tin tức & bài viết đánh giá công nghệ mới nhất
+            var latestBlogs = await _context.BlogPosts
+                .Include(b => b.Category)
+                .AsNoTracking()
+                .Where(b => b.IsPublished)
+                .OrderByDescending(b => b.PublishedAt)
+                .Take(3)
                 .ToListAsync();
 
             return new HomeViewModel
@@ -76,7 +115,10 @@ public class HomeController : Controller
                 SubBanners = subBanners,
                 Categories = categories,
                 FeaturedProducts = featuredProducts,
-                Brands = brands
+                FlashSaleProducts = flashSaleProducts,
+                Brands = brands,
+                ActiveCoupons = activeCoupons,
+                LatestBlogPosts = latestBlogs
             };
         });
 
@@ -144,4 +186,4 @@ public class HomeController : Controller
             Message = "Đã xảy ra lỗi ngoài ý muốn. Đội ngũ kỹ thuật đang kiểm tra xử lý."
         });
     }
-}
+}

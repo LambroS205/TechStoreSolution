@@ -27,7 +27,7 @@ public class CartApiController : ControllerBase
     /// API tự động gộp (Auto-merge) các mặt hàng từ LocalStorage vào CSDL User Cart khi đăng nhập
     /// </summary>
     [HttpPost("sync")]
-    public async Task<IActionResult> SyncLocalStorageCart([FromBody] List<CartItemRequest> items)
+    public async Task<IActionResult> SyncLocalStorageCart([FromBody] List<CartItemRequest>? items)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
@@ -165,6 +165,32 @@ public class CartApiController : ControllerBase
             SubTotal = subTotal,
             TotalCount = totalCount
         });
+    }
+
+    /// <summary>
+    /// API lấy danh sách các mã giảm giá công khai đang có hiệu lực để chọn nhanh 1 chạm
+    /// </summary>
+    [HttpGet("available-coupons")]
+    public async Task<IActionResult> GetAvailableCoupons()
+    {
+        var now = DateTime.UtcNow;
+        var coupons = await _context.Coupons
+            .AsNoTracking()
+            .Where(c => c.IsActive && c.EndDate > now && c.UsageCount < c.UsageLimit)
+            .OrderByDescending(c => c.DiscountValue)
+            .Select(c => new
+            {
+                c.CouponId,
+                c.Code,
+                c.Description,
+                c.DiscountType,
+                c.DiscountValue,
+                c.MinOrderAmount,
+                c.MaxDiscountAmount
+            })
+            .ToListAsync();
+
+        return Ok(coupons);
     }
 
     /// <summary>

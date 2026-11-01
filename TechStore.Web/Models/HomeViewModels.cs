@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using TechStore.Core.Entities;
 
@@ -36,7 +37,7 @@ public class ContactFormViewModel
 }
 
 /// <summary>
-/// ViewModel tổng hợp dữ liệu trang chủ (Sliders, Banners, Danh mục, Sản phẩm nổi bật, Thương hiệu)
+/// ViewModel tổng hợp dữ liệu trang chủ (Sliders, Banners, Danh mục, Flash Sale, Sản phẩm nổi bật, Thương hiệu, Voucher, Tin tức)
 /// </summary>
 public class HomeViewModel
 {
@@ -44,5 +45,8 @@ public class HomeViewModel
     public List<Banner> SubBanners { get; set; } = new();
     public List<Category> Categories { get; set; } = new();
     public List<Product> FeaturedProducts { get; set; } = new();
+    public List<Product> FlashSaleProducts { get; set; } = new();
     public List<Brand> Brands { get; set; } = new();
+    public List<Coupon> ActiveCoupons { get; set; } = new();
+    public List<BlogPost> LatestBlogPosts { get; set; } = new();
 }

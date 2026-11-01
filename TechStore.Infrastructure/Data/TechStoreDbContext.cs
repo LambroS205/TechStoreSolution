@@ -227,6 +227,7 @@ public class TechStoreDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Slug).HasMaxLength(250).IsRequired();
             entity.Property(e => e.FeaturedImage).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.SpecificationsJson);
             entity.HasIndex(e => e.Slug).IsUnique();
             entity.HasIndex(e => new { e.CategoryId, e.IsActive });
             entity.HasIndex(e => new { e.BrandId, e.IsActive });

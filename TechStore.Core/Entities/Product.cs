@@ -20,6 +20,12 @@ public class Product
     public string FeaturedImage { get; set; } = string.Empty;
     public int WarrantyMonths { get; set; } = 12;
 
+    /// <summary>
+    /// Lưu trữ thông số kỹ thuật dạng JSON key-value để hiển thị bảng cấu hình & so sánh phần cứng
+    /// Ví dụ: {"Màn hình":"6.9 inch Super Retina XDR OLED", "Chip":"A18 Pro", "RAM":"8GB"}
+    /// </summary>
+    public string? SpecificationsJson { get; set; }
+
     public bool IsFeatured { get; set; } = false;
     public bool IsActive { get; set; } = true;
     public int ViewCount { get; set; } = 0;

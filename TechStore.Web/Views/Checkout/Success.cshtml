@@ -1,4 +1,4 @@
-﻿@model TechStore.Core.Entities.Order
+@model TechStore.Core.Entities.Order
 @{
     ViewData["Title"] = "Đặt Hàng Thành Công - Mã Đơn " + Model.OrderCode;
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -8,81 +8,140 @@
 <div class="max-w-3xl mx-auto px-4 py-10 space-y-6">
     <!-- Success Banner -->
     <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 text-center space-y-3">
-        <div class="w-16 h-16 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
+        <div class="w-16 h-16 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-sm">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
         </div>
-        <h1 class="text-2xl font-black text-slate-900">Đặt Hàng Thành Công!</h1>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Đặt Hàng Thành Công!</h1>
         <p class="text-sm text-slate-600">
-            Cảm ơn bạn <strong class="text-slate-900">@Model.CustomerName</strong>. Đơn hàng của bạn đã được ghi nhận vào hệ thống TechStore.
+            Cảm ơn quý khách <strong class="text-slate-900">@Model.CustomerName</strong>. Đơn hàng đã được lưu trữ thành công trên hệ thống TechStore.
         </p>
-        <div class="inline-block px-4 py-1.5 bg-slate-100 rounded-xl text-xs font-extrabold text-blue-600 tracking-wider">
-            MÃ ĐƠN HÀNG: @Model.OrderCode
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs font-black text-blue-700 tracking-wider">
+            <span>MÃ ĐƠN HÀNG:</span>
+            <span class="font-mono text-sm">#@Model.OrderCode</span>
+        </div>
+    </div>
+
+    <!-- Live Simulation Confirmation Result Banner (Hidden initially) -->
+    <div id="demoSuccessBanner" class="hidden bg-emerald-500 text-white rounded-3xl p-6 shadow-xl text-center space-y-3 animate-fade-in">
+        <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl mx-auto flex items-center justify-center text-2xl">
+            🎉
+        </div>
+        <h3 class="text-lg font-black uppercase tracking-tight">HỆ THỐNG ĐÃ XÁC NHẬN THANH TOÁN THÀNH CÔNG!</h3>
+        <p class="text-xs text-emerald-100 max-w-md mx-auto">
+            Giao dịch chuyển khoản cho đơn hàng <strong class="text-white font-mono">#@Model.OrderCode</strong> đã được đối soát tự động. Đơn hàng chuyển sang trạng thái <strong>ĐÃ XÁC NHẬN</strong>.
+        </p>
+        <div class="pt-2 flex justify-center gap-3">
+            <a href="/account/order/@Model.OrderCode" class="px-5 py-2.5 bg-white text-emerald-800 font-extrabold text-xs rounded-xl shadow-sm hover:bg-slate-100 transition">
+                Xem Chi Tiết Đơn Hàng &rarr;
+            </a>
+            <a href="/order/tracking?orderCode=@Model.OrderCode&phone=@Model.CustomerPhone" class="px-5 py-2.5 bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-sm hover:bg-emerald-800 transition">
+                Theo Dõi Tiến Trình
+            </a>
         </div>
     </div>
 
     @if (isVietQr)
     {
         <!-- Khối Thanh Toán Chuyển Khoản Tức Thì VietQR Chuẩn NAPAS 247 -->
-        <div class="bg-white rounded-3xl border-2 border-indigo-200 shadow-lg p-6 lg:p-8 space-y-6">
+        <div id="vietQrPaymentCard" class="bg-white rounded-3xl border-2 border-indigo-200 shadow-xl p-6 lg:p-8 space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-slate-100">
                 <div>
                     <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-black uppercase">Thanh toán VietQR NAPAS 247</span>
                     <h2 class="text-lg font-black text-slate-900 mt-1">Quét Mã QR Để Thanh Toán Ngay</h2>
                 </div>
                 <!-- Countdown Timer 15 phút -->
-                <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-xl text-xs font-bold">
+                <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-xl text-xs font-bold w-fit">
                     <span>Đơn hàng giữ trong:</span>
-                    <span id="countdownTimer" class="font-black text-sm text-amber-600">15:00</span>
+                    <span id="countdownTimer" class="font-black text-sm text-amber-600 font-mono">15:00</span>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <!-- Mã VietQR tự động sinh theo thông tin đơn hàng -->
                 <div class="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                    <img src="@ViewBag.VietQrUrl" alt="VietQR Payment" class="w-64 h-auto object-contain rounded-xl shadow-sm" />
-                    <p class="text-[11px] text-slate-400 mt-2 text-center">Mở ứng dụng Mobile Banking của bất kỳ ngân hàng nào để quét mã QR</p>
+                    <img src="@ViewBag.VietQrUrl" alt="VietQR Payment" class="w-60 h-auto object-contain rounded-xl shadow-sm" />
+                    <p class="text-[11px] text-slate-500 mt-2.5 text-center font-medium">Mở App Ngân hàng hoặc Ví điện tử để quét mã tự động điền tiền và nội dung</p>
                 </div>
 
-                <!-- Thông tin chuyển khoản đối soát chi tiết -->
-                <div class="space-y-3 text-xs">
-                    <div class="p-3 bg-slate-50 rounded-xl space-y-1 border border-slate-200">
-                        <span class="text-slate-500">Ngân hàng thụ hưởng:</span>
-                        <div class="font-extrabold text-slate-900 text-sm">@ViewBag.BankName</div>
+                <!-- Thông tin chuyển khoản đối soát chi tiết có nút sao chép -->
+                <div class="space-y-2.5 text-xs">
+                    <div class="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-200">
+                        <div>
+                            <span class="text-slate-400 block text-[10px]">Ngân hàng thụ hưởng:</span>
+                            <div class="font-bold text-slate-900">@ViewBag.BankName</div>
+                        </div>
+                        <button type="button" onclick="copyText('@ViewBag.BankName', this)" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 text-[10px] font-bold transition">Sao chép</button>
                     </div>
-                    <div class="p-3 bg-slate-50 rounded-xl space-y-1 border border-slate-200">
-                        <span class="text-slate-500">Số tài khoản nhận:</span>
-                        <div class="font-extrabold text-blue-600 text-base">@ViewBag.AccountNo</div>
+
+                    <div class="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-200">
+                        <div>
+                            <span class="text-slate-400 block text-[10px]">Số tài khoản nhận:</span>
+                            <div class="font-black text-blue-600 text-sm font-mono">@ViewBag.AccountNo</div>
+                        </div>
+                        <button type="button" onclick="copyText('@ViewBag.AccountNo', this)" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 text-[10px] font-bold transition">Sao chép</button>
                     </div>
-                    <div class="p-3 bg-slate-50 rounded-xl space-y-1 border border-slate-200">
-                        <span class="text-slate-500">Chủ tài khoản:</span>
-                        <div class="font-extrabold text-slate-900 uppercase">@ViewBag.AccountName</div>
+
+                    <div class="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-200">
+                        <div>
+                            <span class="text-slate-400 block text-[10px]">Chủ tài khoản:</span>
+                            <div class="font-extrabold text-slate-900 uppercase">@ViewBag.AccountName</div>
+                        </div>
+                        <button type="button" onclick="copyText('@ViewBag.AccountName', this)" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 text-[10px] font-bold transition">Sao chép</button>
                     </div>
-                    <div class="p-3 bg-blue-50 rounded-xl space-y-1 border border-blue-200">
-                        <span class="text-slate-500">Số tiền cần chuyển chính xác:</span>
-                        <div class="font-black text-blue-700 text-lg">@Model.TotalAmount.ToString("N0") đ</div>
+
+                    <div class="p-3 bg-blue-50 rounded-xl flex items-center justify-between border border-blue-200">
+                        <div>
+                            <span class="text-blue-500 block text-[10px]">Số tiền cần chuyển chính xác:</span>
+                            <div class="font-black text-blue-700 text-base">@Model.TotalAmount.ToString("N0") đ</div>
+                        </div>
+                        <button type="button" onclick="copyText('@((long)Model.TotalAmount)', this)" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs">Sao chép</button>
                     </div>
-                    <div class="p-3 bg-amber-50 rounded-xl space-y-1 border border-amber-200">
-                        <span class="text-amber-700 font-semibold">Nội dung chuyển khoản (bắt buộc):</span>
-                        <div class="font-black text-slate-900 text-sm">@Model.OrderCode</div>
+
+                    <div class="p-3 bg-amber-50 rounded-xl flex items-center justify-between border border-amber-200">
+                        <div>
+                            <span class="text-amber-700 block text-[10px]">Nội dung chuyển khoản (bắt buộc):</span>
+                            <div class="font-black text-slate-900 font-mono text-sm">@Model.OrderCode</div>
+                        </div>
+                        <button type="button" onclick="copyText('@Model.OrderCode', this)" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs">Sao chép</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- ⚡ Demo Mode: Nút Giả lập xác nhận thanh toán -->
+            <div class="pt-4 border-t border-slate-100 bg-amber-50/70 p-4 rounded-2xl border border-amber-200 text-center space-y-2">
+                <div class="flex items-center justify-center gap-1.5 text-xs font-black text-amber-900">
+                    <span>⚡ CHẾ ĐỘ TRÌNH DIỄN & DEMO ĐỒ ÁN</span>
+                </div>
+                <p class="text-[11px] text-amber-700 leading-snug">
+                    Không cần chuyển khoản tiền thật! Nhấn nút bên dưới để hệ thống giả lập Webhook Ngân Hàng xác nhận thanh toán tự động:
+                </p>
+                <button type="button" id="btnSimulatePayment" onclick="simulatePaymentConfirm('@Model.OrderCode')" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 mx-auto">
+                    <span>⚡ Giả Lập Ngân Hàng Xác Nhận Đã Thanh Toán</span>
+                </button>
             </div>
         </div>
     }
     else
     {
         <!-- Khối Đơn Hàng COD -->
-        <div class="bg-white rounded-3xl border border-slate-200 p-6 space-y-3">
-            <h3 class="font-bold text-slate-900 text-base">Phương thức thanh toán: COD (Tiền mặt khi nhận hàng)</h3>
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 space-y-3 shadow-sm">
+            <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                <span class="p-1 rounded bg-slate-100 text-slate-700 text-xs font-bold">COD</span>
+                <span>Phương thức thanh toán: Tiền mặt khi nhận hàng</span>
+            </h3>
             <p class="text-xs text-slate-500 leading-relaxed">
-                Đơn hàng của bạn sẽ được nhân viên TechStore xác nhận và gửi đi trong vòng 24 giờ. Vui lòng chuẩn bị sẵn số tiền <strong class="text-blue-600">@Model.TotalAmount.ToString("N0") đ</strong> khi bưu tá đến giao.
+                Đơn hàng của bạn sẽ được nhân viên TechStore xác nhận và gửi đi trong vòng 24 giờ. Vui lòng chuẩn bị sẵn số tiền <strong class="text-blue-600 font-bold">@Model.TotalAmount.ToString("N0") đ</strong> khi bưu tá đến giao.
             </p>
         </div>
     }
 
-    <!-- Nút Tiếp Tục Mua Sắm -->
-    <div class="text-center pt-2">
-        <a href="/products" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all">
+    <!-- Action Buttons -->
+    <div class="flex items-center justify-center gap-3 pt-2 flex-wrap">
+        <a href="/order/tracking?orderCode=@Model.OrderCode&phone=@Model.CustomerPhone" class="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-md transition-all">
+            <svg class="w-4 h-4 text-bestbuy-yellow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+            <span>Theo Dõi Tiến Trình Đơn Hàng</span>
+        </a>
+        <a href="/products" class="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all">
             <span>Tiếp Tục Mua Sắm Tại TechStore</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
         </a>
@@ -94,6 +153,59 @@
     localStorage.removeItem('techstore_cart');
     localStorage.removeItem('techstore_coupon');
     if (typeof updateCartBadge === 'function') updateCartBadge();
+
+    // Copy to clipboard helper
+    function copyText(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+            const original = btn.innerText;
+            btn.innerText = '✓ Đã chép';
+            btn.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-300');
+            setTimeout(() => {
+                btn.innerText = original;
+                btn.classList.remove('bg-emerald-50', 'text-emerald-700', 'border-emerald-300');
+            }, 2000);
+        });
+    }
+
+    // ⚡ Giả lập xác nhận thanh toán Webhook
+    async function simulatePaymentConfirm(orderCode) {
+        const btn = document.getElementById('btnSimulatePayment');
+        if (!btn) return;
+
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+            <span>Đang phát tín hiệu xác thực VietQR...</span>
+        `;
+
+        try {
+            const res = await fetch(`/checkout/demo-confirm-payment/${orderCode}`, {
+                method: 'POST'
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Hide QR card
+                const qrCard = document.getElementById('vietQrPaymentCard');
+                if (qrCard) qrCard.classList.add('hidden');
+
+                // Show celebration banner
+                const successBanner = document.getElementById('demoSuccessBanner');
+                if (successBanner) successBanner.classList.remove('hidden');
+
+                if (window.showToast) {
+                    showToast('Xác nhận thanh toán VietQR thành công!', 'success');
+                }
+            } else {
+                alert(data.message || 'Không thể xác nhận');
+                btn.disabled = false;
+                btn.innerHTML = '⚡ Thử lại giả lập thanh toán';
+            }
+        } catch(e) {
+            alert('Lỗi kết nối');
+            btn.disabled = false;
+            btn.innerHTML = '⚡ Thử lại giả lập thanh toán';
+        }
+    }
 
     // Bộ đếm ngược 15 phút cho thanh toán VietQR
     let timeLeft = 15 * 60;

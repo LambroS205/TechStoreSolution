@@ -1,4 +1,5 @@
 @model ProductDetailViewModel
+@using System.Text.Json
 @{
     var product = Model.Product;
     ViewData["Title"] = product.Name;
@@ -19,6 +20,21 @@
     int count1 = Model.Count1;
     bool hasPurchased = Model.HasPurchased;
     bool hasReviewed = Model.HasReviewed;
+
+    // Parse hardware specifications JSON
+    var specsList = new List<KeyValuePair<string, string>>();
+    if (!string.IsNullOrEmpty(product.SpecificationsJson))
+    {
+        try
+        {
+            var doc = JsonDocument.Parse(product.SpecificationsJson);
+            foreach (var prop in doc.RootElement.EnumerateObject())
+            {
+                specsList.Add(new KeyValuePair<string, string>(prop.Name, prop.Value.GetString() ?? ""));
+            }
+        }
+        catch {}
+    }
 }
 
 @section StructuredData {
@@ -109,7 +125,7 @@
     }
 
     <!-- Product Main Info Section -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div id="mainProductCard" class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Left: Image Gallery & Thumbnail Slider -->
         <div class="space-y-4">
             <div class="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-100 relative overflow-hidden group">
@@ -137,12 +153,32 @@
                     }
                 </div>
             }
+
+            <!-- 4 Service Guarantees (Trust Badges) -->
+            <div class="grid grid-cols-2 gap-2 text-[11px] pt-2">
+                <div class="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span class="text-blue-600 font-bold">🛡️</span>
+                    <span class="text-slate-700 font-medium">Bảo hành 12 tháng chính hãng</span>
+                </div>
+                <div class="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span class="text-amber-500 font-bold">🔄</span>
+                    <span class="text-slate-700 font-medium">1 đổi 1 trong 30 ngày nếu lỗi</span>
+                </div>
+                <div class="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span class="text-emerald-600 font-bold">🚚</span>
+                    <span class="text-slate-700 font-medium">Miễn phí giao hàng toàn quốc</span>
+                </div>
+                <div class="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span class="text-purple-600 font-bold">📦</span>
+                    <span class="text-slate-700 font-medium">Đồng kiểm khi nhận hàng</span>
+                </div>
+            </div>
         </div>
 
         <!-- Right: Configurations & Variant Selection -->
         <div class="space-y-5 flex flex-col justify-between">
             <div class="space-y-3">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     <span class="px-2.5 py-0.5 text-xs font-bold bg-slate-100 text-slate-700 rounded-md border border-slate-200">
                         @product.Brand.Name
                     </span>
@@ -180,13 +216,21 @@
                 <p class="text-xs text-slate-500 leading-relaxed">@product.ShortDescription</p>
 
                 <!-- Giá bán thay đổi thời gian thực -->
-                <div class="p-4 bg-blue-50/60 rounded-2xl border border-blue-100 flex items-baseline gap-3">
-                    <span id="variantPrice" class="text-3xl font-black text-blue-600">
-                        @((defaultVariant?.SalePrice ?? 0).ToString("N0")) đ
-                    </span>
-                    <span id="variantOriginalPrice" class="text-sm text-slate-400 line-through">
-                        @((defaultVariant?.OriginalPrice ?? 0).ToString("N0")) đ
-                    </span>
+                <div class="p-4 bg-blue-50/60 rounded-2xl border border-blue-100 flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-baseline gap-3">
+                        <span id="variantPrice" class="text-2xl sm:text-3xl font-black text-blue-600">
+                            @((defaultVariant?.SalePrice ?? 0).ToString("N0")) đ
+                        </span>
+                        <span id="variantOriginalPrice" class="text-sm text-slate-400 line-through">
+                            @((defaultVariant?.OriginalPrice ?? 0).ToString("N0")) đ
+                        </span>
+                    </div>
+
+                    <!-- 0% Installment Calculator Trigger -->
+                    <button type="button" onclick="openInstallmentModal()" class="text-xs font-bold text-blue-600 hover:text-blue-800 underline flex items-center gap-1">
+                        <span>Trả góp 0% chỉ từ</span>
+                        <strong id="installmentMonthlyPreview" class="text-slate-900">@((((defaultVariant?.SalePrice ?? 0) / 12)).ToString("N0"))đ/th</strong>
+                    </button>
                 </div>
 
                 <!-- Danh sách biến thể (Màu sắc, Dung lượng, RAM) -->
@@ -205,31 +249,43 @@
                                         class="variant-btn p-3 text-left border rounded-xl transition-all @(v.VariantId == defaultVariant?.VariantId ? "border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20" : "border-slate-200 hover:border-slate-300 bg-white")">
                                     <div class="font-bold text-xs text-slate-900">@v.VariantName</div>
                                     <div class="text-xs font-extrabold text-blue-600 mt-0.5">@v.SalePrice.ToString("N0") đ</div>
-                                    <div class="text-[10px] text-slate-400">SKU: @v.SKU</div>
+                                    <div class="text-[10px] text-slate-400">Kho: @v.StockQuantity</div>
                                 </button>
                             }
                         </div>
                     </div>
                 }
 
-                <!-- Trạng thái tồn kho -->
-                <div class="text-xs font-semibold flex items-center gap-1.5 pt-1">
-                    <span>Tình trạng:</span>
-                    <span id="stockStatus" class="text-emerald-600 font-bold">
-                        @(defaultVariant != null && defaultVariant.StockQuantity > 0 ? $"Còn hàng ({defaultVariant.StockQuantity} sản phẩm)" : "Hết hàng")
-                    </span>
+                <!-- Chọn số lượng & Trạng thái tồn kho -->
+                <div class="flex items-center justify-between pt-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-700">Số lượng:</span>
+                        <div class="flex items-center border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
+                            <button type="button" onclick="adjustPdpQuantity(-1)" class="px-3 py-1 text-sm font-bold text-slate-600 hover:bg-slate-200 transition">-</button>
+                            <input type="number" id="pdpQuantityInput" value="1" min="1" max="@(defaultVariant?.StockQuantity ?? 50)" class="w-12 text-center text-xs font-bold bg-white outline-none border-x border-slate-200 py-1" readonly />
+                            <button type="button" onclick="adjustPdpQuantity(1)" class="px-3 py-1 text-sm font-bold text-slate-600 hover:bg-slate-200 transition">+</button>
+                        </div>
+                    </div>
+                    <div class="text-xs font-semibold flex items-center gap-1.5">
+                        <span id="stockStatus" class="@(defaultVariant != null && defaultVariant.StockQuantity > 0 ? "text-emerald-600" : "text-rose-600") font-bold">
+                            @(defaultVariant != null && defaultVariant.StockQuantity > 0 ? $"Còn hàng ({defaultVariant.StockQuantity} sản phẩm)" : "Hết hàng")
+                        </span>
+                    </div>
                 </div>
             </div>
 
             <!-- Nút Mua Ngay, Thêm Giỏ Hàng & Yêu Thích -->
             <div class="pt-4 border-t border-slate-100 flex items-center gap-3">
                 <input type="hidden" id="selectedVariantId" value="@(defaultVariant?.VariantId ?? 0)" />
-                <button type="button" onclick="handleAddCurrentToCart(true)" class="flex-1 py-3.5 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-sm rounded-xl shadow-md active:scale-95 transition-all text-center">
+                <input type="hidden" id="selectedVariantStock" value="@(defaultVariant?.StockQuantity ?? 0)" />
+                <input type="hidden" id="selectedVariantPrice" value="@(defaultVariant?.SalePrice ?? 0)" />
+
+                <button type="button" id="pdpBuyNowBtn" onclick="handleAddCurrentToCart(true)" class="flex-1 py-3.5 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-sm rounded-xl shadow-md active:scale-95 transition-all text-center @(defaultVariant?.StockQuantity == 0 ? "opacity-50 pointer-events-none" : "")">
                     MUA NGAY (GIAO TẬN NƠI)
                 </button>
-                <button type="button" onclick="handleAddCurrentToCart(false)" class="px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2">
+                <button type="button" id="pdpAddToCartBtn" onclick="handleAddCurrentToCart(false)" class="px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 @(defaultVariant?.StockQuantity == 0 ? "opacity-50 pointer-events-none" : "")">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                    <span>Thêm Vào Giỏ</span>
+                    <span class="hidden sm:inline">Thêm Vào Giỏ</span>
                 </button>
                 <!-- Nút Yêu thích (Wishlist) -->
                 <button type="button" onclick="toggleWishlist(@product.ProductId, this)" 
@@ -258,11 +314,87 @@
         </div>
     </div>
 
-    <!-- Chi Tiết Sản Phẩm & Thông Số Kỹ Thuật -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-4">
-        <h3 class="text-lg font-black text-slate-900 pb-3 border-b border-slate-100">Mô Tả Chi Tiết Thiết Bị</h3>
-        <div class="prose max-w-none text-slate-700 text-sm leading-relaxed">
-            @Html.Raw(product.FullDescription ?? product.ShortDescription)
+    <!-- 2-Column: Left = Bài viết mô tả & FAQ, Right = Bảng thông số kỹ thuật (Best Buy / CellphoneS style) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <!-- Left (2 cols): Mô tả chi tiết & Câu hỏi thường gặp -->
+        <div class="lg:col-span-2 space-y-8">
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-4">
+                <h3 class="text-lg font-black text-slate-900 pb-3 border-b border-slate-100 flex items-center gap-2">
+                    <span class="w-2.5 h-5 bg-blue-600 rounded-sm"></span>
+                    <span>Đặc Điểm Nổi Bật & Trải Nghiệm Thực Tế</span>
+                </h3>
+                <div class="prose max-w-none text-slate-700 text-sm leading-relaxed">
+                    @Html.Raw(product.FullDescription ?? product.ShortDescription)
+                </div>
+            </div>
+
+            <!-- FAQ Accordion (Modern Web Pattern: <details name="pdp-faq">) -->
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 space-y-4">
+                <h3 class="text-base font-black text-slate-900 pb-3 border-b border-slate-100 flex items-center gap-2">
+                    <span class="text-blue-600">❓</span>
+                    <span>Câu Hỏi Thường Gặp Về @product.Name</span>
+                </h3>
+                <div class="space-y-3">
+                    <details name="pdp-faq" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 group cursor-pointer" open>
+                        <summary class="font-bold text-xs sm:text-sm text-slate-900 list-none flex items-center justify-between">
+                            <span>Sản phẩm có đầy đủ phụ kiện và nguyên seal chính hãng không?</span>
+                            <span class="text-blue-600 group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <p class="text-xs text-slate-600 mt-2.5 leading-relaxed">
+                            Có, TechStore cam kết 100% sản phẩm phân phối là máy mới nguyên hộp (Brand New in Box), nguyên seal từ nhà sản xuất, khách hàng được quyền mở hộp đồng kiểm trước khi nhận.
+                        </p>
+                    </details>
+                    <details name="pdp-faq" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 group cursor-pointer">
+                        <summary class="font-bold text-xs sm:text-sm text-slate-900 list-none flex items-center justify-between">
+                            <span>Chính sách bảo hành và đổi trả như thế nào?</span>
+                            <span class="text-blue-600 group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <p class="text-xs text-slate-600 mt-2.5 leading-relaxed">
+                            Sản phẩm được bảo hành chính hãng 12 tháng tại các Trung tâm Bảo hành Ủy quyền trên toàn quốc. Đổi mới 1:1 trong 30 ngày nếu phát sinh lỗi từ nhà sản xuất.
+                        </p>
+                    </details>
+                    <details name="pdp-faq" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 group cursor-pointer">
+                        <summary class="font-bold text-xs sm:text-sm text-slate-900 list-none flex items-center justify-between">
+                            <span>Thời gian giao hàng mất bao lâu?</span>
+                            <span class="text-blue-600 group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <p class="text-xs text-slate-600 mt-2.5 leading-relaxed">
+                            Tại Hà Nội và TP.HCM, TechStore hỗ trợ giao hàng hỏa tốc trong 2 giờ. Các tỉnh thành khác sẽ nhận hàng từ 1-3 ngày làm việc thông qua Viettel Post hoặc GHTK.
+                        </p>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right (1 col): Bảng Thông Số Kỹ Thuật Tóm Tắt & Nút Xem Full Specs Modal -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4 sticky top-20">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-black text-slate-900 text-sm uppercase tracking-wider flex items-center gap-1.5">
+                    <span class="text-blue-600">⚙️</span>
+                    <span>Thông Số Kỹ Thuật</span>
+                </h3>
+            </div>
+
+            @if (specsList.Any())
+            {
+                <div class="divide-y divide-slate-100 text-xs">
+                    @foreach (var s in specsList.Take(7))
+                    {
+                        <div class="py-2.5 flex justify-between gap-3">
+                            <span class="text-slate-400 font-medium shrink-0">@s.Key</span>
+                            <strong class="text-slate-800 text-right">@s.Value</strong>
+                        </div>
+                    }
+                </div>
+
+                <button type="button" onclick="document.getElementById('fullSpecsModal').showModal()" class="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs rounded-xl transition text-center shadow-xs">
+                    Xem Cấu Hình Chi Tiết ➔
+                </button>
+            }
+            else
+            {
+                <p class="text-xs text-slate-400">Đang cập nhật thông số chi tiết.</p>
+            }
         </div>
     </div>
 
@@ -510,12 +642,114 @@
     </div>
 </div>
 
+<!-- Modal 1: Cấu Hình Kỹ Thuật Đầy Đủ (Full Specs Modal) -->
+<dialog id="fullSpecsModal" closedby="any" class="backdrop:bg-slate-900/60 backdrop:backdrop-blur-sm rounded-3xl p-0 border border-slate-200 shadow-2xl max-w-2xl w-full m-auto">
+    <div class="p-6">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">⚙️</span>
+                <h3 class="text-base font-extrabold text-slate-900">Bảng Thông Số Kỹ Thuật Chi Tiết</h3>
+            </div>
+            <button type="button" onclick="this.closest('dialog').close()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700">✕</button>
+        </div>
+        <div class="py-4 max-h-[60vh] overflow-y-auto no-scrollbar divide-y divide-slate-100 text-xs">
+            @if (specsList.Any())
+            {
+                @foreach (var s in specsList)
+                {
+                    <div class="py-3 flex justify-between gap-4">
+                        <span class="text-slate-500 font-semibold w-1/3">@s.Key</span>
+                        <strong class="text-slate-900 w-2/3 text-right">@s.Value</strong>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-xs text-slate-400 py-4">Đang cập nhật thông số chi tiết.</p>
+            }
+        </div>
+        <button type="button" onclick="this.closest('dialog').close()" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-black transition">Đóng</button>
+    </div>
+</dialog>
+
+<!-- Modal 2: Dự Toán Trả Góp 0% Lãi Suất (Installment Calculator Modal) -->
+<dialog id="installmentModal" closedby="any" class="backdrop:bg-slate-900/60 backdrop:backdrop-blur-sm rounded-3xl p-0 border border-slate-200 shadow-2xl max-w-lg w-full m-auto">
+    <div class="p-6">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">💳</span>
+                <div>
+                    <h3 class="text-base font-extrabold text-slate-900">Dự Toán Trả Góp 0% Lãi Suất</h3>
+                    <p class="text-[11px] text-slate-400">Qua Thẻ Tín Dụng & Công Ty Tài Chính</p>
+                </div>
+            </div>
+            <button type="button" onclick="this.closest('dialog').close()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700">✕</button>
+        </div>
+        <div id="installmentTableBody" class="py-4 space-y-2.5 text-xs">
+            <!-- Dynamic calculation rendered via JS -->
+        </div>
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-800 leading-snug mb-4">
+            ℹ️ Thủ tục đơn giản: Chỉ cần CCCD gắn chip hoặc thẻ tín dụng (Visa/Mastercard) của 28 ngân hàng liên kết. Duyệt online 5 phút.
+        </div>
+        <button type="button" onclick="this.closest('dialog').close()" class="w-full py-2.5 bg-blue-600 text-white font-bold rounded-xl text-xs hover:bg-blue-700 transition">Đã Hiểu</button>
+    </div>
+</dialog>
+
+<!-- Sticky Buy Bar (Khi cuộn chuột qua khối mua hàng) -->
+<div id="stickyBuyBar" class="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 shadow-2xl transition-transform duration-300 translate-y-full flex items-center justify-between max-w-7xl mx-auto px-4">
+    <div class="flex items-center gap-3">
+        <img src="@product.FeaturedImage" alt="@product.Name" class="w-12 h-12 object-contain rounded-xl border border-slate-200 bg-white p-1" onerror="this.src='/assets/images/placeholder.png'" />
+        <div>
+            <h4 class="text-xs font-black text-slate-900 line-clamp-1">@product.Name</h4>
+            <div class="flex items-center gap-2 mt-0.5">
+                <span id="stickyVariantPrice" class="text-sm font-black text-blue-600">@((defaultVariant?.SalePrice ?? 0).ToString("N0")) đ</span>
+                <span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.2 rounded">Chính Hãng</span>
+            </div>
+        </div>
+    </div>
+    <div class="flex items-center gap-2">
+        <button type="button" onclick="handleAddCurrentToCart(false)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
+            Thêm Vào Giỏ
+        </button>
+        <button type="button" onclick="handleAddCurrentToCart(true)" class="px-5 py-2 bg-bestbuy-yellow hover:bg-yellow-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition">
+            Mua Ngay
+        </button>
+    </div>
+</div>
+
 <script>
+    let currentSalePrice = @(defaultVariant?.SalePrice ?? 0);
+
     function selectVariant(id, name, salePrice, origPrice, stock, image, sku) {
+        currentSalePrice = salePrice;
         document.getElementById('selectedVariantId').value = id;
+        document.getElementById('selectedVariantStock').value = stock;
+        document.getElementById('selectedVariantPrice').value = salePrice;
+
         document.getElementById('variantPrice').innerText = salePrice.toLocaleString('vi-VN') + ' đ';
         document.getElementById('variantOriginalPrice').innerText = origPrice.toLocaleString('vi-VN') + ' đ';
-        document.getElementById('stockStatus').innerText = stock > 0 ? `Còn hàng (${stock} sản phẩm)` : 'Hết hàng';
+        document.getElementById('stickyVariantPrice').innerText = salePrice.toLocaleString('vi-VN') + ' đ';
+        document.getElementById('installmentMonthlyPreview').innerText = Math.round(salePrice / 12).toLocaleString('vi-VN') + 'đ/th';
+
+        const stockEl = document.getElementById('stockStatus');
+        const buyBtn = document.getElementById('pdpBuyNowBtn');
+        const addBtn = document.getElementById('pdpAddToCartBtn');
+        const qtyInput = document.getElementById('pdpQuantityInput');
+
+        if (stock > 0) {
+            stockEl.innerText = `Còn hàng (${stock} sản phẩm)`;
+            stockEl.className = 'text-emerald-600 font-bold';
+            buyBtn.classList.remove('opacity-50', 'pointer-events-none');
+            addBtn.classList.remove('opacity-50', 'pointer-events-none');
+            qtyInput.max = stock;
+            if (parseInt(qtyInput.value) > stock) qtyInput.value = stock;
+        } else {
+            stockEl.innerText = 'Hết hàng';
+            stockEl.className = 'text-rose-600 font-bold';
+            buyBtn.classList.add('opacity-50', 'pointer-events-none');
+            addBtn.classList.add('opacity-50', 'pointer-events-none');
+        }
+
         if (image) document.getElementById('mainProductImage').src = image;
         if (sku) document.getElementById('variantSkuDisplay').innerText = 'SKU: ' + sku;
 
@@ -528,15 +762,77 @@
         }
     }
 
+    function adjustPdpQuantity(delta) {
+        const input = document.getElementById('pdpQuantityInput');
+        const stock = parseInt(document.getElementById('selectedVariantStock').value) || 50;
+        let val = (parseInt(input.value) || 1) + delta;
+        if (val < 1) val = 1;
+        if (val > stock) {
+            val = stock;
+            if (window.showToast) showToast(`Chỉ có thể chọn tối đa ${stock} sản phẩm`, 'warning');
+        }
+        input.value = val;
+    }
+
     function handleAddCurrentToCart(redirectToCheckout = false) {
         const variantId = parseInt(document.getElementById('selectedVariantId').value);
+        const stock = parseInt(document.getElementById('selectedVariantStock').value) || 0;
+        const qty = parseInt(document.getElementById('pdpQuantityInput').value) || 1;
+
+        if (stock <= 0) {
+            if (window.showToast) showToast('Sản phẩm này hiện đang tạm hết hàng!', 'error');
+            return;
+        }
+
         if (variantId > 0) {
-            addToCart(variantId, 1, !redirectToCheckout);
+            addToCart(variantId, qty, !redirectToCheckout);
             if (redirectToCheckout) {
                 window.location.href = '/checkout';
             }
         }
     }
+
+    // 0% Installment Modal logic
+    function openInstallmentModal() {
+        const dialog = document.getElementById('installmentModal');
+        const container = document.getElementById('installmentTableBody');
+        if (!dialog || !container) return;
+
+        const months = [3, 6, 9, 12];
+        let html = '<div class="divide-y divide-slate-100">';
+        months.forEach(m => {
+            const monthly = Math.round(currentSalePrice / m);
+            html += `
+                <div class="py-2.5 flex items-center justify-between">
+                    <div>
+                        <strong class="text-slate-800 text-xs">Kỳ hạn ${m} tháng</strong>
+                        <span class="block text-[10px] text-slate-400">Lãi suất 0%</span>
+                    </div>
+                    <div class="text-right">
+                        <strong class="text-blue-600 text-sm font-black">${monthly.toLocaleString('vi-VN')} đ/tháng</strong>
+                        <span class="block text-[10px] text-slate-400">Trả trước: 0 đ</span>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+        dialog.showModal();
+    }
+
+    // Sticky Buy Bar on scroll
+    window.addEventListener('scroll', () => {
+        const mainCard = document.getElementById('mainProductCard');
+        const stickyBar = document.getElementById('stickyBuyBar');
+        if (!mainCard || !stickyBar) return;
+
+        const rect = mainCard.getBoundingClientRect();
+        if (rect.bottom < 100) {
+            stickyBar.classList.remove('translate-y-full');
+        } else {
+            stickyBar.classList.add('translate-y-full');
+        }
+    });
 
     // Star rating selection
     const ratingTexts = {
@@ -614,7 +910,7 @@
         }
     }
 
-    // Logic lưu và hiển thị Sản phẩm đã xem gần đây
+    // Recently viewed logic
     (function initRecentlyViewed() {
         try {
             const currentItem = {
@@ -632,9 +928,7 @@
                 recents = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
             } catch(e) { recents = []; }
 
-            // Lọc ra các sản phẩm đã xem khác với sản phẩm hiện tại
             const otherRecents = recents.filter(p => p.id !== currentItem.id);
-
             const section = document.getElementById('recentlyViewedSection');
             const grid = document.getElementById('recentlyViewedGrid');
 
@@ -654,7 +948,6 @@
                 section.classList.remove('hidden');
             }
 
-            // Lưu sản phẩm hiện tại lên đầu danh sách (tối đa 10 sản phẩm)
             const updated = [currentItem, ...otherRecents].slice(0, 10);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
         } catch(err) {

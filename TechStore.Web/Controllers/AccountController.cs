@@ -23,16 +23,22 @@ public class AccountController : Controller
     private readonly TechStoreDbContext _context;
     private readonly IFileStorageService _fileStorageService;
     private readonly IAuditLogService _auditLogService;
+    private readonly ISiteSettingsService _siteSettingsService;
+    private readonly IConfiguration _configuration;
     private readonly PasswordHasher<User> _passwordHasher;
 
     public AccountController(
         TechStoreDbContext context,
         IFileStorageService fileStorageService,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        ISiteSettingsService siteSettingsService,
+        IConfiguration configuration)
     {
         _context = context;
         _fileStorageService = fileStorageService;
         _auditLogService = auditLogService;
+        _siteSettingsService = siteSettingsService;
+        _configuration = configuration;
         _passwordHasher = new PasswordHasher<User>();
     }
 
@@ -203,11 +209,19 @@ public class AccountController : Controller
         var user = await GetCurrentUserAsync();
         if (user == null) return RedirectToAction("Login", "Auth");
 
-        var query = _context.Orders
+        var baseQuery = _context.Orders
             .AsNoTracking()
-            .Include(o => o.OrderDetails)
-            .Where(o => o.UserId == user.UserId || (o.CustomerEmail == user.Email && !string.IsNullOrEmpty(user.Email)))
-            .AsQueryable();
+            .Where(o => o.UserId == user.UserId || (o.CustomerEmail == user.Email && !string.IsNullOrEmpty(user.Email)));
+
+        ViewBag.TotalOrdersCount = await baseQuery.CountAsync();
+        ViewBag.PendingCount = await baseQuery.CountAsync(o => o.OrderStatus == "Pending");
+        ViewBag.ConfirmedCount = await baseQuery.CountAsync(o => o.OrderStatus == "Confirmed");
+        ViewBag.ProcessingCount = await baseQuery.CountAsync(o => o.OrderStatus == "Processing");
+        ViewBag.ShippingCount = await baseQuery.CountAsync(o => o.OrderStatus == "Shipping");
+        ViewBag.DeliveredCount = await baseQuery.CountAsync(o => o.OrderStatus == "Delivered");
+        ViewBag.CancelledCount = await baseQuery.CountAsync(o => o.OrderStatus == "Cancelled");
+
+        var query = baseQuery.Include(o => o.OrderDetails).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status) && status != "All")
         {
@@ -251,7 +265,42 @@ public class AccountController : Controller
             return Forbid();
         }
 
+        // Thông tin cấu hình VietQR từ SiteSettings
+        var bankId = await _siteSettingsService.GetValueAsync("VietQr.BankId", _configuration["VietQrSettings:BankId"] ?? "970422");
+        var accountNo = await _siteSettingsService.GetValueAsync("VietQr.AccountNo", _configuration["VietQrSettings:AccountNo"] ?? "0869162534");
+        var accountName = await _siteSettingsService.GetValueAsync("VietQr.AccountName", _configuration["VietQrSettings:AccountName"] ?? "CONG TY TNHH TECHSTORE VIET NAM");
+        var template = await _siteSettingsService.GetValueAsync("VietQr.Template", _configuration["VietQrSettings:Template"] ?? "compact2");
+        var bankName = await _siteSettingsService.GetValueAsync("VietQr.BankName", _configuration["VietQrSettings:BankName"] ?? "MBBank (Ngân hàng Quân Đội)");
+
+        ViewBag.VietQrUrl = $"https://img.vietqr.io/image/{bankId}-{accountNo}-{template}.png?amount={(long)order.TotalAmount}&addInfo={order.OrderCode}&accountName={Uri.EscapeDataString(accountName ?? "")}";
+        ViewBag.BankName = bankName;
+        ViewBag.AccountNo = accountNo;
+        ViewBag.AccountName = accountName;
+
         return View(order);
+    }
+
+    /// <summary>
+    /// Lấy danh sách mặt hàng của đơn cũ để hỗ trợ mua lại (Reorder)
+    /// </summary>
+    [HttpGet]
+    [Route("account/order/{orderCode}/items-json")]
+    public async Task<IActionResult> GetOrderItemsJson(string orderCode)
+    {
+        var order = await _context.Orders
+            .AsNoTracking()
+            .Include(o => o.OrderDetails)
+            .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
+
+        if (order == null) return NotFound();
+
+        var items = order.OrderDetails.Select(od => new
+        {
+            variantId = od.VariantId,
+            quantity = od.Quantity
+        }).ToList();
+
+        return Ok(items);
     }
 
     /// <summary>

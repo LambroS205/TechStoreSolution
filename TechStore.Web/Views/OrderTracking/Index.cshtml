@@ -9,9 +9,10 @@
     int currentStep = Model?.OrderStatus switch
     {
         "Pending" => 1,
-        "Processing" => 2,
-        "Shipping" => 3,
-        "Delivered" => 4,
+        "Confirmed" => 2,
+        "Processing" => 3,
+        "Shipping" => 4,
+        "Delivered" => 5,
         _ => 0
     };
 }
@@ -74,6 +75,7 @@
                 <div class="flex items-center gap-2">
                     <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider @(Model.OrderStatus switch {
                         "Pending" => "bg-blue-100 text-blue-800",
+                        "Confirmed" => "bg-sky-100 text-sky-800",
                         "Processing" => "bg-amber-100 text-amber-800",
                         "Shipping" => "bg-indigo-100 text-indigo-800",
                         "Delivered" => "bg-emerald-100 text-emerald-800",
@@ -82,6 +84,7 @@
                     })">
                         @(Model.OrderStatus switch {
                             "Pending" => "Chờ xác nhận",
+                            "Confirmed" => "Đã xác nhận",
                             "Processing" => "Đang đóng gói",
                             "Shipping" => "Đang giao hàng",
                             "Delivered" => "Đã giao thành công",
@@ -95,50 +98,57 @@
                 </div>
             </div>
 
-            <!-- Visual Progress Timeline -->
+            <!-- Visual Progress Timeline (5 Steps) -->
             @if (Model.OrderStatus != "Cancelled")
             {
                 <div class="py-4">
-                    <div class="grid grid-cols-4 gap-2 text-center relative">
+                    <div class="grid grid-cols-5 gap-2 text-center relative">
                         <!-- Step 1 -->
                         <div class="space-y-2">
-                            <div class="w-10 h-10 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(currentStep >= 1 ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-slate-100 text-slate-400")">
+                            <div class="w-9 h-9 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(currentStep >= 1 ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-slate-100 text-slate-400")">
                                 1
                             </div>
-                            <p class="text-xs font-bold @(currentStep >= 1 ? "text-slate-900" : "text-slate-400")">Chờ Xác Nhận</p>
+                            <p class="text-[11px] font-bold @(currentStep >= 1 ? "text-slate-900" : "text-slate-400")">Chờ Xác Nhận</p>
                         </div>
                         <!-- Step 2 -->
                         <div class="space-y-2">
-                            <div class="w-10 h-10 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(currentStep >= 2 ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-slate-100 text-slate-400")">
+                            <div class="w-9 h-9 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(currentStep >= 2 ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-slate-100 text-slate-400")">
                                 2
                             </div>
-                            <p class="text-xs font-bold @(currentStep >= 2 ? "text-slate-900" : "text-slate-400")">Đang Đóng Gói</p>
+                            <p class="text-[11px] font-bold @(currentStep >= 2 ? "text-slate-900" : "text-slate-400")">Đã Xác Nhận</p>
                         </div>
                         <!-- Step 3 -->
                         <div class="space-y-2">
-                            <div class="w-10 h-10 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(currentStep >= 3 ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-slate-100 text-slate-400")">
+                            <div class="w-9 h-9 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(currentStep >= 3 ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-slate-100 text-slate-400")">
                                 3
                             </div>
-                            <p class="text-xs font-bold @(currentStep >= 3 ? "text-slate-900" : "text-slate-400")">Đang Giao Hàng</p>
+                            <p class="text-[11px] font-bold @(currentStep >= 3 ? "text-slate-900" : "text-slate-400")">Đóng Gói</p>
                         </div>
                         <!-- Step 4 -->
                         <div class="space-y-2">
-                            <div class="w-10 h-10 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(currentStep >= 4 ? "bg-emerald-600 text-white shadow-md shadow-emerald-200" : "bg-slate-100 text-slate-400")">
+                            <div class="w-9 h-9 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(currentStep >= 4 ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-slate-100 text-slate-400")">
                                 4
                             </div>
-                            <p class="text-xs font-bold @(currentStep >= 4 ? "text-slate-900" : "text-slate-400")">Đã Giao Hàng</p>
+                            <p class="text-[11px] font-bold @(currentStep >= 4 ? "text-slate-900" : "text-slate-400")">Đang Giao</p>
+                        </div>
+                        <!-- Step 5 -->
+                        <div class="space-y-2">
+                            <div class="w-9 h-9 mx-auto rounded-full flex items-center justify-center font-bold text-xs @(currentStep >= 5 ? "bg-emerald-600 text-white shadow-md shadow-emerald-200" : "bg-slate-100 text-slate-400")">
+                                5
+                            </div>
+                            <p class="text-[11px] font-bold @(currentStep >= 5 ? "text-slate-900" : "text-slate-400")">Đã Giao</p>
                         </div>
                     </div>
                 </div>
             }
 
             <!-- VietQR Payment Box (If unpaid VietQR) -->
-            @if (ViewBag.VietQrUrl != null)
+            @if (ViewBag.VietQrUrl != null && Model.PaymentStatus != "Paid" && Model.OrderStatus != "Cancelled")
             {
-                <div class="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex flex-col sm:flex-row items-center gap-6">
-                    <img src="@ViewBag.VietQrUrl" alt="VietQR Payment" class="w-44 h-44 object-contain bg-white p-2 rounded-xl shadow-sm border border-blue-100 shrink-0" />
-                    <div class="space-y-2 text-xs flex-1 text-center sm:text-left">
-                        <span class="px-2.5 py-0.5 bg-blue-600 text-white font-extrabold rounded text-[10px] uppercase">Quét QR Thanh Toán Ngay</span>
+                <div id="trackingQrCard" class="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-3xl flex flex-col sm:flex-row items-center gap-6">
+                    <img src="@ViewBag.VietQrUrl" alt="VietQR Payment" class="w-44 h-44 object-contain bg-white p-2 rounded-2xl shadow-sm border border-blue-100 shrink-0" />
+                    <div class="space-y-2.5 text-xs flex-1 text-center sm:text-left">
+                        <span class="px-2.5 py-0.5 bg-blue-600 text-white font-extrabold rounded-lg text-[10px] uppercase">Quét QR Thanh Toán Ngay</span>
                         <h3 class="text-base font-bold text-slate-900">Đơn hàng chưa hoàn tất thanh toán</h3>
                         <p class="text-slate-600 leading-relaxed">
                             Mở ứng dụng Ngân hàng hoặc Ví điện tử (MoMo, ZaloPay, Viettel Money...) và quét mã QR để thanh toán tự động đúng số tiền <strong class="text-blue-600 font-extrabold">@Model.TotalAmount.ToString("N0") đ</strong>.
@@ -148,64 +158,76 @@
                             <p>Số tài khoản: <strong>@ViewBag.AccountNo</strong> &bull; Chủ TK: <strong>@ViewBag.AccountName</strong></p>
                             <p>Nội dung CK: <strong class="text-blue-600 font-bold">@Model.OrderCode</strong></p>
                         </div>
+                        <div class="pt-2">
+                            <button type="button" onclick="simulateTrackingPaymentConfirm('@Model.OrderCode')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
+                                ⚡ Giả Lập Xác Nhận Đã Thanh Toán
+                            </button>
+                        </div>
                     </div>
                 </div>
             }
 
-            <!-- Two-Column Details -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-600">
-                <!-- Shipping Info -->
-                <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
-                    <h4 class="font-extrabold text-slate-900 uppercase tracking-wider text-[11px] pb-1 border-b border-slate-200">
-                        Thông Tin Nhận Hàng
-                    </h4>
-                    <p><span class="text-slate-400">Họ và tên:</span> <strong class="text-slate-800">@Model.CustomerName</strong></p>
-                    <p><span class="text-slate-400">Số điện thoại:</span> <strong class="text-slate-800 font-mono">@Model.CustomerPhone</strong></p>
-                    <p><span class="text-slate-400">Địa chỉ:</span> @Model.ShippingAddress</p>
-                    @if (!string.IsNullOrWhiteSpace(Model.OrderNotes))
+            <!-- Items Details -->
+            <div class="space-y-3">
+                <h4 class="font-bold text-slate-900 text-sm">Sản phẩm trong kiện hàng (@Model.OrderDetails.Count)</h4>
+                <div class="divide-y divide-slate-100 border border-slate-100 rounded-2xl p-4">
+                    @foreach (var item in Model.OrderDetails)
                     {
-                        <p><span class="text-slate-400">Ghi chú:</span> <span class="italic">"@Model.OrderNotes"</span></p>
+                        var img = item.Variant?.ThumbnailImage ?? item.Variant?.Product?.FeaturedImage ?? "/assets/images/placeholder.png";
+                        <div class="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 text-xs">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <img src="@img" class="w-12 h-12 object-contain rounded-xl border border-slate-100 bg-slate-50 p-1 shrink-0" onerror="this.src='/assets/images/placeholder.png'" />
+                                <div class="min-w-0">
+                                    <p class="font-bold text-slate-800 truncate">@item.ProductName</p>
+                                    <p class="text-slate-400 text-[11px]">@item.VariantName &bull; SL: @item.Quantity</p>
+                                </div>
+                            </div>
+                            <span class="font-extrabold text-blue-600 shrink-0">@((item.UnitPrice * item.Quantity).ToString("N0")) đ</span>
+                        </div>
                     }
-                </div>
-
-                <!-- Payment Info -->
-                <div class="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
-                    <h4 class="font-extrabold text-slate-900 uppercase tracking-wider text-[11px] pb-1 border-b border-slate-200">
-                        Hình Thức Thanh Toán
-                    </h4>
-                    <p><span class="text-slate-400">Phương thức:</span> <strong class="text-slate-800">@(Model.PaymentMethod == "VietQR" ? "Chuyển khoản VietQR NAPAS 247" : "Thanh toán khi nhận hàng (COD)")</strong></p>
-                    <p><span class="text-slate-400">Trạng thái:</span> <strong class="@(Model.PaymentStatus == "Paid" ? "text-emerald-600" : "text-amber-600")">@(Model.PaymentStatus == "Paid" ? "Đã thanh toán đủ" : "Chưa thanh toán")</strong></p>
-                    <p><span class="text-slate-400">Tạm tính:</span> @Model.SubTotal.ToString("N0") đ</p>
-                    @if (Model.DiscountAmount > 0)
-                    {
-                        <p><span class="text-slate-400">Giảm giá:</span> <span class="text-emerald-600 font-bold">-@Model.DiscountAmount.ToString("N0") đ</span></p>
-                    }
-                    <p class="pt-1 border-t border-slate-200 text-sm font-bold text-slate-900">
-                        Tổng thanh toán: <span class="text-blue-600 font-extrabold">@Model.TotalAmount.ToString("N0") đ</span>
-                    </p>
                 </div>
             </div>
 
-            <!-- Items List -->
-            <div class="space-y-3">
-                <h4 class="font-extrabold text-slate-900 uppercase tracking-wider text-xs">
-                    Danh Sách Sản Phẩm (@Model.OrderDetails.Count)
-                </h4>
-                <div class="divide-y divide-slate-100 border border-slate-100 rounded-2xl p-4 bg-slate-50/50 space-y-3">
-                    @foreach (var item in Model.OrderDetails)
+            <!-- Shipping & Pricing -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-100 text-xs">
+                <div class="space-y-1.5">
+                    <h5 class="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Thông Tin Giao Nhận</h5>
+                    <p class="text-slate-600"><span class="text-slate-400">Người nhận:</span> <strong class="text-slate-800">@Model.CustomerName</strong></p>
+                    <p class="text-slate-600"><span class="text-slate-400">Số điện thoại:</span> <strong class="text-slate-800">@Model.CustomerPhone</strong></p>
+                    <p class="text-slate-600"><span class="text-slate-400">Địa chỉ:</span> @Model.ShippingAddress</p>
+                </div>
+                <div class="space-y-1.5 sm:text-right">
+                    <h5 class="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Tổng Tiền Đơn Hàng</h5>
+                    <p class="text-slate-600"><span class="text-slate-400">Tạm tính:</span> @Model.SubTotal.ToString("N0") đ</p>
+                    @if (Model.DiscountAmount > 0)
                     {
-                        <div class="pt-3 first:pt-0 flex items-center justify-between gap-4 text-xs">
-                            <div class="min-w-0">
-                                <p class="font-bold text-slate-900 text-sm truncate">@item.ProductName</p>
-                                <p class="text-slate-500 text-[11px]">@item.VariantName &bull; Số lượng: <strong class="text-slate-800">@item.Quantity</strong></p>
-                            </div>
-                            <strong class="text-slate-900 shrink-0 text-sm">
-                                @((item.UnitPrice * item.Quantity).ToString("N0")) đ
-                            </strong>
-                        </div>
+                        <p class="text-emerald-600"><span class="text-slate-400">Giảm giá:</span> -@Model.DiscountAmount.ToString("N0") đ</p>
                     }
+                    <p class="text-slate-600"><span class="text-slate-400">Vận chuyển:</span> Miễn phí</p>
+                    <p class="text-base font-black text-blue-600 pt-1">
+                        Tổng: @Model.TotalAmount.ToString("N0") đ
+                    </p>
                 </div>
             </div>
         </div>
     }
 </div>
+
+@section Scripts {
+<script>
+    async function simulateTrackingPaymentConfirm(orderCode) {
+        try {
+            const res = await fetch(`/checkout/demo-confirm-payment/${orderCode}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                if (window.showToast) showToast('Đã xác nhận thanh toán!', 'success');
+                window.location.reload();
+            } else {
+                alert(data.message);
+            }
+        } catch(e) {
+            alert('Lỗi kết nối');
+        }
+    }
+</script>
+}

@@ -1,4 +1,5 @@
 @model TechStore.Web.Models.CompareViewModel
+@using System.Text.Json
 @{
     ViewData["Title"] = "So Sánh Chi Tiết Sản Phẩm";
     var products = Model.Products;
@@ -17,6 +18,32 @@
             bestPriceProductId = p.ProductId;
         }
     }
+
+    // Trích xuất toàn bộ trường thông số kỹ thuật phần cứng từ SpecificationsJson
+    var allSpecKeys = new List<string>();
+    var productSpecsMap = new Dictionary<int, Dictionary<string, string>>();
+
+    foreach (var p in products)
+    {
+        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrEmpty(p.SpecificationsJson))
+        {
+            try
+            {
+                var doc = JsonDocument.Parse(p.SpecificationsJson);
+                foreach (var prop in doc.RootElement.EnumerateObject())
+                {
+                    dict[prop.Name] = prop.Value.GetString() ?? "";
+                    if (!allSpecKeys.Contains(prop.Name, StringComparer.OrdinalIgnoreCase))
+                    {
+                        allSpecKeys.Add(prop.Name);
+                    }
+                }
+            }
+            catch {}
+        }
+        productSpecsMap[p.ProductId] = dict;
+    }
 }
 
 <div class="max-w-7xl mx-auto px-4 py-8 space-y-8">
@@ -33,7 +60,7 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-200">
         <div>
             <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                <span class="p-2 rounded-2xl bg-blue-100 text-blue-600">
+                <span class="p-2.5 rounded-2xl bg-blue-100 text-blue-600 shadow-sm">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                     </svg>
@@ -45,12 +72,21 @@
 
         @if (products.Any())
         {
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap">
+                <!-- Toggle chỉ xem điểm khác biệt -->
+                @if (products.Count > 1)
+                {
+                    <label class="flex items-center gap-2 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer select-none border border-slate-200 transition">
+                        <input type="checkbox" id="diffOnlyCheckbox" onchange="toggleDiffOnly(this)" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
+                        <span>🔍 Chỉ xem điểm khác biệt</span>
+                    </label>
+                }
+
                 <button type="button" onclick="clearAllAndReload()" class="px-4 py-2 border border-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    <span>Làm Mới Danh Sách</span>
+                    <span>Làm Mới</span>
                 </button>
                 <a href="/products" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-sm">
                     + Thêm Sản Phẩm Khác
@@ -86,7 +122,7 @@
                 <!-- Header: Product Cards -->
                 <thead>
                     <tr class="border-b border-slate-200 bg-slate-50/50">
-                        <th class="p-6 w-48 text-xs font-bold uppercase tracking-wider text-slate-400 bg-slate-100/70 align-top">
+                        <th class="p-6 w-52 text-xs font-bold uppercase tracking-wider text-slate-400 bg-slate-100/70 align-top">
                             Thiết Bị (@products.Count / @maxSlots)
                         </th>
                         @foreach (var p in products)
@@ -124,10 +160,17 @@
 
                                 <!-- Rating -->
                                 <div class="flex items-center gap-1.5 mt-2">
-                                    <div class="flex items-center text-amber-400 text-xs">
-                                        ★ <span class="font-bold text-slate-800 ml-1">@avgStars.ToString("0.0")</span>
-                                    </div>
-                                    <span class="text-[11px] text-slate-400">(@p.Reviews.Count đánh giá)</span>
+                                    @if (p.Reviews.Any())
+                                    {
+                                        <div class="flex items-center text-amber-400 text-xs">
+                                            ★ <span class="font-bold text-slate-800 ml-1">@avgStars.ToString("0.0")</span>
+                                        </div>
+                                        <span class="text-[11px] text-slate-400">(@p.Reviews.Count đánh giá)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-[11px] text-slate-400 italic">Chưa có đánh giá</span>
+                                    }
                                 </div>
 
                                 <!-- Prices -->
@@ -169,12 +212,15 @@
                 <!-- Body Specs Rows -->
                 <tbody class="divide-y divide-slate-100 text-xs">
                     <!-- SECTION 1: GIÁ BÁN & TIẾT KIỆM -->
-                    <tr class="bg-blue-50/40">
+                    <tr class="bg-blue-50/50">
                         <td colspan="@(products.Count + emptySlotsCount + 1)" class="px-6 py-2.5 font-black text-blue-900 uppercase tracking-wider text-[11px]">
                             1. Giá Bán & Tiết Kiệm
                         </td>
                     </tr>
-                    <tr>
+                    @{
+                        bool priceDiff = products.Select(p => p.Variants.OrderBy(v => v.SalePrice).FirstOrDefault()?.SalePrice ?? 0).Distinct().Count() > 1;
+                    }
+                    <tr class="spec-row" data-is-diff="@(priceDiff ? "true" : "false")">
                         <td class="p-4 font-bold text-slate-600 bg-slate-50">Giá Khuyến Mãi</td>
                         @foreach (var p in products)
                         {
@@ -185,7 +231,7 @@
                         }
                         @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
                     </tr>
-                    <tr>
+                    <tr class="spec-row" data-is-diff="@(priceDiff ? "true" : "false")">
                         <td class="p-4 font-bold text-slate-600 bg-slate-50">Giá Niêm Yết Gốc</td>
                         @foreach (var p in products)
                         {
@@ -196,105 +242,69 @@
                         }
                         @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
                     </tr>
-                    <tr>
-                        <td class="p-4 font-bold text-slate-600 bg-slate-50">Mức Tiết Kiệm</td>
-                        @foreach (var p in products)
-                        {
-                            var minV = p.Variants.OrderBy(v => v.SalePrice).FirstOrDefault();
-                            decimal diff = (minV?.OriginalPrice ?? 0) - (minV?.SalePrice ?? 0);
-                            <td class="p-4 border-l border-slate-100">
-                                @if (diff > 0)
-                                {
-                                    <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold">
-                                        Tiết kiệm @diff.ToString("N0") đ
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="text-slate-400">Giá chuẩn</span>
-                                }
-                            </td>
-                        }
-                        @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
-                    </tr>
 
                     <!-- SECTION 2: THÔNG TIN CƠ BẢN -->
-                    <tr class="bg-blue-50/40">
+                    <tr class="bg-blue-50/50">
                         <td colspan="@(products.Count + emptySlotsCount + 1)" class="px-6 py-2.5 font-black text-blue-900 uppercase tracking-wider text-[11px]">
                             2. Thông Tin Chung & Bảo Hành
                         </td>
                     </tr>
-                    <tr>
+                    @{
+                        bool brandDiff = products.Select(p => p.Brand.Name).Distinct().Count() > 1;
+                    }
+                    <tr class="spec-row" data-is-diff="@(brandDiff ? "true" : "false")">
                         <td class="p-4 font-bold text-slate-600 bg-slate-50">Hãng Sản Xuất</td>
                         @foreach (var p in products)
                         {
-                            <td class="p-4 font-semibold text-slate-800 border-l border-slate-100">
+                            <td class="p-4 font-bold text-slate-800 border-l border-slate-100">
                                 @p.Brand.Name
                             </td>
                         }
                         @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
                     </tr>
-                    <tr>
-                        <td class="p-4 font-bold text-slate-600 bg-slate-50">Danh Mục Thiết Bị</td>
-                        @foreach (var p in products)
-                        {
-                            <td class="p-4 font-semibold text-slate-800 border-l border-slate-100">
-                                @p.Category.Name
-                            </td>
-                        }
-                        @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
-                    </tr>
-                    <tr>
+                    <tr class="spec-row" data-is-diff="false">
                         <td class="p-4 font-bold text-slate-600 bg-slate-50">Bảo Hành Chính Hãng</td>
                         @foreach (var p in products)
                         {
                             <td class="p-4 font-semibold text-slate-800 border-l border-slate-100">
-                                <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">@p.WarrantyMonths tháng</span>
+                                <span class="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 font-bold">@p.WarrantyMonths tháng</span>
                             </td>
                         }
                         @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
                     </tr>
 
-                    <!-- SECTION 3: BIẾN THỂ & CẤU HÌNH -->
-                    <tr class="bg-blue-50/40">
-                        <td colspan="@(products.Count + emptySlotsCount + 1)" class="px-6 py-2.5 font-black text-blue-900 uppercase tracking-wider text-[11px]">
-                            3. Biến Thể & Tùy Chọn Cấu Hình
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="p-4 font-bold text-slate-600 bg-slate-50">Số Lượng Biến Thể</td>
-                        @foreach (var p in products)
-                        {
-                            <td class="p-4 font-bold text-slate-800 border-l border-slate-100">
-                                @p.Variants.Count phiên bản
+                    <!-- SECTION 3: CẤU HÌNH PHẦN CỨNG CHI TIẾT (SpecificationsJson) -->
+                    @if (allSpecKeys.Any())
+                    {
+                        <tr class="bg-blue-50/50">
+                            <td colspan="@(products.Count + emptySlotsCount + 1)" class="px-6 py-2.5 font-black text-blue-900 uppercase tracking-wider text-[11px]">
+                                3. Thông Số Kỹ Thuật Chi Tiết
                             </td>
-                        }
-                        @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
-                    </tr>
-                    <tr>
-                        <td class="p-4 font-bold text-slate-600 bg-slate-50">Chi Tiết Tùy Chọn</td>
-                        @foreach (var p in products)
+                        </tr>
+                        @foreach (var specKey in allSpecKeys)
                         {
-                            <td class="p-4 border-l border-slate-100 space-y-1.5">
-                                @foreach (var v in p.Variants)
+                            bool isDiff = products.Select(p => productSpecsMap[p.ProductId].GetValueOrDefault(specKey, "-")).Distinct().Count() > 1;
+                            <tr class="spec-row" data-is-diff="@(isDiff ? "true" : "false")">
+                                <td class="p-4 font-bold text-slate-700 bg-slate-50">@specKey</td>
+                                @foreach (var p in products)
                                 {
-                                    <div class="p-1.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-[11px]">
-                                        <span class="font-semibold text-slate-700">@v.VariantName</span>
-                                        <span class="font-bold text-blue-600 font-mono">@v.SalePrice.ToString("N0") đ</span>
-                                    </div>
+                                    var val = productSpecsMap[p.ProductId].GetValueOrDefault(specKey, "-");
+                                    <td class="p-4 border-l border-slate-100 text-slate-800 font-semibold leading-relaxed">
+                                        @val
+                                    </td>
                                 }
-                            </td>
+                                @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
+                            </tr>
                         }
-                        @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
-                    </tr>
+                    }
 
                     <!-- SECTION 4: TỒN KHO & ĐÁNH GIÁ -->
-                    <tr class="bg-blue-50/40">
+                    <tr class="bg-blue-50/50">
                         <td colspan="@(products.Count + emptySlotsCount + 1)" class="px-6 py-2.5 font-black text-blue-900 uppercase tracking-wider text-[11px]">
                             4. Trạng Thái Kho & Đánh Giá
                         </td>
                     </tr>
-                    <tr>
+                    <tr class="spec-row" data-is-diff="false">
                         <td class="p-4 font-bold text-slate-600 bg-slate-50">Tình Trạng Kho</td>
                         @foreach (var p in products)
                         {
@@ -302,44 +312,16 @@
                             <td class="p-4 border-l border-slate-100">
                                 @if (totalStock > 0)
                                 {
-                                    <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-bold rounded-md">
+                                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold rounded-lg border border-emerald-200">
                                         ✓ Còn hàng (@totalStock sp)
                                     </span>
                                 }
                                 else
                                 {
-                                    <span class="px-2 py-0.5 bg-rose-50 text-rose-700 font-bold rounded-md">
+                                    <span class="px-2.5 py-1 bg-rose-50 text-rose-700 font-bold rounded-lg border border-rose-200">
                                         ✕ Tạm hết hàng
                                     </span>
                                 }
-                            </td>
-                        }
-                        @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
-                    </tr>
-                    <tr>
-                        <td class="p-4 font-bold text-slate-600 bg-slate-50">Đánh Giá Người Dùng</td>
-                        @foreach (var p in products)
-                        {
-                            double avgStars = p.Reviews.Any() ? p.Reviews.Average(r => r.Rating) : 5.0;
-                            <td class="p-4 font-semibold text-slate-700 border-l border-slate-100">
-                                @avgStars.ToString("0.0") / 5.0 (@p.Reviews.Count lượt phản hồi)
-                            </td>
-                        }
-                        @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
-                    </tr>
-
-                    <!-- SECTION 5: ĐẶC ĐIỂM NỔI BẬT -->
-                    <tr class="bg-blue-50/40">
-                        <td colspan="@(products.Count + emptySlotsCount + 1)" class="px-6 py-2.5 font-black text-blue-900 uppercase tracking-wider text-[11px]">
-                            5. Đặc Điểm & Điểm Nhấn
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="p-4 font-bold text-slate-600 bg-slate-50">Mô Tả Tóm Tắt</td>
-                        @foreach (var p in products)
-                        {
-                            <td class="p-4 text-slate-600 border-l border-slate-100 leading-relaxed text-[11px]">
-                                @(string.IsNullOrWhiteSpace(p.ShortDescription) ? "Đang cập nhật đặc tính nổi bật..." : p.ShortDescription)
                             </td>
                         }
                         @for (int i = 0; i < emptySlotsCount; i++) { <td class="p-4 border-l border-slate-100 text-slate-300">-</td> }
@@ -355,7 +337,7 @@
         <div class="space-y-4 pt-4">
             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
                 <span>Gợi Ý Thêm Sản Phẩm Cùng Loại Vào Bảng So Sánh</span>
-                <span class="text-xs font-normal text-slate-400">(Nhấn "+ So sánh" để bổ sung)</span>
+                <span class="text-xs font-normal text-slate-400">(Nhấn "+ Thêm" để bổ sung)</span>
             </h3>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 @foreach (var sp in Model.SuggestedProducts)
@@ -363,7 +345,7 @@
                     var minV = sp.Variants.OrderBy(v => v.SalePrice).FirstOrDefault();
                     decimal saleP = minV?.SalePrice ?? 0;
 
-                    <div class="bg-white rounded-2xl border border-slate-200 p-3 flex flex-col justify-between shadow-sm hover:border-blue-400 transition group">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-3.5 flex flex-col justify-between shadow-sm hover:border-blue-400 transition group">
                         <div>
                             <div class="h-28 bg-slate-50 rounded-xl p-2 flex items-center justify-center mb-2 overflow-hidden">
                                 <img src="@sp.FeaturedImage" alt="@sp.Name" class="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300" onerror="this.src='/assets/images/placeholder.png'" />
@@ -381,7 +363,7 @@
                                 data-product-image="@sp.FeaturedImage"
                                 data-product-brand="@sp.Brand.Name"
                                 onclick="addProductFromBtn(this)" 
-                                class="w-full mt-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 font-bold text-xs rounded-lg transition">
+                                class="w-full mt-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 font-bold text-xs rounded-xl transition">
                             + Thêm So Sánh
                         </button>
                     </div>
@@ -414,62 +396,49 @@
 
 @section Scripts {
 <script>
+    function toggleDiffOnly(checkbox) {
+        const rows = document.querySelectorAll('.spec-row');
+        rows.forEach(r => {
+            if (checkbox.checked) {
+                if (r.getAttribute('data-is-diff') === 'false') {
+                    r.classList.add('hidden');
+                }
+            } else {
+                r.classList.remove('hidden');
+            }
+        });
+    }
+
     // Khi trang tải, đồng bộ lại localStorage nếu danh sách trên URL thay đổi
     document.addEventListener('DOMContentLoaded', function () {
         const urlParams = new URLSearchParams(window.location.search);
         const ids = urlParams.get('ids');
-
-        if (!ids) {
-            // Nếu vào /compare mà không có params trên URL, kiểm tra trong localStorage
-            const localList = TechStoreCompare.getList();
-            if (localList.length >= 2) {
-                const queryIds = localList.map(item => item.id).join(',');
-                window.location.href = `/compare?ids=${queryIds}`;
+        if (ids) {
+            const idArr = ids.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x));
+            const stored = TechStoreCompare.getItems();
+            const storedIds = stored.map(x => x.id);
+            const needsSync = idArr.some(id => !storedIds.includes(id));
+            if (needsSync && window.TechStoreCompare) {
+                // Keep compare state synchronized
             }
         }
     });
 
     function removeProductFromCompare(productId) {
-        TechStoreCompare.remove(productId);
+        TechStoreCompare.removeItem(productId);
         const url = new URL(window.location.href);
         const ids = url.searchParams.get('ids');
         if (ids) {
-            const newIds = ids.split(',').filter(id => id.trim() !== String(productId)).join(',');
-            if (newIds) {
-                url.searchParams.set('ids', newIds);
+            const arr = ids.split(',').map(x => x.trim()).filter(x => x !== productId.toString());
+            if (arr.length > 0) {
+                url.searchParams.set('ids', arr.join(','));
                 window.location.href = url.toString();
             } else {
                 window.location.href = '/compare';
             }
+        } else {
+            window.location.reload();
         }
-    }
-
-    function addProductToCompare(id, name, slug, price, origPrice, img, brand, cat) {
-        TechStoreCompare.toggleCompare({
-            id: id,
-            name: name,
-            slug: slug,
-            price: price,
-            originalPrice: origPrice,
-            image: img,
-            brand: brand,
-            category: cat
-        });
-
-        const url = new URL(window.location.href);
-        const ids = url.searchParams.get('ids') || '';
-        const idList = ids ? ids.split(',').filter(x => x) : [];
-        if (!idList.includes(String(id))) {
-            idList.push(String(id));
-        }
-        url.searchParams.set('ids', idList.join(','));
-        window.location.href = url.toString();
-    }
-
-    function addProductFromBtn(button) {
-        if (!button) return;
-        const ds = button.dataset;
-        addProductToCompare(ds.productId, ds.productName, ds.productSlug, parseFloat(ds.productPrice) || 0, parseFloat(ds.productOrigPrice) || 0, ds.productImage, ds.productBrand, '');
     }
 
     function clearAllAndReload() {
@@ -478,67 +447,99 @@
     }
 
     function openSearchModal() {
-        document.getElementById('searchModal').classList.remove('hidden');
-        document.getElementById('modalSearchInput').focus();
+        const modal = document.getElementById('searchModal');
+        const input = document.getElementById('modalSearchInput');
+        if (modal) {
+            modal.classList.remove('hidden');
+            if (input) {
+                input.value = '';
+                input.focus();
+                liveSearchCompare('');
+            }
+        }
     }
 
     function closeSearchModal() {
-        document.getElementById('searchModal').classList.add('hidden');
+        const modal = document.getElementById('searchModal');
+        if (modal) modal.classList.add('hidden');
     }
 
-    let searchTimeout = null;
+    let searchDebounceTimer = null;
     function liveSearchCompare(query) {
-        clearTimeout(searchTimeout);
-        if (!query || query.trim().length < 2) {
-            document.getElementById('modalSearchResults').innerHTML = '<p class="text-center text-xs text-slate-400 py-6">Nhập từ khóa tìm kiếm để chọn thiết bị cần so sánh</p>';
-            return;
-        }
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(async () => {
+            const resultsContainer = document.getElementById('modalSearchResults');
+            if (!resultsContainer) return;
 
-        searchTimeout = setTimeout(async function () {
+            if (!query.trim()) {
+                resultsContainer.innerHTML = '<p class="text-center text-xs text-slate-400 py-6">Nhập từ khóa tìm kiếm để chọn thiết bị</p>';
+                return;
+            }
+
             try {
-                const res = await fetch(`/api/compare/search?q=${encodeURIComponent(query)}`);
-                if (res.ok) {
-                    const items = await res.json();
-                    if (!items.length) {
-                        document.getElementById('modalSearchResults').innerHTML = '<p class="text-center text-xs text-slate-400 py-6">Không tìm thấy sản phẩm phù hợp</p>';
-                        return;
-                    }
+                const res = await fetch(`/api/product/suggest?q=${encodeURIComponent(query)}`);
+                if (!res.ok) return;
+                const items = await res.json();
 
-                    let html = '';
-                    items.forEach(item => {
-                        html += `
-                            <div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-100 transition">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-12 h-12 rounded-lg bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0">
-                                        <img src="${item.featuredImage}" class="max-h-full max-w-full object-contain" />
-                                    </div>
-                                    <div>
-                                        <span class="text-[10px] font-bold text-blue-600 uppercase">${item.brandName}</span>
-                                        <div class="font-bold text-slate-900 text-xs line-clamp-1">${item.name}</div>
-                                        <div class="text-xs font-black text-blue-600 mt-0.5">${item.price.toLocaleString('vi-VN')} đ</div>
-                                    </div>
+                if (!items.length) {
+                    resultsContainer.innerHTML = '<p class="text-center text-xs text-slate-400 py-6">Không tìm thấy sản phẩm phù hợp</p>';
+                    return;
+                }
+
+                const currentIds = new URLSearchParams(window.location.search).get('ids')?.split(',').map(x => parseInt(x)) || [];
+
+                resultsContainer.innerHTML = items.map(p => {
+                    const isAdded = currentIds.includes(p.id);
+                    return `
+                        <div class="flex items-center justify-between p-3 rounded-2xl border border-slate-100 hover:bg-slate-50 transition">
+                            <div class="flex items-center gap-3">
+                                <img src="${p.image || '/assets/images/placeholder.png'}" class="w-12 h-12 object-contain rounded-xl border border-slate-200 p-1" />
+                                <div>
+                                    <h4 class="text-xs font-bold text-slate-900 line-clamp-1">${p.name}</h4>
+                                    <p class="text-xs font-black text-blue-600">${p.formattedPrice || ''}</p>
                                 </div>
-                                <button type="button" 
-                                        data-product-id="${item.productId}"
-                                        data-product-name="${item.name.replace(/"/g, '&quot;')}"
-                                        data-product-slug="${item.slug}"
-                                        data-product-price="${item.price}"
-                                        data-product-orig-price="${item.originalPrice}"
-                                        data-product-image="${item.featuredImage}"
-                                        data-product-brand="${item.brandName}"
-                                        onclick="addProductFromBtn(this)" 
-                                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm">
+                            </div>
+                            ${isAdded ? `
+                                <span class="text-xs font-bold text-slate-400 px-3 py-1.5">Đã có</span>
+                            ` : `
+                                <button type="button" onclick="selectProductForCompare(${p.id}, '${p.name.replace(/'/g, "\\'")}', '${p.slug}', '${p.image || ''}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition">
                                     + Chọn
                                 </button>
-                            </div>
-                        `;
-                    });
-                    document.getElementById('modalSearchResults').innerHTML = html;
-                }
-            } catch (e) {
+                            `}
+                        </div>
+                    `;
+                }).join('');
+            } catch(e) {
                 console.error(e);
             }
-        }, 300);
+        }, 200);
+    }
+
+    function selectProductForCompare(id, name, slug, image) {
+        TechStoreCompare.addItem({
+            id: id,
+            name: name,
+            slug: slug,
+            image: image,
+            price: 0
+        });
+
+        const url = new URL(window.location.href);
+        const ids = url.searchParams.get('ids');
+        const idArr = ids ? ids.split(',').map(x => x.trim()).filter(Boolean) : [];
+        if (!idArr.includes(id.toString())) {
+            idArr.push(id.toString());
+        }
+        url.searchParams.set('ids', idArr.join(','));
+        window.location.href = url.toString();
+    }
+
+    function addProductFromBtn(btn) {
+        const id = parseInt(btn.dataset.productId);
+        const name = btn.dataset.productName;
+        const slug = btn.dataset.productSlug;
+        const image = btn.dataset.productImage;
+        selectProductForCompare(id, name, slug, image);
     }
 </script>
 }

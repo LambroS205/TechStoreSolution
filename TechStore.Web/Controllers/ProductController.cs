@@ -44,6 +44,7 @@ public class ProductController : Controller
             .Include(p => p.Brand)
             .Include(p => p.Category)
             .Include(p => p.Variants.Where(v => v.IsActive))
+            .Include(p => p.Reviews.Where(r => r.IsApproved))
             .AsNoTracking()
             .Where(p => p.IsActive)
             .AsQueryable();
@@ -154,6 +155,7 @@ public class ProductController : Controller
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Variants.Where(v => v.IsActive))
+            .Include(p => p.Reviews.Where(r => r.IsApproved))
             .Include(p => p.Images)
             .AsSplitQuery() // Tối ưu tránh Cartesian Product warning (EF Core 20504)
             .AsNoTracking()
@@ -172,6 +174,7 @@ public class ProductController : Controller
         // Lấy sản phẩm tương tự cùng danh mục (sắp xếp rõ ràng trước khi Take để loại bỏ EF Core 10102)
         var relatedProducts = await _context.Products
             .Include(p => p.Variants.Where(v => v.IsActive))
+            .Include(p => p.Reviews.Where(r => r.IsApproved))
             .AsNoTracking()
             .Where(p => p.CategoryId == product.CategoryId && p.ProductId != product.ProductId && p.IsActive)
             .OrderByDescending(p => p.CreatedAt)
