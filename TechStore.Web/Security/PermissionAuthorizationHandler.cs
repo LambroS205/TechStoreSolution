@@ -90,9 +90,34 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
         });
 
         // 4. Kiểm tra mã quyền
-        if (userPermissions != null && userPermissions.Contains(requirement.PermissionCode))
+        if (userPermissions != null)
         {
-            context.Succeed(requirement);
+            // Kiểm tra chính xác mã quyền
+            if (userPermissions.Contains(requirement.PermissionCode))
+            {
+                context.Succeed(requirement);
+                return;
+            }
+
+            // Quyền kế thừa: Quyền [Module].Manage tự động bao hàm quyền [Module].View
+            if (requirement.PermissionCode.EndsWith(".View", StringComparison.OrdinalIgnoreCase))
+            {
+                string module = requirement.PermissionCode[..^5];
+                if (userPermissions.Contains($"{module}.Manage"))
+                {
+                    context.Succeed(requirement);
+                    return;
+                }
+            }
+
+            // Chuẩn hóa định danh số ít / số nhiều cho module kiểm toán
+            if ((requirement.PermissionCode.Equals("AuditLog.View", StringComparison.OrdinalIgnoreCase) ||
+                 requirement.PermissionCode.Equals("AuditLogs.View", StringComparison.OrdinalIgnoreCase)) &&
+                (userPermissions.Contains("AuditLogs.View") || userPermissions.Contains("AuditLog.View")))
+            {
+                context.Succeed(requirement);
+                return;
+            }
         }
     }
 }

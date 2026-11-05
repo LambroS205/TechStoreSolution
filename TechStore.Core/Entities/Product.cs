@@ -35,6 +35,7 @@ public class Product
     // Navigation Properties
     public virtual Category Category { get; set; } = null!;
     public virtual Brand Brand { get; set; } = null!;
+    public virtual Supplier? Supplier { get; set; }
     public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
     public virtual ICollection<ProductReview> Reviews { get; set; } = new List<ProductReview>();
     public virtual ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();

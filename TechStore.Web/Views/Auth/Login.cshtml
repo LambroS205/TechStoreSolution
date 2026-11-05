@@ -1,4 +1,4 @@
-@model LoginViewModel
+﻿@model LoginViewModel
 @{
     ViewData["Title"] = "Đăng Nhập Tài Khoản";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -25,10 +25,19 @@
             </p>
             <div class="grid grid-cols-2 gap-2 pt-1">
                 <button type="button" onclick="quickLogin('vipcustomer', 'Customer@123')" class="px-3 py-2 bg-white hover:bg-amber-100 text-slate-800 border border-amber-300 rounded-xl text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 active:scale-95">
-                    <span>👑 Khách Hàng VIP</span>
+                    <span>👑 Khách VIP</span>
                 </button>
                 <button type="button" onclick="quickLogin('admin', 'Admin@123')" class="px-3 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 active:scale-95">
                     <span>⚙️ Super Admin</span>
+                </button>
+                <button type="button" onclick="quickLogin('staff_kho', 'Staff@123')" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 active:scale-95">
+                    <span>📦 NV Kho & SP</span>
+                </button>
+                <button type="button" onclick="quickLogin('staff_order', 'Staff@123')" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 rounded-xl text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 active:scale-95">
+                    <span>🚚 NV Đơn & POS</span>
+                </button>
+                <button type="button" onclick="quickLogin('staff_marketing', 'Marketing@123')" class="px-3 py-2 col-span-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-300 rounded-xl text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 active:scale-95">
+                    <span>📢 NV Marketing & Banner</span>
                 </button>
             </div>
         </div>

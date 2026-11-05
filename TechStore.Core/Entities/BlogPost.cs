@@ -20,6 +20,6 @@ public class BlogPost
     public DateTime PublishedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation Properties
-    public virtual BlogCategory Category { get; set; } = null!;
-    public virtual User Author { get; set; } = null!;
+    public virtual BlogCategory? Category { get; set; }
+    public virtual User? Author { get; set; }
 }

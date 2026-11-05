@@ -1,4 +1,4 @@
-@model List<TechStore.Core.Entities.InventoryTransaction>
+﻿@model List<TechStore.Core.Entities.InventoryTransaction>
 @{
     ViewData["Title"] = "Sổ Giao Dịch Xuất Nhập Kho";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -7,12 +7,12 @@
     int totalPages = ViewBag.TotalPages ?? 1;
 }
 
-<div class="space-y-6">
+<div class="p-6 space-y-6">
     <!-- Header & Actions -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
-                <a href="/Admin/Dashboard" class="hover:text-blue-600">Tổng quan</a>
+                <a href="/Admin" class="hover:text-blue-600">Tổng quan</a>
                 <span>/</span>
                 <a href="/Admin/Inventory" class="hover:text-blue-600">Kho hàng</a>
                 <span>/</span>
@@ -23,7 +23,7 @@
         </div>
 
         <div class="flex items-center gap-2.5">
-            <a href="/Admin/Inventory" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5">
+            <a href="/Admin/Inventory" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center gap-1.5">
                 <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                 <span>Bảng Tồn Kho</span>
             </a>
@@ -36,19 +36,19 @@
 
     <!-- Filter Tabs -->
     <div class="flex items-center gap-2 text-xs font-semibold overflow-x-auto pb-1 no-scrollbar">
-        <a href="/Admin/Inventory/Transactions?type=All" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentType == "All" ? "bg-bestbuy-blue text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+        <a href="/Admin/Inventory/Transactions?type=All" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentType == "All" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
             Tất Cả Giao Dịch
         </a>
-        <a href="/Admin/Inventory/Transactions?type=IMPORT" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentType == "IMPORT" ? "bg-emerald-600 text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+        <a href="/Admin/Inventory/Transactions?type=IMPORT" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentType == "IMPORT" ? "bg-emerald-600 text-white shadow-sm" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
             Nhập Kho (+)
         </a>
-        <a href="/Admin/Inventory/Transactions?type=EXPORT_ORDER" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentType == "EXPORT_ORDER" ? "bg-rose-600 text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+        <a href="/Admin/Inventory/Transactions?type=EXPORT_ORDER" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentType == "EXPORT_ORDER" ? "bg-rose-600 text-white shadow-sm" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
             Xuất Bán Hàng (-)
         </a>
     </div>
 
     <!-- Transactions Table -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-600 divide-y divide-slate-100">
                 <thead class="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">

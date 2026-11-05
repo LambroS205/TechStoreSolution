@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TechStore - Module Quản Lý So Sánh Sản Phẩm Client-Side (Product Comparison)
  * Lưu trữ danh sách sản phẩm so sánh trong localStorage (tối đa 4 sản phẩm)
  */

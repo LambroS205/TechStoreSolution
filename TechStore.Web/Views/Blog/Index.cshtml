@@ -1,4 +1,4 @@
-@model List<TechStore.Core.Entities.BlogPost>
+﻿@model List<TechStore.Core.Entities.BlogPost>
 @{
     ViewData["Title"] = "Tin Tức & Đánh Giá Công Nghệ";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -55,7 +55,7 @@
                         <a href="/blog/@post.Slug" class="block aspect-video w-full bg-slate-100 overflow-hidden relative">
                             <img src="@post.ThumbnailUrl" alt="@post.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='/assets/images/placeholder.png'" />
                             <span class="absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold bg-bestbuy-blue/90 text-white rounded-lg backdrop-blur-xs shadow-xs uppercase tracking-wider">
-                                @post.Category.Name
+                                @(post.Category?.Name ?? "Tin Công Nghệ")
                             </span>
                         </a>
 

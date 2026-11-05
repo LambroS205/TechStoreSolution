@@ -4,6 +4,7 @@
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var categories = ViewBag.CategoryList as SelectList;
     var brands = ViewBag.BrandList as SelectList;
+    var suppliers = ViewBag.SupplierList as SelectList;
 }
 
 <div class="p-6 max-w-6xl mx-auto space-y-6">
@@ -48,7 +49,7 @@
                         <span asp-validation-for="Slug" class="text-xs text-rose-500 mt-1 block"></span>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Danh Mục <span class="text-rose-500">*</span></label>
                             <select name="CategoryId" asp-items="categories" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
@@ -63,6 +64,13 @@
                                 <option value="">-- Chọn thương hiệu --</option>
                             </select>
                             <span asp-validation-for="BrandId" class="text-xs text-rose-500 mt-1 block"></span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nhà Cung Cấp</label>
+                            <select name="SupplierId" asp-items="suppliers" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">-- Chưa chọn / Trực tiếp --</option>
+                            </select>
                         </div>
 
                         <div>
@@ -85,6 +93,46 @@
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Mô Tả Chi Tiết & Bài Viết Đánh Giá</label>
                         <textarea name="FullDescription" rows="8" class="w-full text-xs font-sans border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Thông số kỹ thuật, trải nghiệm người dùng, hình ảnh minh họa...">@Model.FullDescription</textarea>
                     </div>
+                </div>
+
+                <!-- 3. BẢNG THÔNG SỐ KỸ THUẬT (Visual Specs Builder) -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                <span>⚙️ Thông Số Kỹ Thuật (Visual Specs Builder)</span>
+                            </h3>
+                            <p class="text-[11px] text-slate-400">Hiển thị bảng cấu hình chi tiết & so sánh phần cứng cho khách hàng</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-[11px] text-slate-400 font-semibold">Mẫu nhanh:</span>
+                            <button type="button" onclick="loadSpecTemplate('phone')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold">📱 Điện thoại</button>
+                            <button type="button" onclick="loadSpecTemplate('laptop')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold">💻 Laptop</button>
+                            <button type="button" onclick="loadSpecTemplate('tablet')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold">🎨 Tablet</button>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="specificationsJsonInput" name="SpecificationsJson" value="@Model.SpecificationsJson" />
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                <tr>
+                                    <th class="p-2.5 w-1/3">Tên Thông Số (Key)</th>
+                                    <th class="p-2.5">Giá Trị Cấu Hình (Value)</th>
+                                    <th class="p-2.5 w-10 text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="specsTableBody" class="divide-y divide-slate-100">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <button type="button" onclick="addSpecRow('', '')" class="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                        <span>Thêm Dòng Thông Số</span>
+                    </button>
                 </div>
 
                 <!-- Biến thể mặc định ban đầu -->
@@ -160,7 +208,7 @@
                     <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">Trạng Thái</h3>
 
                     <label class="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" name="IsActive" value="true" checked="@Model.IsActive" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                        <input type="hidden" name="IsActive" value="false" /><input type="checkbox" name="IsActive" value="true" checked="@Model.IsActive" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
                         <div>
                             <span class="text-xs font-bold text-slate-800">Kích Hoạt Kinh Doanh</span>
                             <p class="text-[11px] text-slate-400">Hiển thị sản phẩm trên cửa hàng cho khách mua</p>
@@ -168,7 +216,7 @@
                     </label>
 
                     <label class="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" name="IsFeatured" value="true" checked="@Model.IsFeatured" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                        <input type="hidden" name="IsFeatured" value="false" /><input type="checkbox" name="IsFeatured" value="true" checked="@Model.IsFeatured" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
                         <div>
                             <span class="text-xs font-bold text-slate-800">Sản Phẩm Nổi Bật</span>
                             <p class="text-[11px] text-slate-400">Ghim tại trang chủ và mục sản phẩm gợi ý hot</p>
@@ -237,4 +285,101 @@
             document.getElementById('uploadPrompt').classList.add('hidden');
         }
     }
+
+    // Visual Specs Builder Logic
+    const specTemplates = {
+        phone: [
+            { k: 'Màn hình', v: '6.9 inch Super Retina XDR OLED, 120Hz ProMotion' },
+            { k: 'Vi xử lý (CPU)', v: 'Apple A18 Pro 6 nhân 3nm' },
+            { k: 'Bộ nhớ RAM', v: '8GB Unified' },
+            { k: 'Bộ nhớ trong', v: '256GB NVMe' },
+            { k: 'Camera sau', v: 'Chính 48MP + Góc rộng 48MP + Tele 5x 12MP' },
+            { k: 'Camera trước', v: '12MP TrueDepth, quay 4K60 Dolby Vision' },
+            { k: 'Pin & Sạc', v: '4.685 mAh, sạc nhanh 30W, MagSafe 25W' },
+            { k: 'Trọng lượng', v: '227g (Khung Titan Cấp 5)' }
+        ],
+        laptop: [
+            { k: 'Màn hình', v: '14.2 inch Liquid Retina XDR (3024x1964), 120Hz' },
+            { k: 'CPU', v: 'Apple M4 Pro (14 nhân CPU, 20 nhân GPU)' },
+            { k: 'RAM', v: '24GB Unified Memory' },
+            { k: 'Ổ cứng', v: '512GB SSD PCIe siêu tốc' },
+            { k: 'Cổng kết nối', v: '3x Thunderbolt 5, HDMI, MagSafe 3, SDXC' },
+            { k: 'Trọng lượng', v: '1.6 kg' },
+            { k: 'Thời lượng Pin', v: 'Lên đến 22 giờ sử dụng' }
+        ],
+        tablet: [
+            { k: 'Màn hình', v: '11 inch Ultra Retina XDR Tandem OLED' },
+            { k: 'Vi xử lý', v: 'Apple M4 (9 nhân CPU, 10 nhân GPU)' },
+            { k: 'RAM & Dung lượng', v: '8GB RAM & 256GB' },
+            { k: 'Bút & Bàn phím', v: 'Tương thích Apple Pencil Pro, Magic Keyboard' },
+            { k: 'Trọng lượng', v: '444g siêu mỏng 5.1mm' }
+        ]
+    };
+
+    function addSpecRow(key = '', val = '') {
+        const tbody = document.getElementById('specsTableBody');
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/50 transition';
+        tr.innerHTML = `
+            <td class="p-2">
+                <input type="text" class="spec-key w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:ring-1 focus:ring-blue-500 outline-none" value="${key}" placeholder="VD: Màn hình" oninput="updateSpecsJson()" />
+            </td>
+            <td class="p-2">
+                <input type="text" class="spec-val w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:ring-1 focus:ring-blue-500 outline-none" value="${val}" placeholder="VD: 6.9 inch OLED 120Hz" oninput="updateSpecsJson()" />
+            </td>
+            <td class="p-2 text-center">
+                <button type="button" onclick="removeSpecRow(this)" class="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition" title="Xóa dòng">&times;</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        updateSpecsJson();
+    }
+
+    function removeSpecRow(btn) {
+        btn.closest('tr').remove();
+        updateSpecsJson();
+    }
+
+    function updateSpecsJson() {
+        const rows = document.querySelectorAll('#specsTableBody tr');
+        const specs = {};
+        rows.forEach(r => {
+            const k = r.querySelector('.spec-key')?.value.trim();
+            const v = r.querySelector('.spec-val')?.value.trim();
+            if (k && v) {
+                specs[k] = v;
+            }
+        });
+        document.getElementById('specificationsJsonInput').value = Object.keys(specs).length > 0 ? JSON.stringify(specs) : '';
+    }
+
+    function loadSpecTemplate(type) {
+        const template = specTemplates[type];
+        if (!template) return;
+        const tbody = document.getElementById('specsTableBody');
+        tbody.innerHTML = '';
+        template.forEach(item => addSpecRow(item.k, item.v));
+    }
+
+    // Auto initialize if existing JSON
+    (function initSpecs() {
+        try {
+            const raw = document.getElementById('specificationsJsonInput').value;
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                for (const [k, v] of Object.entries(parsed)) {
+                    addSpecRow(k, v);
+                }
+            } else {
+                loadSpecTemplate('phone');
+            }
+        } catch(e) {
+            loadSpecTemplate('phone');
+        }
+    })();
+
+    // Ensure serialized on form submit
+    document.querySelector('form')?.addEventListener('submit', function() {
+        updateSpecsJson();
+    });
 </script>

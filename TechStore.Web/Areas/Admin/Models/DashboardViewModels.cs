@@ -15,6 +15,7 @@ public class DashboardViewModel
     public int TotalCustomers { get; set; }
 
     public int PendingOrders { get; set; }
+    public int ConfirmedOrders { get; set; }
     public int ProcessingOrders { get; set; }
     public int ShippingOrders { get; set; }
     public int DeliveredOrders { get; set; }

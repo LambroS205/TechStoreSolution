@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -34,7 +34,7 @@ public class BlogController : Controller
 
         if (!string.IsNullOrWhiteSpace(categorySlug))
         {
-            query = query.Where(p => p.Category.Slug == categorySlug);
+            query = query.Where(p => p.Category != null && p.Category.Slug == categorySlug);
             var currentCat = await _context.BlogCategories.FirstOrDefaultAsync(c => c.Slug == categorySlug);
             ViewBag.CurrentCategory = currentCat;
         }

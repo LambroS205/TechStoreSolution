@@ -15,7 +15,6 @@ namespace TechStore.Web.Areas.Admin.Controllers;
 
 [Area("Admin")]
 [Authorize]
-[HasPermission("Brands.Manage")]
 public class BrandController : Controller
 {
     private readonly TechStoreDbContext _context;
@@ -36,6 +35,7 @@ public class BrandController : Controller
     /// Hiển thị danh sách thương hiệu và số lượng sản phẩm liên quan
     /// </summary>
     [HttpGet]
+    [HasPermission("Brands.View")]
     public async Task<IActionResult> Index(string? search)
     {
         var query = _context.Brands
@@ -60,6 +60,7 @@ public class BrandController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [HasPermission("Brands.Manage")]
     public async Task<IActionResult> Save(Brand brand, IFormFile? logoFile)
     {
         if (string.IsNullOrWhiteSpace(brand.Name))
@@ -138,10 +139,20 @@ public class BrandController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpGet]
+    public IActionResult Save() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult ToggleStatus() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult Delete() => RedirectToAction(nameof(Index));
+
     /// <summary>
     /// Bật/Tắt trạng thái hoạt động qua AJAX
     /// </summary>
     [HttpPost]
+    [HasPermission("Brands.Manage")]
     public async Task<IActionResult> ToggleStatus(int id)
     {
         var brand = await _context.Brands.FindAsync(id);
@@ -158,6 +169,7 @@ public class BrandController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [HasPermission("Brands.Manage")]
     public async Task<IActionResult> Delete(int id)
     {
         var brand = await _context.Brands

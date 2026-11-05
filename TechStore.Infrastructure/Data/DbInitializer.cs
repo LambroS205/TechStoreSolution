@@ -12,7 +12,7 @@ namespace TechStore.Infrastructure.Data;
 /// <summary>
 /// Khởi tạo và sửa chữa dữ liệu chuẩn Unicode UTF-8, cấu hình, dữ liệu thông số kỹ thuật và tài khoản demo
 /// </summary>
-public static class DbInitializer
+public static partial class DbInitializer
 {
     public static async Task InitializeAndRepairEncodingAsync(TechStoreDbContext context)
     {
@@ -182,7 +182,26 @@ public static class DbInitializer
                 });
             }
 
+            // 6.1 Mở khóa toàn bộ tài khoản và chuẩn hóa mật khẩu Marketing demo
+            var mktUser = await context.Users.FirstOrDefaultAsync(u => u.NormalizedUsername == "STAFF_MARKETING");
+            if (mktUser != null)
+            {
+                mktUser.PasswordHash = hasher.HashPassword(mktUser, "Marketing@123");
+                mktUser.LockoutEnd = null;
+                mktUser.AccessFailedCount = 0;
+            }
+
+            try
+            {
+                await context.Database.ExecuteSqlRawAsync("UPDATE Users SET LockoutEnd = NULL, AccessFailedCount = 0;");
+            }
+            catch { /* ignore */ }
+
             await context.SaveChangesAsync();
+
+            // 7. BỔ SUNG DỮ LIỆU BÁN LẺ TOÀN DIỆN (Nhân viên, Khách hàng, Sản phẩm, Nhà cung cấp, Đơn hàng, Đánh giá, Kho, Voucher, Blog)
+            await SeedComprehensiveRetailDataAsync(context);
+            await EnsureRolePermissionsAndIndexesAsync(context);
         }
         catch (Exception ex)
         {
@@ -291,5 +310,143 @@ public static class DbInitializer
         }
 
         return JsonSerializer.Serialize(specs);
+    }
+
+    private static async Task EnsureRolePermissionsAndIndexesAsync(TechStoreDbContext context)
+    {
+        try
+        {
+            // 0. Bổ sung các quyền chuẩn còn thiếu trong hệ thống
+            var requiredPermissions = new (string Code, string Module, string Name)[]
+            {
+                ("Orders.Create", "Orders", "Tạo đơn hàng POS tại quầy"),
+                ("Orders.Export", "Orders", "Xuất danh sách đơn hàng Excel/CSV"),
+                ("Inventory.Adjust", "Inventory", "Điều chỉnh số lượng tồn kho"),
+                ("Analytics.Export", "Analytics", "Xuất báo cáo thống kê kinh doanh"),
+                ("Categories.View", "Categories", "Xem danh mục sản phẩm"),
+                ("Brands.View", "Brands", "Xem danh sách thương hiệu"),
+                ("Suppliers.View", "Suppliers", "Xem danh sách nhà cung cấp"),
+                ("Reviews.View", "Reviews", "Xem danh sách nhận xét đánh giá"),
+                ("Reviews.Approve", "Reviews", "Duyệt nhận xét đánh giá"),
+                ("Customers.View", "Customers", "Xem danh sách khách hàng")
+            };
+
+            foreach (var req in requiredPermissions)
+            {
+                if (!await context.Permissions.AnyAsync(p => p.PermissionCode == req.Code))
+                {
+                    context.Permissions.Add(new Permission
+                    {
+                        PermissionCode = req.Code,
+                        Module = req.Module,
+                        Action = req.Code.Split('.')[1],
+                        Description = req.Name
+                    });
+                }
+            }
+            await context.SaveChangesAsync();
+
+            // 1. Đồng bộ quyền cho các vai trò nhân viên
+            var roles = await context.Roles.ToListAsync();
+            var staffProductRole = roles.FirstOrDefault(r => r.NormalizedName == "STAFFPRODUCT");
+            var staffOrderRole = roles.FirstOrDefault(r => r.NormalizedName == "STAFFORDER");
+            var staffMarketingRole = roles.FirstOrDefault(r => r.NormalizedName == "STAFFMARKETING");
+            var superAdminRole = roles.FirstOrDefault(r => r.NormalizedName == "SUPERADMIN");
+
+            var allPermissions = await context.Permissions.ToListAsync();
+            var permDict = allPermissions.ToDictionary(p => p.PermissionCode, p => p.PermissionId, StringComparer.OrdinalIgnoreCase);
+
+            if (staffProductRole != null)
+            {
+                var productPermCodes = new[]
+                {
+                    "Inventory.View", "Inventory.Import", "Inventory.Adjust", "Variants.Manage",
+                    "Products.View", "Products.Create", "Products.Edit", "Products.Delete",
+                    "Categories.View", "Brands.View", "Suppliers.View"
+                };
+                foreach (var code in productPermCodes)
+                {
+                    if (permDict.TryGetValue(code, out int permId))
+                    {
+                        if (!await context.RolePermissions.AnyAsync(rp => rp.RoleId == staffProductRole.RoleId && rp.PermissionId == permId))
+                        {
+                            context.RolePermissions.Add(new RolePermission { RoleId = staffProductRole.RoleId, PermissionId = permId });
+                        }
+                    }
+                }
+            }
+
+            if (staffOrderRole != null)
+            {
+                var orderPermCodes = new[]
+                {
+                    "Orders.View", "Orders.Create", "Orders.Edit", "Orders.Export", "Reviews.View", "Reviews.Approve", "Customers.View"
+                };
+                foreach (var code in orderPermCodes)
+                {
+                    if (permDict.TryGetValue(code, out int permId))
+                    {
+                        if (!await context.RolePermissions.AnyAsync(rp => rp.RoleId == staffOrderRole.RoleId && rp.PermissionId == permId))
+                        {
+                            context.RolePermissions.Add(new RolePermission { RoleId = staffOrderRole.RoleId, PermissionId = permId });
+                        }
+                    }
+                }
+            }
+
+            if (staffMarketingRole != null)
+            {
+                var mktPermCodes = new[]
+                {
+                    "Banners.Manage", "Coupons.Manage", "Blogs.Manage", "Reviews.Manage",
+                    "Products.View", "Categories.View", "Brands.View", "Analytics.View", "Analytics.Export"
+                };
+                foreach (var code in mktPermCodes)
+                {
+                    if (permDict.TryGetValue(code, out int permId))
+                    {
+                        if (!await context.RolePermissions.AnyAsync(rp => rp.RoleId == staffMarketingRole.RoleId && rp.PermissionId == permId))
+                        {
+                            context.RolePermissions.Add(new RolePermission { RoleId = staffMarketingRole.RoleId, PermissionId = permId });
+                        }
+                    }
+                }
+            }
+
+            if (superAdminRole != null)
+            {
+                foreach (var p in allPermissions)
+                {
+                    if (!await context.RolePermissions.AnyAsync(rp => rp.RoleId == superAdminRole.RoleId && rp.PermissionId == p.PermissionId))
+                    {
+                        context.RolePermissions.Add(new RolePermission { RoleId = superAdminRole.RoleId, PermissionId = p.PermissionId });
+                    }
+                }
+            }
+
+            await context.SaveChangesAsync();
+
+            // 2. Tự động kiểm tra và tạo chỉ mục / cột an toàn
+            await context.Database.ExecuteSqlRawAsync(@"
+                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Orders_CustomerEmail' AND object_id = OBJECT_ID('Orders'))
+                BEGIN
+                    CREATE INDEX IX_Orders_CustomerEmail ON Orders(CustomerEmail);
+                END
+
+                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ProductVariants_ProductId_IsActive_SalePrice' AND object_id = OBJECT_ID('ProductVariants'))
+                BEGIN
+                    CREATE INDEX IX_ProductVariants_ProductId_IsActive_SalePrice ON ProductVariants(ProductId, IsActive, SalePrice);
+                END
+
+                IF COL_LENGTH('Products', 'SupplierId') IS NULL
+                BEGIN
+                    ALTER TABLE Products ADD SupplierId INT NULL;
+                END
+            ");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DbInitializer RBAC/Index Warning]: {ex.Message}");
+        }
     }
 }

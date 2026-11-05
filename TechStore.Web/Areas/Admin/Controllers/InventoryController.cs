@@ -250,5 +250,75 @@ public class InventoryController : Controller
             .ToListAsync();
         ViewBag.Suppliers = new SelectList(suppliers, "SupplierId", "Name");
     }
+
+    [HttpGet]
+    public IActionResult AdjustStock() => RedirectToAction(nameof(Index));
+
+    /// <summary>
+    /// Điều chỉnh kiểm kê kho (Stocktake Adjustment)
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [HasPermission("Inventory.Adjust")]
+    public async Task<IActionResult> AdjustStock(int variantId, int newQuantity, string reason, string? note)
+    {
+        var variant = await _context.ProductVariants
+            .Include(v => v.Product)
+            .FirstOrDefaultAsync(v => v.VariantId == variantId);
+
+        if (variant == null)
+        {
+            TempData["ErrorMessage"] = "Biến thể sản phẩm không tồn tại!";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (newQuantity < 0)
+        {
+            TempData["ErrorMessage"] = "Số lượng tồn kho thực tế không thể âm!";
+            return RedirectToAction(nameof(Index));
+        }
+
+        int oldQuantity = variant.StockQuantity;
+        int diff = newQuantity - oldQuantity;
+
+        if (diff == 0)
+        {
+            TempData["SuccessMessage"] = "Số lượng tồn kho không thay đổi.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        int.TryParse(userIdClaim?.Value, out int adminId);
+
+        variant.StockQuantity = newQuantity;
+
+        string logNote = $"Kiểm kê kho [{reason}]: Lệch {(diff > 0 ? $"+{diff}" : diff.ToString())} (Cũ: {oldQuantity} -> Mới: {newQuantity}). {(string.IsNullOrWhiteSpace(note) ? "" : $"Ghi chú: {note.Trim()}")}";
+
+        var tx = new InventoryTransaction
+        {
+            VariantId = variant.VariantId,
+            TransactionType = "ADJUSTMENT",
+            Quantity = Math.Abs(diff),
+            UnitPrice = variant.SalePrice,
+            ReferenceCode = $"ADJ-{DateTime.UtcNow:yyMMddHHmm}",
+            Note = logNote,
+            CreatedBy = adminId > 0 ? adminId : 1,
+            CreatedAt = DateTime.UtcNow
+        };
+        await _context.InventoryTransactions.AddAsync(tx);
+
+        await _auditLogService.LogAsync(
+            action: "AdjustStock",
+            module: "Inventory",
+            recordId: variant.SKU,
+            oldValues: new { StockQuantity = oldQuantity },
+            newValues: new { StockQuantity = newQuantity, Diff = diff, Reason = reason, Note = note }
+        );
+
+        await _context.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = $"Đã điều chỉnh tồn kho cho '{variant.Product.Name} - {variant.VariantName}' từ {oldQuantity} thành {newQuantity} thành công!";
+        return RedirectToAction(nameof(Index));
+    }
 }
 

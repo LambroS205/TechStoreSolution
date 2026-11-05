@@ -1,4 +1,4 @@
-@model List<TechStore.Core.Entities.Coupon>
+﻿@model List<TechStore.Core.Entities.Coupon>
 @{
     ViewData["Title"] = "Quản Lý Mã Khuyến Mãi (Coupon)";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -238,7 +238,7 @@
             </div>
 
             <label class="flex items-center gap-2 cursor-pointer pt-1">
-                <input type="checkbox" id="modalCouponIsActive" name="IsActive" value="true" checked class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                <input type="hidden" name="IsActive" value="false" /><input type="checkbox" id="modalCouponIsActive" name="IsActive" value="true" checked class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
                 <span class="text-xs font-bold text-slate-800">Kích Hoạt Chương Trình Khuyến Mãi</span>
             </label>
 
@@ -315,7 +315,7 @@
 
     async function toggleCouponActive(id, btn) {
         try {
-            const res = await fetch(`/Admin/Coupon/ToggleStatus/${id}`, {
+            const res = await adminFetch(`/Admin/Coupon/ToggleStatus/${id}`, {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });

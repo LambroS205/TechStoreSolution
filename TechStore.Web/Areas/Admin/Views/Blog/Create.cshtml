@@ -1,4 +1,4 @@
-@model TechStore.Core.Entities.BlogPost
+﻿@model TechStore.Core.Entities.BlogPost
 @{
     ViewData["Title"] = "Viết Bài Công Nghệ Mới";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -95,7 +95,7 @@
             </div>
 
             <div class="flex items-center gap-3 pt-2">
-                <input type="checkbox" id="IsPublished" name="IsPublished" value="true" checked class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300" />
+                <input type="hidden" name="IsPublished" value="false" /><input type="checkbox" id="IsPublished" name="IsPublished" value="true" checked class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300" />
                 <label for="IsPublished" class="text-xs font-bold text-slate-800">
                     Xuất bản công khai ngay lên Storefront
                 </label>

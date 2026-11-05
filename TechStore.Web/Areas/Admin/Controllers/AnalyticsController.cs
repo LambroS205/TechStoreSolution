@@ -285,6 +285,66 @@ public class AnalyticsController : Controller
         return File(bytes, "text/csv; charset=utf-8", fileName);
     }
 
+    /// <summary>
+    /// Xuất báo cáo tổng kết doanh thu theo ngày ra file CSV hỗ trợ Excel
+    /// </summary>
+    [HttpGet]
+    [HasPermission("Analytics.Export")]
+    public async Task<IActionResult> ExportRevenueCsv(DateTime? fromDate, DateTime? toDate)
+    {
+        var query = _context.Orders
+            .AsNoTracking()
+            .Where(o => o.OrderStatus == "Delivered" || o.PaymentStatus == "Paid");
+
+        if (fromDate.HasValue)
+            query = query.Where(o => o.CreatedAt >= fromDate.Value.ToUniversalTime());
+
+        if (toDate.HasValue)
+            query = query.Where(o => o.CreatedAt <= toDate.Value.ToUniversalTime().AddDays(1));
+
+        var orders = await query
+            .OrderBy(o => o.CreatedAt)
+            .ToListAsync();
+
+        var groupedDaily = orders
+            .GroupBy(o => o.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy"))
+            .Select(g => new
+            {
+                Date = g.Key,
+                OrdersCount = g.Count(),
+                SubTotal = g.Sum(o => o.SubTotal),
+                DiscountTotal = g.Sum(o => o.DiscountAmount),
+                ShippingTotal = g.Sum(o => o.ShippingFee),
+                RevenueTotal = g.Sum(o => o.TotalAmount),
+                CashRevenue = g.Where(o => o.PaymentMethod == "Cash").Sum(o => o.TotalAmount),
+                VietQrRevenue = g.Where(o => o.PaymentMethod == "VietQR").Sum(o => o.TotalAmount),
+                CodRevenue = g.Where(o => o.PaymentMethod == "COD").Sum(o => o.TotalAmount)
+            })
+            .ToList();
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Ngày,Số Lượng Đơn,Tiền Hàng,Giảm Giá,Phí Ship,Doanh Thu Ròng,Tiền Mặt,VietQR,COD");
+
+        foreach (var d in groupedDaily)
+        {
+            sb.AppendLine(string.Join(",",
+                d.Date,
+                d.OrdersCount,
+                d.SubTotal.ToString("F0", CultureInfo.InvariantCulture),
+                d.DiscountTotal.ToString("F0", CultureInfo.InvariantCulture),
+                d.ShippingTotal.ToString("F0", CultureInfo.InvariantCulture),
+                d.RevenueTotal.ToString("F0", CultureInfo.InvariantCulture),
+                d.CashRevenue.ToString("F0", CultureInfo.InvariantCulture),
+                d.VietQrRevenue.ToString("F0", CultureInfo.InvariantCulture),
+                d.CodRevenue.ToString("F0", CultureInfo.InvariantCulture)
+            ));
+        }
+
+        var fileName = $"BaoCaoDoanhThu_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+        var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        return File(bytes, "text/csv; charset=utf-8", fileName);
+    }
+
     private static string EscapeCsv(string? value)
     {
         if (string.IsNullOrEmpty(value)) return "\"\"";

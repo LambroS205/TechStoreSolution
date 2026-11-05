@@ -15,7 +15,6 @@ namespace TechStore.Web.Areas.Admin.Controllers;
 
 [Area("Admin")]
 [Authorize]
-[HasPermission("Categories.Manage")]
 public class CategoryController : Controller
 {
     private readonly TechStoreDbContext _context;
@@ -36,6 +35,7 @@ public class CategoryController : Controller
     /// Hiển thị danh sách danh mục phân cấp và thống kê sản phẩm
     /// </summary>
     [HttpGet]
+    [HasPermission("Categories.View")]
     public async Task<IActionResult> Index()
     {
         var categories = await _context.Categories
@@ -57,6 +57,7 @@ public class CategoryController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [HasPermission("Categories.Manage")]
     public async Task<IActionResult> Save(Category category, IFormFile? imageFile)
     {
         if (string.IsNullOrWhiteSpace(category.Name))
@@ -145,10 +146,20 @@ public class CategoryController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpGet]
+    public IActionResult Save() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult ToggleStatus() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult Delete() => RedirectToAction(nameof(Index));
+
     /// <summary>
     /// Bật/Tắt trạng thái hoạt động qua AJAX
     /// </summary>
     [HttpPost]
+    [HasPermission("Categories.Manage")]
     public async Task<IActionResult> ToggleStatus(int id)
     {
         var category = await _context.Categories.FindAsync(id);
@@ -165,6 +176,7 @@ public class CategoryController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [HasPermission("Categories.Manage")]
     public async Task<IActionResult> Delete(int id)
     {
         var category = await _context.Categories

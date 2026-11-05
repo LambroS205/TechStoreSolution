@@ -1,4 +1,4 @@
-@model TechStore.Core.Entities.BlogPost
+﻿@model TechStore.Core.Entities.BlogPost
 @{
     ViewData["Title"] = Model.Title;
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -10,16 +10,16 @@
     <nav class="flex items-center gap-2 text-xs text-slate-400">
         <a href="/" class="hover:text-blue-600">Trang chủ</a>
         <span>/</span>
-        <a href="/blogs" class="hover:text-blue-600">Tin tức công nghệ</a>
+        <a href="/blog" class="hover:text-blue-600">Tin tức công nghệ</a>
         <span>/</span>
-        <a href="/blogs/category/@Model.Category.Slug" class="hover:text-blue-600">@Model.Category.Name</a>
+        <a href="/blogs/category/@Model.Category?.Slug" class="hover:text-blue-600">@(Model.Category?.Name ?? "Tin Công Nghệ")</a>
     </nav>
 
     <!-- Post Header -->
     <header class="space-y-4">
         <div class="inline-flex items-center gap-2">
             <span class="px-3 py-1 text-xs font-black uppercase tracking-wider bg-blue-100 text-bestbuy-blue rounded-full">
-                @Model.Category.Name
+                @(Model.Category?.Name ?? "Tin Công Nghệ")
             </span>
         </div>
 
@@ -76,7 +76,7 @@
 
     <!-- Tags & Action -->
     <div class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <a href="/blogs" class="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-blue-600 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">
+        <a href="/blog" class="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-blue-600 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             Quay lại Tin Công Nghệ
         </a>
@@ -95,7 +95,7 @@
         <section class="pt-10 border-t border-slate-200 space-y-6">
             <div class="flex items-center justify-between">
                 <h3 class="text-xl font-black text-slate-900">Bài Viết Cùng Chủ Đề</h3>
-                <a href="/blogs/category/@Model.Category.Slug" class="text-xs font-bold text-blue-600 hover:underline">Xem tất cả &rarr;</a>
+                <a href="/blogs/category/@Model.Category?.Slug" class="text-xs font-bold text-blue-600 hover:underline">Xem tất cả &rarr;</a>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -106,7 +106,7 @@
                             <img src="@rel.ThumbnailUrl" alt="@rel.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='/assets/images/placeholder.png'" />
                         </div>
                         <div class="p-4 flex-1 flex flex-col justify-between space-y-2">
-                            <span class="text-[10px] font-bold text-blue-600 uppercase">@rel.Category.Name</span>
+                            <span class="text-[10px] font-bold text-blue-600 uppercase">@(rel.Category?.Name ?? "Tin Công Nghệ")</span>
                             <h4 class="text-xs font-bold text-slate-900 group-hover:text-blue-600 line-clamp-2 leading-snug">
                                 @rel.Title
                             </h4>

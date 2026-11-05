@@ -37,6 +37,11 @@ public class CheckoutController : Controller
     /// <summary>
     /// Màn hình đặt hàng & Thanh toán
     /// </summary>
+    [HttpPost]
+    [Route("checkout")]
+    [IgnoreAntiforgeryToken]
+    public IActionResult SafeCheckoutPost() => RedirectToAction(nameof(Index));
+
     [HttpGet]
     [Route("checkout")]
     public async Task<IActionResult> Index()
@@ -66,6 +71,10 @@ public class CheckoutController : Controller
     /// Tiếp nhận đơn hàng từ Client (tiếp nhận mảng items, coupon và thông tin giao hàng)
     /// </summary>
     private static int _orderSequence = 0;
+
+    [HttpGet]
+    [Route("checkout/place-order")]
+    public IActionResult SafePlaceOrderGet() => RedirectToAction(nameof(Index));
 
     [HttpPost]
     [Route("checkout/place-order")]
@@ -265,6 +274,11 @@ public class CheckoutController : Controller
     /// <summary>
     /// Trang hiển thị kết quả đặt hàng thành công & Sinh mã thanh toán động VietQR NAPAS 247
     /// </summary>
+    [HttpPost]
+    [Route("checkout/success/{orderCode}")]
+    [IgnoreAntiforgeryToken]
+    public IActionResult SafeSuccessPost(string orderCode) => RedirectToAction(nameof(Success), new { orderCode });
+
     [HttpGet]
     [Route("checkout/success/{orderCode}")]
     public async Task<IActionResult> Success(string orderCode)
@@ -300,6 +314,10 @@ public class CheckoutController : Controller
     /// <summary>
     /// Giả lập Webhook Ngân hàng xác nhận thanh toán VietQR tức thì phục vụ buổi thuyết trình Demo
     /// </summary>
+    [HttpGet]
+    [Route("checkout/demo-confirm-payment/{orderCode}")]
+    public IActionResult SafeDemoConfirmPaymentGet(string orderCode) => RedirectToAction(nameof(Success), new { orderCode });
+
     [HttpPost]
     [Route("checkout/demo-confirm-payment/{orderCode}")]
     [IgnoreAntiforgeryToken]

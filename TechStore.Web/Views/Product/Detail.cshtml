@@ -1,5 +1,6 @@
 @model ProductDetailViewModel
 @using System.Text.Json
+@using System.Text.Encodings.Web
 @{
     var product = Model.Product;
     ViewData["Title"] = product.Name;
@@ -129,7 +130,7 @@
         <!-- Left: Image Gallery & Thumbnail Slider -->
         <div class="space-y-4">
             <div class="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-100 relative overflow-hidden group">
-                <img id="mainProductImage" src="@product.FeaturedImage" alt="@product.Name" class="max-h-96 w-auto object-contain transition-transform duration-300 group-hover:scale-105" onerror="this.src='/assets/images/placeholder.png'" />
+                <img id="mainProductImage" src="@product.FeaturedImage" fetchpriority="high" alt="@product.Name" class="max-h-96 w-auto object-contain transition-transform duration-300 group-hover:scale-105" onerror="this.src='/assets/images/placeholder.png'" />
                 <span class="absolute top-4 left-4 px-3 py-1 text-xs font-black bg-[#0046be] text-white rounded-lg shadow-sm">
                     Chính Hãng 100%
                 </span>
@@ -158,7 +159,7 @@
             <div class="grid grid-cols-2 gap-2 text-[11px] pt-2">
                 <div class="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                     <span class="text-blue-600 font-bold">🛡️</span>
-                    <span class="text-slate-700 font-medium">Bảo hành 12 tháng chính hãng</span>
+                    <span class="text-slate-700 font-medium">Bảo hành @(Model.Product.WarrantyMonths > 0 ? Model.Product.WarrantyMonths : 12) tháng chính hãng</span>
                 </div>
                 <div class="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                     <span class="text-amber-500 font-bold">🔄</span>
@@ -226,11 +227,17 @@
                         </span>
                     </div>
 
-                    <!-- 0% Installment Calculator Trigger -->
-                    <button type="button" onclick="openInstallmentModal()" class="text-xs font-bold text-blue-600 hover:text-blue-800 underline flex items-center gap-1">
-                        <span>Trả góp 0% chỉ từ</span>
-                        <strong id="installmentMonthlyPreview" class="text-slate-900">@((((defaultVariant?.SalePrice ?? 0) / 12)).ToString("N0"))đ/th</strong>
-                    </button>
+                    <!-- Trợ giá & Trả góp 0% Triggers -->
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="openTradeInModal()" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 underline flex items-center gap-1">
+                            <span>🔄 Thu Cũ Trợ Giá</span>
+                        </button>
+                        <span class="text-slate-300">•</span>
+                        <button type="button" onclick="openInstallmentModal()" class="text-xs font-bold text-blue-600 hover:text-blue-800 underline flex items-center gap-1">
+                            <span>Trả góp 0% chỉ từ</span>
+                            <strong id="installmentMonthlyPreview" class="text-slate-900">@((((defaultVariant?.SalePrice ?? 0) / 12)).ToString("N0"))đ/th</strong>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Danh sách biến thể (Màu sắc, Dung lượng, RAM) -->
@@ -350,7 +357,7 @@
                             <span class="text-blue-600 group-open:rotate-180 transition-transform">▼</span>
                         </summary>
                         <p class="text-xs text-slate-600 mt-2.5 leading-relaxed">
-                            Sản phẩm được bảo hành chính hãng 12 tháng tại các Trung tâm Bảo hành Ủy quyền trên toàn quốc. Đổi mới 1:1 trong 30 ngày nếu phát sinh lỗi từ nhà sản xuất.
+                            Sản phẩm được bảo hành chính hãng @(Model.Product.WarrantyMonths > 0 ? Model.Product.WarrantyMonths : 12) tháng tại các Trung tâm Bảo hành Ủy quyền trên toàn quốc. Đổi mới 1:1 trong 30 ngày nếu phát sinh lỗi từ nhà sản xuất.
                         </p>
                     </details>
                     <details name="pdp-faq" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 group cursor-pointer">
@@ -695,6 +702,104 @@
     </div>
 </dialog>
 
+<!-- Modal Định Giá Thu Cũ Lên Đời (Trade-in Estimator Modal) -->
+<dialog id="tradeInModal" class="rounded-3xl p-0 backdrop:bg-slate-900/60 shadow-2xl max-w-xl w-full mx-auto border border-slate-200">
+    <div class="p-6 space-y-5 bg-white">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">🔄</span>
+                <div>
+                    <h3 class="text-base font-black text-slate-900">Định Giá Thu Cũ Đổi Mới</h3>
+                    <p class="text-[11px] text-emerald-700 font-semibold">Trợ giá lên đời độc quyền tại TechStore</p>
+                </div>
+            </div>
+            <button type="button" onclick="document.getElementById('tradeInModal').close()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 text-lg font-bold">&times;</button>
+        </div>
+
+        <!-- Step 1: Chọn dòng máy cũ -->
+        <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">1. Thiết bị cũ của bạn</label>
+            <select id="tradeInOldDevice" onchange="calculateTradeIn()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <optgroup label="Apple iPhone">
+                    <option value="15500000" data-subsidy="2500000">iPhone 15 Pro Max 256GB</option>
+                    <option value="13000000" data-subsidy="2000000">iPhone 15 Pro 128GB</option>
+                    <option value="11000000" data-subsidy="2000000">iPhone 14 Pro Max 128GB</option>
+                    <option value="9000000" data-subsidy="1500000">iPhone 14 Pro / 14 Plus</option>
+                    <option value="7500000" data-subsidy="1500000">iPhone 13 Pro Max</option>
+                    <option value="6000000" data-subsidy="1000000">iPhone 13 / 13 Pro</option>
+                    <option value="4500000" data-subsidy="1000000">iPhone 12 / 12 Pro</option>
+                    <option value="3500000" data-subsidy="800000">iPhone 11 / 11 Pro Max</option>
+                </optgroup>
+                <optgroup label="Samsung Galaxy">
+                    <option value="13500000" data-subsidy="3000000">Galaxy S24 Ultra 256GB</option>
+                    <option value="10500000" data-subsidy="2500000">Galaxy S24+ / S24</option>
+                    <option value="8500000" data-subsidy="2000000">Galaxy S23 Ultra</option>
+                    <option value="6500000" data-subsidy="1500000">Galaxy S22 Ultra</option>
+                    <option value="8000000" data-subsidy="2000000">Galaxy Z Fold5 / Z Flip5</option>
+                </optgroup>
+                <optgroup label="Laptop & MacBook">
+                    <option value="16000000" data-subsidy="2500000">MacBook Pro M2 14/16 inch</option>
+                    <option value="11500000" data-subsidy="2000000">MacBook Air M2 13 inch</option>
+                    <option value="9000000" data-subsidy="1500000">MacBook Air M1 2020</option>
+                    <option value="7000000" data-subsidy="1500000">Laptop Gaming / Văn Phòng Khác</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <!-- Step 2: Chọn tình trạng máy -->
+        <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">2. Tình trạng ngoại hình & Pin</label>
+            <div class="grid grid-cols-3 gap-2">
+                <label class="p-2.5 rounded-xl border border-slate-200 cursor-pointer hover:border-emerald-500 transition text-center flex flex-col items-center">
+                    <input type="radio" name="tradeInCondition" value="1.0" checked onchange="calculateTradeIn()" class="text-emerald-600 mb-1" />
+                    <span class="text-xs font-bold text-slate-800">Loại 1 (99%)</span>
+                    <span class="text-[10px] text-slate-400">Đẹp như mới, Pin >85%</span>
+                </label>
+                <label class="p-2.5 rounded-xl border border-slate-200 cursor-pointer hover:border-emerald-500 transition text-center flex flex-col items-center">
+                    <input type="radio" name="tradeInCondition" value="0.85" onchange="calculateTradeIn()" class="text-emerald-600 mb-1" />
+                    <span class="text-xs font-bold text-slate-800">Loại 2 (95%)</span>
+                    <span class="text-[10px] text-slate-400">Trầy xước nhẹ, Pin >80%</span>
+                </label>
+                <label class="p-2.5 rounded-xl border border-slate-200 cursor-pointer hover:border-emerald-500 transition text-center flex flex-col items-center">
+                    <input type="radio" name="tradeInCondition" value="0.65" onchange="calculateTradeIn()" class="text-emerald-600 mb-1" />
+                    <span class="text-xs font-bold text-slate-800">Loại 3 (&lt;90%)</span>
+                    <span class="text-[10px] text-slate-400">Cấn viền, Pin chai</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Step 3: Bảng định giá chi tiết -->
+        <div class="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 space-y-2 text-xs">
+            <div class="flex justify-between text-slate-600">
+                <span>Giá thu máy cũ dự kiến:</span>
+                <strong id="tradeInBaseValue" class="text-slate-900 font-bold">0 đ</strong>
+            </div>
+            <div class="flex justify-between text-emerald-700">
+                <span>Trợ giá nâng đời từ TechStore:</span>
+                <strong id="tradeInSubsidy" class="font-bold">+0 đ</strong>
+            </div>
+            <div class="flex justify-between text-sm font-extrabold text-emerald-950 pt-2 border-t border-emerald-200">
+                <span>Tổng giá trị quy đổi:</span>
+                <span id="tradeInTotalDiscount" class="text-emerald-600 font-black">0 đ</span>
+            </div>
+            <div class="flex justify-between text-xs font-bold text-slate-700 pt-1">
+                <span>Số tiền bạn thực trả máy mới:</span>
+                <span id="tradeInFinalPay" class="text-base text-blue-600 font-black">0 đ</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 pt-1">
+            <button type="button" onclick="document.getElementById('tradeInModal').close()" class="px-4 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                Đóng
+            </button>
+            <button type="button" onclick="applyTradeInToOrder()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                <span>Đăng Ký Thu Cũ Cùng Đơn Này</span>
+            </button>
+        </div>
+    </div>
+</dialog>
+
 <!-- Sticky Buy Bar (Khi cuộn chuột qua khối mua hàng) -->
 <div id="stickyBuyBar" class="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 shadow-2xl transition-transform duration-300 translate-y-full flex items-center justify-between max-w-7xl mx-auto px-4">
     <div class="flex items-center gap-3">
@@ -717,19 +822,27 @@
     </div>
 </div>
 
+@section Scripts {
 <script>
     let currentSalePrice = @(defaultVariant?.SalePrice ?? 0);
 
     function selectVariant(id, name, salePrice, origPrice, stock, image, sku) {
         currentSalePrice = salePrice;
-        document.getElementById('selectedVariantId').value = id;
-        document.getElementById('selectedVariantStock').value = stock;
-        document.getElementById('selectedVariantPrice').value = salePrice;
+        const idInput = document.getElementById('selectedVariantId');
+        if (idInput) idInput.value = id;
+        const stockInput = document.getElementById('selectedVariantStock');
+        if (stockInput) stockInput.value = stock;
+        const priceInput = document.getElementById('selectedVariantPrice');
+        if (priceInput) priceInput.value = salePrice;
 
-        document.getElementById('variantPrice').innerText = salePrice.toLocaleString('vi-VN') + ' đ';
-        document.getElementById('variantOriginalPrice').innerText = origPrice.toLocaleString('vi-VN') + ' đ';
-        document.getElementById('stickyVariantPrice').innerText = salePrice.toLocaleString('vi-VN') + ' đ';
-        document.getElementById('installmentMonthlyPreview').innerText = Math.round(salePrice / 12).toLocaleString('vi-VN') + 'đ/th';
+        const priceEl = document.getElementById('variantPrice');
+        if (priceEl) priceEl.innerText = Number(salePrice).toLocaleString('vi-VN') + ' đ';
+        const origPriceEl = document.getElementById('variantOriginalPrice');
+        if (origPriceEl) origPriceEl.innerText = Number(origPrice).toLocaleString('vi-VN') + ' đ';
+        const stickyPriceEl = document.getElementById('stickyVariantPrice');
+        if (stickyPriceEl) stickyPriceEl.innerText = Number(salePrice).toLocaleString('vi-VN') + ' đ';
+        const installmentEl = document.getElementById('installmentMonthlyPreview');
+        if (installmentEl) installmentEl.innerText = Math.round(salePrice / 12).toLocaleString('vi-VN') + 'đ/th';
 
         const stockEl = document.getElementById('stockStatus');
         const buyBtn = document.getElementById('pdpBuyNowBtn');
@@ -737,21 +850,29 @@
         const qtyInput = document.getElementById('pdpQuantityInput');
 
         if (stock > 0) {
-            stockEl.innerText = `Còn hàng (${stock} sản phẩm)`;
-            stockEl.className = 'text-emerald-600 font-bold';
-            buyBtn.classList.remove('opacity-50', 'pointer-events-none');
-            addBtn.classList.remove('opacity-50', 'pointer-events-none');
-            qtyInput.max = stock;
-            if (parseInt(qtyInput.value) > stock) qtyInput.value = stock;
+            if (stockEl) {
+                stockEl.innerText = `Còn hàng (${stock} sản phẩm)`;
+                stockEl.className = 'text-emerald-600 font-bold';
+            }
+            if (buyBtn) buyBtn.classList.remove('opacity-50', 'pointer-events-none');
+            if (addBtn) addBtn.classList.remove('opacity-50', 'pointer-events-none');
+            if (qtyInput) {
+                qtyInput.max = stock;
+                if (parseInt(qtyInput.value) > stock) qtyInput.value = stock;
+            }
         } else {
-            stockEl.innerText = 'Hết hàng';
-            stockEl.className = 'text-rose-600 font-bold';
-            buyBtn.classList.add('opacity-50', 'pointer-events-none');
-            addBtn.classList.add('opacity-50', 'pointer-events-none');
+            if (stockEl) {
+                stockEl.innerText = 'Hết hàng';
+                stockEl.className = 'text-rose-600 font-bold';
+            }
+            if (buyBtn) buyBtn.classList.add('opacity-50', 'pointer-events-none');
+            if (addBtn) addBtn.classList.add('opacity-50', 'pointer-events-none');
         }
 
-        if (image) document.getElementById('mainProductImage').src = image;
-        if (sku) document.getElementById('variantSkuDisplay').innerText = 'SKU: ' + sku;
+        const mainImg = document.getElementById('mainProductImage');
+        if (image && mainImg) mainImg.src = image;
+        const skuEl = document.getElementById('variantSkuDisplay');
+        if (sku && skuEl) skuEl.innerText = 'SKU: ' + sku;
 
         document.querySelectorAll('.variant-btn').forEach(btn => {
             btn.className = 'variant-btn p-3 text-left border rounded-xl transition-all border-slate-200 hover:border-slate-300 bg-white';
@@ -764,28 +885,40 @@
 
     function adjustPdpQuantity(delta) {
         const input = document.getElementById('pdpQuantityInput');
-        const stock = parseInt(document.getElementById('selectedVariantStock').value) || 50;
-        let val = (parseInt(input.value) || 1) + delta;
+        const stockEl = document.getElementById('selectedVariantStock');
+        const stock = parseInt(stockEl?.value) || 50;
+        let val = (parseInt(input?.value) || 1) + delta;
         if (val < 1) val = 1;
         if (val > stock) {
             val = stock;
             if (window.showToast) showToast(`Chỉ có thể chọn tối đa ${stock} sản phẩm`, 'warning');
         }
-        input.value = val;
+        if (input) input.value = val;
     }
 
     function handleAddCurrentToCart(redirectToCheckout = false) {
-        const variantId = parseInt(document.getElementById('selectedVariantId').value);
-        const stock = parseInt(document.getElementById('selectedVariantStock').value) || 0;
-        const qty = parseInt(document.getElementById('pdpQuantityInput').value) || 1;
+        const variantId = parseInt(document.getElementById('selectedVariantId')?.value) || 0;
+        const stock = parseInt(document.getElementById('selectedVariantStock')?.value) || 0;
+        const qty = parseInt(document.getElementById('pdpQuantityInput')?.value) || 1;
 
         if (stock <= 0) {
             if (window.showToast) showToast('Sản phẩm này hiện đang tạm hết hàng!', 'error');
+            else alert('Sản phẩm này hiện đang tạm hết hàng!');
             return;
         }
 
         if (variantId > 0) {
-            addToCart(variantId, qty, !redirectToCheckout);
+            if (typeof addToCart === 'function') {
+                addToCart(variantId, qty, !redirectToCheckout);
+            } else {
+                let cart = [];
+                try { cart = JSON.parse(localStorage.getItem('techstore_cart')) || []; } catch(e){}
+                const idx = cart.findIndex(i => i.variantId === variantId);
+                if (idx > -1) cart[idx].quantity += qty;
+                else cart.push({ variantId, quantity: qty });
+                localStorage.setItem('techstore_cart', JSON.stringify(cart));
+                if (window.showToast) showToast('Đã thêm sản phẩm vào giỏ hàng thành công!', 'success');
+            }
             if (redirectToCheckout) {
                 window.location.href = '/checkout';
             }
@@ -877,11 +1010,13 @@
             if (data.isWishlisted) {
                 btn.classList.remove('bg-slate-100', 'text-slate-500');
                 btn.classList.add('bg-rose-50', 'text-rose-600');
-                svg.setAttribute('fill', 'currentColor');
+                if (svg) svg.setAttribute('fill', 'currentColor');
+                if (window.showToast) showToast('Đã thêm vào danh sách yêu thích!', 'success');
             } else {
                 btn.classList.remove('bg-rose-50', 'text-rose-600');
                 btn.classList.add('bg-slate-100', 'text-slate-500');
-                svg.setAttribute('fill', 'none');
+                if (svg) svg.setAttribute('fill', 'none');
+                if (window.showToast) showToast('Đã xóa khỏi danh sách yêu thích!', 'info');
             }
 
             const headerWishlistBadge = document.getElementById('headerWishlistCount');
@@ -960,4 +1095,68 @@
         const section = document.getElementById('recentlyViewedSection');
         if (section) section.classList.add('hidden');
     }
+
+    // Trade-in Modal logic
+    function openTradeInModal() {
+        const dialog = document.getElementById('tradeInModal');
+        if (dialog) {
+            dialog.showModal();
+            calculateTradeIn();
+        }
+    }
+
+    function calculateTradeIn() {
+        const select = document.getElementById('tradeInOldDevice');
+        if (!select) return;
+        const opt = select.options[select.selectedIndex];
+        const baseVal = parseFloat(opt ? opt.value : 0) || 0;
+        const subsidy = parseFloat(opt ? opt.dataset.subsidy : 0) || 0;
+
+        const conditionRadio = document.querySelector('input[name="tradeInCondition"]:checked');
+        const conditionFactor = conditionRadio ? parseFloat(conditionRadio.value) : 1.0;
+
+        const estimatedBase = Math.round(baseVal * conditionFactor);
+        const totalDiscount = estimatedBase + subsidy;
+        const currentPrice = currentSalePrice || @(defaultVariant?.SalePrice ?? 0);
+        const finalPay = Math.max(0, currentPrice - totalDiscount);
+
+        const baseValEl = document.getElementById('tradeInBaseValue');
+        if (baseValEl) baseValEl.innerText = estimatedBase.toLocaleString('vi-VN') + ' đ';
+        const subsidyEl = document.getElementById('tradeInSubsidy');
+        if (subsidyEl) subsidyEl.innerText = '+' + subsidy.toLocaleString('vi-VN') + ' đ';
+        const totalDiscountEl = document.getElementById('tradeInTotalDiscount');
+        if (totalDiscountEl) totalDiscountEl.innerText = totalDiscount.toLocaleString('vi-VN') + ' đ';
+        const finalPayEl = document.getElementById('tradeInFinalPay');
+        if (finalPayEl) finalPayEl.innerText = finalPay.toLocaleString('vi-VN') + ' đ';
+    }
+
+    function applyTradeInToOrder() {
+        const select = document.getElementById('tradeInOldDevice');
+        const opt = select ? select.options[select.selectedIndex] : null;
+        const totalDiscountEl = document.getElementById('tradeInTotalDiscount');
+        const totalDiscount = totalDiscountEl ? totalDiscountEl.innerText : '0 đ';
+        const deviceName = opt ? opt.text : 'Thiết bị cũ';
+        const info = `[Thu Cũ Đổi Mới] Máy cũ: ${deviceName} - Ước tính trừ: ${totalDiscount}`;
+        
+        sessionStorage.setItem('techstore_tradein', info);
+        if (window.showToast) {
+            showToast('Đã áp dụng thông tin Thu Cũ Đổi Mới! Hệ thống sẽ đính kèm vào ghi chú khi bạn đặt hàng.', 'success');
+        } else {
+            alert('Đã áp dụng thông tin Thu Cũ Đổi Mới!');
+        }
+        const dialog = document.getElementById('tradeInModal');
+        if (dialog) dialog.close();
+    }
+
+    // Attach to global window
+    window.selectVariant = selectVariant;
+    window.adjustPdpQuantity = adjustPdpQuantity;
+    window.handleAddCurrentToCart = handleAddCurrentToCart;
+    window.openInstallmentModal = openInstallmentModal;
+    window.toggleWishlist = toggleWishlist;
+    window.switchGalleryImage = switchGalleryImage;
+    window.openTradeInModal = openTradeInModal;
+    window.calculateTradeIn = calculateTradeIn;
+    window.applyTradeInToOrder = applyTradeInToOrder;
 </script>
+}

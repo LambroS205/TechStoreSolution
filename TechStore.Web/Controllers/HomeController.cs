@@ -152,6 +152,8 @@ public class HomeController : Controller
         return RedirectToAction(nameof(Contact));
     }
 
+    [HttpGet]
+    [HttpPost]
     [Route("/error/{code:int}")]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult StatusCodeHandler(int code)
@@ -170,6 +172,7 @@ public class HomeController : Controller
             {
                 401 => "Bạn cần đăng nhập để truy cập trang này.",
                 403 => "Bạn không có quyền truy cập vào nội dung này.",
+                405 => "Phương thức HTTP không được hỗ trợ cho tài nguyên này (Method Not Allowed).",
                 500 => "Máy chủ gặp sự cố ngoài ý muốn. Vui lòng thử lại sau.",
                 _ => "Đã có lỗi xảy ra trong quá trình xử lý yêu cầu."
             }

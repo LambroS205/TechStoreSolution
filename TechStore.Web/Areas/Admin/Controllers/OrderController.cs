@@ -15,7 +15,7 @@ namespace TechStore.Web.Areas.Admin.Controllers;
 [Area("Admin")]
 [Authorize]
 [HasPermission("Orders.View")]
-public class OrderController : Controller
+public partial class OrderController : Controller
 {
     private readonly TechStoreDbContext _context;
     private readonly IAuditLogService _auditLogService;
@@ -110,6 +110,12 @@ public class OrderController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [HasPermission("Orders.ApprovePayment")]
+    [HttpGet]
+    public IActionResult VerifyVietQrPayment() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult UpdateStatus() => RedirectToAction(nameof(Index));
+
     public async Task<IActionResult> VerifyVietQrPayment(int orderId, string transactionRef)
     {
         var order = await _context.Orders.FindAsync(orderId);

@@ -52,6 +52,15 @@ public class SupplierController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [HttpGet]
+    public IActionResult Save() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult Delete() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult ToggleActive() => RedirectToAction(nameof(Index));
+
     public async Task<IActionResult> Save(Supplier model)
     {
         if (string.IsNullOrWhiteSpace(model.Name))

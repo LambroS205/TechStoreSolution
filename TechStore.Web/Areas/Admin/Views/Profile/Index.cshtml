@@ -1,0 +1,413 @@
+@model TechStore.Web.Areas.Admin.Models.StaffProfileViewModel
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService Auth
+@{
+    ViewData["Title"] = "Hồ Sơ Nhân Sự & Quản Trị";
+    bool isSuperAdmin = User.IsInRole("SuperAdmin");
+    bool canOrdersView = isSuperAdmin || (await Auth.AuthorizeAsync(User, null, "Permission:Orders.View")).Succeeded;
+    bool canInventoryView = isSuperAdmin || (await Auth.AuthorizeAsync(User, null, "Permission:Inventory.View")).Succeeded;
+    bool canAuditLogsView = isSuperAdmin || (await Auth.AuthorizeAsync(User, null, "Permission:AuditLogs.View")).Succeeded;
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="/Admin" class="hover:text-blue-600">Quản trị</a>
+                <span>/</span>
+                <span class="text-slate-600 font-medium">Hồ sơ cá nhân</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                <span class="p-2 bg-blue-600 text-white rounded-xl shadow-xs">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                </span>
+                <span>Hồ Sơ Nhân Viên Nội Bộ</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">Quản lý thông tin công vụ, phân quyền nghiệp vụ và nhật ký kiểm toán cá nhân</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/" target="_blank" class="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition flex items-center gap-1.5 shadow-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                <span>Xem Cửa Hàng</span>
+            </a>
+            <a href="/Admin" class="px-3.5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-black rounded-xl transition shadow-xs">
+                &larr; Bàn Làm Việc
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700 font-bold">&times;</button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 font-bold">&times;</button>
+        </div>
+    }
+
+    <!-- Staff Identity Badge Card -->
+    <div class="relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white shadow-xl @(Model.IsSuperAdmin 
+        ? "bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950 border border-amber-500/30" 
+        : "bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-900 border border-blue-500/30")">
+        
+        <!-- Ambient decorative blur circles -->
+        <div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-16 -bottom-16 w-64 h-64 rounded-full @(Model.IsSuperAdmin ? "bg-amber-400/10" : "bg-blue-400/10") blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex items-center gap-5">
+                <!-- Avatar with Badge -->
+                <div class="relative shrink-0">
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white/10 backdrop-blur-md border-2 @(Model.IsSuperAdmin ? "border-amber-400" : "border-blue-400") flex items-center justify-center overflow-hidden shadow-lg">
+                        @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+                        {
+                            <img src="@Model.AvatarUrl" alt="@Model.FullName" class="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <span class="text-3xl sm:text-4xl font-black text-white">
+                                @((string.IsNullOrEmpty(Model.FullName) ? Model.Username : Model.FullName).Substring(0, 1).ToUpper())
+                            </span>
+                        }
+                    </div>
+                    <span class="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white border-2 border-slate-900 shadow-xs">
+                        Active
+                    </span>
+                </div>
+
+                <!-- Identity Details -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider backdrop-blur-md @(Model.IsSuperAdmin 
+                            ? "bg-amber-400/20 text-amber-300 border border-amber-400/40" 
+                            : "bg-blue-400/20 text-blue-200 border border-blue-400/40")">
+                            @(Model.IsSuperAdmin ? "Super Administrator" : "TechStore Staff")
+                        </span>
+                        <span class="text-xs text-white/70 font-mono">Mã NV: <strong class="text-white">@Model.EmployeeCode</strong></span>
+                    </div>
+
+                    <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-white">@Model.FullName</h2>
+                    
+                    <p class="text-xs text-white/80 flex items-center gap-3 flex-wrap">
+                        <span>Tài khoản: <strong class="text-white font-mono">@@@Model.Username</strong></span>
+                        <span>&bull;</span>
+                        <span>Email: <strong class="text-white">@Model.Email</strong></span>
+                        @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                        {
+                            <span>&bull;</span>
+                            <span>SĐT: <strong class="text-white">@Model.PhoneNumber</strong></span>
+                        }
+                    </p>
+
+                    <div class="flex items-center gap-1.5 pt-1 flex-wrap">
+                        <span class="text-[11px] text-white/60">Vai trò phân công:</span>
+                        @foreach (var r in Model.Roles)
+                        {
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/10 text-white border border-white/15">
+                                @r
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Privilege Info Box -->
+            <div class="bg-black/30 backdrop-blur-md rounded-2xl p-4 border border-white/10 shrink-0 md:max-w-xs space-y-2 text-xs">
+                <span class="text-[10px] uppercase font-black tracking-wider text-yellow-300 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 002 0V7z" clip-rule="evenodd"/></svg>
+                    Chính Sách Bảo Mật Nội Bộ
+                </span>
+                <p class="text-white/80 text-[11px] leading-relaxed">
+                    Tài khoản được bảo vệ bằng phân quyền động Policy-based RBAC. Mọi thao tác thêm/sửa/xóa đều được tự động ghi nhận vào Nhật ký kiểm toán.
+                </p>
+                <div class="text-[11px] text-white/60 pt-1 border-t border-white/10">
+                    Thành viên từ: <strong>@Model.CreatedAt.ToString("dd/MM/yyyy")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operational KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Thao Tác Quản Trị</span>
+                <h3 class="text-2xl font-black text-slate-900 mt-1">@Model.AuditActionsCount</h3>
+                <span class="text-xs text-blue-600 font-semibold mt-1 inline-block">Nhật ký cá nhân</span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            </div>
+        </div>
+
+        @if (canOrdersView)
+        {
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Lượt Điều Phối Đơn</span>
+                    <h3 class="text-2xl font-black text-indigo-600 mt-1">@Model.OrdersHandledCount</h3>
+                    <span class="text-xs text-slate-500 mt-1 inline-block">Chuyển trạng thái đơn</span>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                </div>
+            </div>
+        }
+
+        @if (canInventoryView)
+        {
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Phiếu Giao Dịch Kho</span>
+                    <h3 class="text-2xl font-black text-emerald-600 mt-1">@Model.InventoryTxCount</h3>
+                    <span class="text-xs text-slate-500 mt-1 inline-block">Nhập / Xuất / Kiểm kê</span>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                </div>
+            </div>
+        }
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bài Viết Tin Tức</span>
+                <h3 class="text-2xl font-black text-amber-600 mt-1">@Model.BlogPostsCount</h3>
+                <span class="text-xs text-slate-500 mt-1 inline-block">Đã đăng / Biên tập</span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main 2-Column Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left Column: Forms (5 cols) -->
+        <div class="lg:col-span-5 space-y-6">
+            <!-- Form 1: Cập nhật thông tin cá nhân -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    <span>Cập Nhật Thông Tin Cá Nhân</span>
+                </h3>
+
+                <form action="/Admin/Profile/UpdateInfo" method="post" enctype="multipart/form-data" class="space-y-4">
+                    @Html.AntiForgeryToken()
+
+                    <div>
+                        <label for="staffUsername" class="block text-xs font-semibold text-slate-700 mb-1">Tên Đăng Nhập (Cố định)</label>
+                        <input type="text" id="staffUsername" value="@Model.Username" disabled 
+                               class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-500 font-mono outline-none cursor-not-allowed" />
+                    </div>
+
+                    <div>
+                        <label for="staffEmail" class="block text-xs font-semibold text-slate-700 mb-1">Email Công Vụ (Cố định)</label>
+                        <input type="email" id="staffEmail" value="@Model.Email" disabled 
+                               class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-500 outline-none cursor-not-allowed" />
+                    </div>
+
+                    <div>
+                        <label for="staffFullName" class="block text-xs font-semibold text-slate-700 mb-1">Họ Và Tên <span class="text-rose-500">*</span></label>
+                        <input type="text" id="staffFullName" name="FullName" value="@Model.FullName" required autocomplete="name"
+                               class="w-full text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+
+                    <div>
+                        <label for="staffPhoneNumber" class="block text-xs font-semibold text-slate-700 mb-1">Số Điện Thoại Nội Bộ</label>
+                        <input type="tel" id="staffPhoneNumber" name="PhoneNumber" value="@Model.PhoneNumber" autocomplete="tel" placeholder="VD: 0988112233"
+                               class="w-full text-xs border border-slate-300 rounded-xl px-3.5 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+
+                    <div>
+                        <label for="staffAvatarInput" class="block text-xs font-semibold text-slate-700 mb-1">Thay Đổi Ảnh Đại Diện</label>
+                        <input type="file" id="staffAvatarInput" name="avatarFile" accept="image/*" 
+                               class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+                        <span class="text-[11px] text-slate-400 mt-1 block">Định dạng JPG, PNG, WEBP (tối đa 5MB)</span>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95">
+                            Lưu Thông Tin Cá Nhân
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Form 2: Đổi mật khẩu bảo mật -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    <span>Đổi Mật Khẩu Bảo Mật</span>
+                </h3>
+
+                <form action="/Admin/Profile/ChangePassword" method="post" class="space-y-4">
+                    @Html.AntiForgeryToken()
+
+                    <div>
+                        <label for="currentPassword" class="block text-xs font-semibold text-slate-700 mb-1">Mật Khẩu Hiện Tại <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="password" id="currentPassword" name="CurrentPassword" required autocomplete="current-password"
+                                   class="w-full text-xs border border-slate-300 rounded-xl pl-3.5 pr-10 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <button type="button" onclick="togglePasswordVisibility('currentPassword', this)" aria-label="Hiện mật khẩu" aria-pressed="false"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="newPassword" class="block text-xs font-semibold text-slate-700 mb-1">Mật Khẩu Mới (Tối thiểu 8 ký tự) <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="password" id="newPassword" name="NewPassword" required minlength="8" autocomplete="new-password"
+                                   class="w-full text-xs border border-slate-300 rounded-xl pl-3.5 pr-10 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <button type="button" onclick="togglePasswordVisibility('newPassword', this)" aria-label="Hiện mật khẩu" aria-pressed="false"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                👁️
+                            </button>
+                        </div>
+                        <span class="text-[11px] text-slate-400 mt-1 block">Bao gồm cả chữ cái và số, không khoảng trắng</span>
+                    </div>
+
+                    <div>
+                        <label for="confirmPassword" class="block text-xs font-semibold text-slate-700 mb-1">Xác Nhận Mật Khẩu Mới <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="password" id="confirmPassword" name="ConfirmPassword" required minlength="8" autocomplete="new-password"
+                                   class="w-full text-xs border border-slate-300 rounded-xl pl-3.5 pr-10 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <button type="button" onclick="togglePasswordVisibility('confirmPassword', this)" aria-label="Hiện mật khẩu" aria-pressed="false"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95">
+                            Cập Nhật Mật Khẩu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: System Permissions & Audit Logs (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+            <!-- Card 1: Quyền Hạn Hệ Thống Của Tôi -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                        <span>Quyền Hạn Hệ Thống Của Tôi (Effective Permissions)</span>
+                    </h3>
+                    <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                        @Model.EffectivePermissionsByModule.Values.Sum(v => v.Count) Quyền Hoạt Động
+                    </span>
+                </div>
+
+                @if (!Model.EffectivePermissionsByModule.Any())
+                {
+                    <div class="p-6 text-center text-slate-400 text-xs">
+                        Tài khoản hiện chưa được cấp quyền hạn phân hệ nào. Vui lòng liên hệ Super Administrator.
+                    </div>
+                }
+                else
+                {
+                    <div class="space-y-4 max-h-96 overflow-y-auto pr-1">
+                        @foreach (var group in Model.EffectivePermissionsByModule)
+                        {
+                            <div class="p-3 bg-slate-50/75 rounded-xl border border-slate-100 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                        Phân Hệ: @group.Key
+                                    </span>
+                                    <span class="text-[10px] text-slate-500 font-semibold">@group.Value.Count quyền</span>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @foreach (var perm in group.Value)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white border border-slate-200 text-slate-700 shadow-2xs" title="@perm.Description">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            <span>@perm.Action</span>
+                                            <span class="text-[9px] text-slate-400 font-mono">(@perm.PermissionCode)</span>
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Card 2: Nhật Ký Thao Tác Gần Đây -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span>Nhật Ký Thao Tác Gần Đây (My Audit Trail)</span>
+                    </h3>
+                    @if (canAuditLogsView)
+                    {
+                        <a href="/Admin/AuditLog" class="text-xs font-bold text-blue-600 hover:underline">
+                            Xem tất cả &rarr;
+                        </a>
+                    }
+                </div>
+
+                @if (!Model.RecentAuditLogs.Any())
+                {
+                    <div class="p-6 text-center text-slate-400 text-xs">
+                        Chưa có thao tác nào được ghi nhận gần đây.
+                    </div>
+                }
+                else
+                {
+                    <div class="divide-y divide-slate-100 text-xs">
+                        @foreach (var log in Model.RecentAuditLogs)
+                        {
+                            <div class="py-2.5 flex items-center justify-between gap-3 hover:bg-slate-50/50 rounded-lg px-2 transition">
+                                <div class="space-y-0.5 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-800">@log.Action</span>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">@log.Module</span>
+                                        @if (!string.IsNullOrEmpty(log.RecordId))
+                                        {
+                                            <span class="text-[10px] text-slate-400 font-mono">#@log.RecordId</span>
+                                        }
+                                    </div>
+                                    <p class="text-[11px] text-slate-400">@log.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</p>
+                                </div>
+                                <span class="text-[10px] text-slate-400 font-mono shrink-0">@log.IpAddress</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePasswordVisibility(fieldId, btn) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+        const isPassword = field.type === 'password';
+        field.type = isPassword ? 'text' : 'password';
+        btn.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+        btn.innerText = isPassword ? '🙈' : '👁️';
+    }
+</script>
+

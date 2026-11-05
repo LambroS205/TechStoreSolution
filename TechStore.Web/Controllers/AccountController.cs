@@ -1,555 +1,1196 @@
 using System;
+
 using System.Collections.Generic;
+
 using System.Linq;
+
 using System.Security.Claims;
+
 using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Authentication;
+
 using Microsoft.AspNetCore.Authentication.Cookies;
+
 using Microsoft.AspNetCore.Authorization;
+
 using Microsoft.AspNetCore.Http;
+
 using Microsoft.AspNetCore.Identity;
+
 using Microsoft.AspNetCore.Mvc;
+
 using Microsoft.EntityFrameworkCore;
+
 using TechStore.Core.Entities;
+
 using TechStore.Core.Interfaces;
+
 using TechStore.Infrastructure.Data;
+
 using TechStore.Web.Models;
+
+using TechStore.Web.Security;
 
 namespace TechStore.Web.Controllers;
 
 [Authorize]
+
 public class AccountController : Controller
+
 {
+
     private readonly TechStoreDbContext _context;
+
     private readonly IFileStorageService _fileStorageService;
+
     private readonly IAuditLogService _auditLogService;
+
     private readonly ISiteSettingsService _siteSettingsService;
+
     private readonly IConfiguration _configuration;
+
     private readonly PasswordHasher<User> _passwordHasher;
 
     public AccountController(
+
         TechStoreDbContext context,
+
         IFileStorageService fileStorageService,
+
         IAuditLogService auditLogService,
+
         ISiteSettingsService siteSettingsService,
+
         IConfiguration configuration)
+
     {
+
         _context = context;
+
         _fileStorageService = fileStorageService;
+
         _auditLogService = auditLogService;
+
         _siteSettingsService = siteSettingsService;
+
         _configuration = configuration;
+
         _passwordHasher = new PasswordHasher<User>();
+
     }
 
     /// <summary>
+
     /// Trang hồ sơ cá nhân và quản lý tài khoản khách hàng
+
     /// </summary>
+
     [HttpGet]
+
     [Route("account/profile")]
+
     public async Task<IActionResult> Profile()
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         var totalOrders = await _context.Orders
+
             .AsNoTracking()
+
             .CountAsync(o => o.UserId == user.UserId);
 
         var totalSpent = await _context.Orders
+
             .AsNoTracking()
+
             .Where(o => o.UserId == user.UserId && (o.PaymentStatus == "Paid" || o.OrderStatus == "Delivered"))
+
             .SumAsync(o => (decimal?)o.TotalAmount) ?? 0m;
 
         var activeOrders = await _context.Orders
+
             .AsNoTracking()
-            .CountAsync(o => o.UserId == user.UserId && (o.OrderStatus == "Pending" || o.OrderStatus == "Processing" || o.OrderStatus == "Shipping"));
+
+            .CountAsync(o => o.UserId == user.UserId && (o.OrderStatus == "Pending" || o.OrderStatus == "Confirmed" || o.OrderStatus == "Processing" || o.OrderStatus == "Shipping"));
 
         var viewModel = new ProfileViewModel
+
         {
+
             UserId = user.UserId,
+
             Username = user.Username,
+
             FullName = user.FullName,
+
             Email = user.Email,
+
             PhoneNumber = user.PhoneNumber,
+
             AvatarUrl = user.AvatarUrl,
+
             CreatedAt = user.CreatedAt,
+
             TotalOrders = totalOrders,
+
             TotalSpent = totalSpent,
+
             ActiveOrdersCount = activeOrders,
+
             RoleName = user.UserRoles.FirstOrDefault()?.Role.RoleName ?? "Thành viên"
+
         };
 
         return View(viewModel);
+
     }
 
     /// <summary>
-    /// Cập nhật thông tin cá nhân (Họ tên, SĐT, Avatar)
+
+    /// Điều hướng an toàn khi truy cập trực tiếp bằng phương thức GET để tránh lỗi 405 Method Not Allowed
+
     /// </summary>
-    [HttpPost]
+
+    [HttpGet]
+
     [Route("account/update-profile")]
+
+    [Route("account/change-password")]
+
+    public IActionResult SafeProfileGet() => RedirectToAction(nameof(Profile));
+
+    [HttpGet]
+
+    [Route("account/addresses/create")]
+
+    [Route("account/addresses/edit")]
+
+    [Route("account/addresses/delete/{id}")]
+
+    [Route("account/addresses/set-default/{id}")]
+
+    public IActionResult SafeAddressesGet() => RedirectToAction(nameof(Addresses));
+
+    [HttpGet]
+
+    [Route("account/order/{orderCode}/cancel")]
+
+    public IActionResult SafeOrderCancelGet() => RedirectToAction(nameof(Orders));
+
+    /// <summary>
+
+    /// Cập nhật thông tin cá nhân (Họ tên, SĐT, Avatar)
+
+    /// </summary>
+
+    [HttpPost]
+
+    [Route("account/update-profile")]
+
     [ValidateAntiForgeryToken]
+
     public async Task<IActionResult> UpdateProfile(ProfileUpdateDto dto, IFormFile? avatarFile)
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         if (string.IsNullOrWhiteSpace(dto.FullName))
+
         {
+
             TempData["ErrorMessage"] = "Họ và tên không được để trống!";
+
             return RedirectToAction(nameof(Profile));
+
         }
 
         user.FullName = dto.FullName.Trim();
 
         if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
+
         {
+
             string phone = dto.PhoneNumber.Trim();
+
             if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^(03|05|07|08|09)\d{8}$"))
+
             {
+
                 TempData["ErrorMessage"] = "Số điện thoại không hợp lệ (cần đúng 10 số, bắt đầu bằng 03, 05, 07, 08, 09)!";
+
                 return RedirectToAction(nameof(Profile));
+
             }
+
             user.PhoneNumber = phone;
+
         }
+
         else
+
         {
+
             user.PhoneNumber = null;
+
         }
 
         if (avatarFile != null && avatarFile.Length > 0)
+
         {
+
             try
+
             {
+
                 using var stream = avatarFile.OpenReadStream();
+
                 user.AvatarUrl = await _fileStorageService.SaveFileAsync(stream, avatarFile.FileName, "avatars");
+
             }
+
             catch (Exception ex)
+
             {
+
                 TempData["ErrorMessage"] = ex.Message;
+
                 return RedirectToAction(nameof(Profile));
+
             }
+
         }
 
         user.UpdatedAt = DateTime.UtcNow;
+
         await _context.SaveChangesAsync();
 
         // Làm mới Cookie Authentication để hiển thị FullName mới trên Header
+
         await RefreshSignInAsync(user);
 
         TempData["SuccessMessage"] = "Đã cập nhật thông tin cá nhân thành công!";
+
         return RedirectToAction(nameof(Profile));
+
     }
 
     /// <summary>
+
     /// Đổi mật khẩu tài khoản
+
     /// </summary>
+
     [HttpPost]
+
     [Route("account/change-password")]
+
     [ValidateAntiForgeryToken]
+
     public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || string.IsNullOrWhiteSpace(dto.NewPassword))
+
         {
+
             TempData["ErrorMessage"] = "Vui lòng nhập đầy đủ thông tin mật khẩu!";
+
             return RedirectToAction(nameof(Profile));
+
         }
 
         if (dto.NewPassword.Length < 8 || !dto.NewPassword.Any(char.IsLetter) || !dto.NewPassword.Any(char.IsDigit) || dto.NewPassword.Contains(' '))
+
         {
+
             TempData["ErrorMessage"] = "Mật khẩu mới phải có tối thiểu 8 ký tự, gồm cả chữ cái và chữ số, không chứa khoảng trắng!";
+
             return RedirectToAction(nameof(Profile));
+
         }
 
         if (dto.NewPassword != dto.ConfirmPassword)
+
         {
+
             TempData["ErrorMessage"] = "Mật khẩu xác nhận không khớp!";
+
             return RedirectToAction(nameof(Profile));
+
         }
 
         // Kiểm tra mật khẩu hiện tại bằng PasswordHasher chuẩn bảo mật
+
         bool isPasswordValid = false;
+
         try
+
         {
+
             var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword);
+
             isPasswordValid = verifyResult == PasswordVerificationResult.Success ||
+
                               verifyResult == PasswordVerificationResult.SuccessRehashNeeded;
+
         }
+
         catch
+
         {
+
             isPasswordValid = false;
+
         }
 
         if (!isPasswordValid)
+
         {
+
             TempData["ErrorMessage"] = "Mật khẩu hiện tại không chính xác!";
+
             return RedirectToAction(nameof(Profile));
+
         }
 
         user.PasswordHash = _passwordHasher.HashPassword(user, dto.NewPassword);
+
         user.UpdatedAt = DateTime.UtcNow;
+
         await _context.SaveChangesAsync();
 
         await _auditLogService.LogAsync("ChangePassword", "Security", user.UserId.ToString(), null, new { Username = user.Username });
 
         TempData["SuccessMessage"] = "Đổi mật khẩu thành công!";
+
         return RedirectToAction(nameof(Profile));
+
     }
 
     /// <summary>
+
     /// Danh sách đơn hàng đã đặt của khách hàng
+
     /// </summary>
+
     [HttpGet]
+
     [Route("account/orders")]
+
     public async Task<IActionResult> Orders(string? status)
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         var baseQuery = _context.Orders
+
             .AsNoTracking()
+
             .Where(o => o.UserId == user.UserId || (o.CustomerEmail == user.Email && !string.IsNullOrEmpty(user.Email)));
 
         ViewBag.TotalOrdersCount = await baseQuery.CountAsync();
+
         ViewBag.PendingCount = await baseQuery.CountAsync(o => o.OrderStatus == "Pending");
+
         ViewBag.ConfirmedCount = await baseQuery.CountAsync(o => o.OrderStatus == "Confirmed");
+
         ViewBag.ProcessingCount = await baseQuery.CountAsync(o => o.OrderStatus == "Processing");
+
         ViewBag.ShippingCount = await baseQuery.CountAsync(o => o.OrderStatus == "Shipping");
+
         ViewBag.DeliveredCount = await baseQuery.CountAsync(o => o.OrderStatus == "Delivered");
+
         ViewBag.CancelledCount = await baseQuery.CountAsync(o => o.OrderStatus == "Cancelled");
 
         var query = baseQuery.Include(o => o.OrderDetails).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status) && status != "All")
+
         {
+
             query = query.Where(o => o.OrderStatus == status);
+
         }
 
         var orders = await query
+
             .OrderByDescending(o => o.CreatedAt)
+
             .ToListAsync();
 
         ViewBag.CurrentStatus = status ?? "All";
+
         return View(orders);
+
     }
 
     /// <summary>
+
     /// Chi tiết đơn hàng của khách hàng
+
     /// </summary>
+
     [HttpGet]
+
     [Route("account/order/{orderCode}")]
+
     public async Task<IActionResult> OrderDetail(string orderCode)
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         var order = await _context.Orders
+
             .AsNoTracking()
+
             .Include(o => o.OrderDetails)
+
                 .ThenInclude(od => od.Variant)
+
                     .ThenInclude(v => v.Product)
+
             .Include(o => o.StatusHistories)
+
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
 
         if (order == null) return NotFound();
 
         // Kiểm tra quyền sở hữu đơn hàng (Người mua hoặc SuperAdmin)
+
         bool isOwner = order.UserId == user.UserId || (order.CustomerEmail == user.Email && !string.IsNullOrEmpty(user.Email));
+
         bool isStaff = User.IsInRole("SuperAdmin") || User.IsInRole("StaffOrder");
 
         if (!isOwner && !isStaff)
+
         {
+
             return Forbid();
+
         }
 
         // Thông tin cấu hình VietQR từ SiteSettings
+
         var bankId = await _siteSettingsService.GetValueAsync("VietQr.BankId", _configuration["VietQrSettings:BankId"] ?? "970422");
+
         var accountNo = await _siteSettingsService.GetValueAsync("VietQr.AccountNo", _configuration["VietQrSettings:AccountNo"] ?? "0869162534");
+
         var accountName = await _siteSettingsService.GetValueAsync("VietQr.AccountName", _configuration["VietQrSettings:AccountName"] ?? "CONG TY TNHH TECHSTORE VIET NAM");
+
         var template = await _siteSettingsService.GetValueAsync("VietQr.Template", _configuration["VietQrSettings:Template"] ?? "compact2");
+
         var bankName = await _siteSettingsService.GetValueAsync("VietQr.BankName", _configuration["VietQrSettings:BankName"] ?? "MBBank (Ngân hàng Quân Đội)");
 
         ViewBag.VietQrUrl = $"https://img.vietqr.io/image/{bankId}-{accountNo}-{template}.png?amount={(long)order.TotalAmount}&addInfo={order.OrderCode}&accountName={Uri.EscapeDataString(accountName ?? "")}";
+
         ViewBag.BankName = bankName;
+
         ViewBag.AccountNo = accountNo;
+
         ViewBag.AccountName = accountName;
 
         return View(order);
+
     }
 
     /// <summary>
-    /// Lấy danh sách mặt hàng của đơn cũ để hỗ trợ mua lại (Reorder)
+
+    /// In hóa đơn điện tử / phiếu giao hàng cho khách hàng
+
     /// </summary>
+
     [HttpGet]
-    [Route("account/order/{orderCode}/items-json")]
-    public async Task<IActionResult> GetOrderItemsJson(string orderCode)
+
+    [Route("account/order/{orderCode}/invoice")]
+
+    public async Task<IActionResult> PrintInvoice(string orderCode)
+
     {
+
+        var user = await GetCurrentUserAsync();
+
+        if (user == null) return RedirectToAction("Login", "Auth");
+
         var order = await _context.Orders
+
             .AsNoTracking()
+
             .Include(o => o.OrderDetails)
+
+                .ThenInclude(od => od.Variant)
+
+                    .ThenInclude(v => v.Product)
+
+            .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
+
+        if (order == null) return NotFound();
+
+        bool isOwner = order.UserId == user.UserId || (order.CustomerEmail == user.Email && !string.IsNullOrEmpty(user.Email));
+
+        bool isStaff = User.IsInRole("SuperAdmin") || User.IsInRole("StaffOrder");
+
+        if (!isOwner && !isStaff)
+
+        {
+
+            return Forbid();
+
+        }
+
+        // Tái sử dụng template PrintInvoice chuyên nghiệp A4 của hệ thống
+
+        return View("~/Areas/Admin/Views/Order/PrintInvoice.cshtml", order);
+
+    }
+
+    /// <summary>
+
+    /// Lấy danh sách mặt hàng của đơn cũ để hỗ trợ mua lại (Reorder)
+
+    /// </summary>
+
+    [HttpGet]
+
+    [Route("account/order/{orderCode}/items-json")]
+
+    public async Task<IActionResult> GetOrderItemsJson(string orderCode)
+
+    {
+
+        var order = await _context.Orders
+
+            .AsNoTracking()
+
+            .Include(o => o.OrderDetails)
+
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
 
         if (order == null) return NotFound();
 
         var items = order.OrderDetails.Select(od => new
+
         {
+
             variantId = od.VariantId,
+
             quantity = od.Quantity
+
         }).ToList();
 
         return Ok(items);
+
     }
 
     /// <summary>
+
     /// Trang danh sách sản phẩm yêu thích của khách hàng
+
     /// </summary>
+
     [HttpGet]
+
     [Route("account/wishlist")]
+
     public async Task<IActionResult> Wishlist()
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         var wishlistItems = await _context.Wishlists
+
             .Include(w => w.Product)
+
                 .ThenInclude(p => p.Category)
+
             .Include(w => w.Product)
+
                 .ThenInclude(p => p.Brand)
+
             .Include(w => w.Product)
+
                 .ThenInclude(p => p.Variants.Where(v => v.IsActive))
+
             .Where(w => w.UserId == user.UserId)
+
             .OrderByDescending(w => w.AddedAt)
+
             .ToListAsync();
 
         return View(wishlistItems);
+
     }
 
     /// <summary>
+
     /// Quản lý sổ địa chỉ giao nhận hàng của khách hàng
+
     /// </summary>
+
     [HttpGet]
+
     [Route("account/addresses")]
+
     public async Task<IActionResult> Addresses()
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         var addresses = await _context.CustomerAddresses
+
             .Where(a => a.UserId == user.UserId)
+
             .OrderByDescending(a => a.IsDefault)
+
             .ThenByDescending(a => a.AddressId)
+
             .ToListAsync();
 
         return View(addresses);
+
     }
 
     /// <summary>
+
     /// Thêm mới địa chỉ nhận hàng
+
     /// </summary>
+
     [HttpPost]
+
     [Route("account/addresses/create")]
+
     [ValidateAntiForgeryToken]
+
     public async Task<IActionResult> CreateAddress(CustomerAddress model)
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         if (string.IsNullOrWhiteSpace(model.RecipientName) || string.IsNullOrWhiteSpace(model.PhoneNumber) || string.IsNullOrWhiteSpace(model.StreetAddress))
+
         {
+
             TempData["ErrorMessage"] = "Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ chi tiết!";
+
             return RedirectToAction(nameof(Addresses));
+
         }
 
         bool hasAddresses = await _context.CustomerAddresses.AnyAsync(a => a.UserId == user.UserId);
+
         if (!hasAddresses || model.IsDefault)
+
         {
+
             model.IsDefault = true;
+
             var oldDefaults = await _context.CustomerAddresses.Where(a => a.UserId == user.UserId && a.IsDefault).ToListAsync();
+
             foreach (var d in oldDefaults) d.IsDefault = false;
+
         }
 
         model.UserId = user.UserId;
 
         await _context.CustomerAddresses.AddAsync(model);
+
         await _context.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Đã lưu địa chỉ nhận hàng mới thành công!";
+
         return RedirectToAction(nameof(Addresses));
+
     }
 
     /// <summary>
-    /// Đặt làm địa chỉ giao hàng mặc định
+
+    /// Cập nhật thông tin địa chỉ nhận hàng
+
     /// </summary>
+
     [HttpPost]
-    [Route("account/addresses/set-default/{id}")]
+
+    [Route("account/addresses/edit")]
+
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SetDefaultAddress(int id)
+
+    public async Task<IActionResult> EditAddress(CustomerAddress model)
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
+        if (user == null) return RedirectToAction("Login", "Auth");
+
+        var address = await _context.CustomerAddresses.FirstOrDefaultAsync(a => a.AddressId == model.AddressId && a.UserId == user.UserId);
+
+        if (address == null) return NotFound();
+
+        if (string.IsNullOrWhiteSpace(model.RecipientName) || string.IsNullOrWhiteSpace(model.PhoneNumber) || string.IsNullOrWhiteSpace(model.StreetAddress))
+
+        {
+
+            TempData["ErrorMessage"] = "Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ chi tiết!";
+
+            return RedirectToAction(nameof(Addresses));
+
+        }
+
+        address.RecipientName = model.RecipientName.Trim();
+
+        address.PhoneNumber = model.PhoneNumber.Trim();
+
+        address.StreetAddress = model.StreetAddress.Trim();
+
+        address.Province = model.Province;
+
+        address.District = model.District;
+
+        address.Ward = model.Ward;
+
+        if (model.IsDefault && !address.IsDefault)
+
+        {
+
+            var oldDefaults = await _context.CustomerAddresses.Where(a => a.UserId == user.UserId && a.IsDefault).ToListAsync();
+
+            foreach (var d in oldDefaults) d.IsDefault = false;
+
+            address.IsDefault = true;
+
+        }
+
+        await _context.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = "Đã cập nhật địa chỉ thành công!";
+
+        return RedirectToAction(nameof(Addresses));
+
+    }
+
+    /// <summary>
+
+    /// Đặt làm địa chỉ giao hàng mặc định
+
+    /// </summary>
+
+    [HttpPost]
+
+    [Route("account/addresses/set-default/{id}")]
+
+    [ValidateAntiForgeryToken]
+
+    public async Task<IActionResult> SetDefaultAddress(int id)
+
+    {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
+        var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         var address = await _context.CustomerAddresses.FirstOrDefaultAsync(a => a.AddressId == id && a.UserId == user.UserId);
+
         if (address != null)
+
         {
+
             var otherAddresses = await _context.CustomerAddresses.Where(a => a.UserId == user.UserId && a.AddressId != id).ToListAsync();
+
             foreach (var o in otherAddresses) o.IsDefault = false;
 
             address.IsDefault = true;
+
             await _context.SaveChangesAsync();
+
             TempData["SuccessMessage"] = "Đã đặt làm địa chỉ mặc định!";
+
         }
 
         return RedirectToAction(nameof(Addresses));
+
     }
 
     /// <summary>
+
     /// Xóa địa chỉ khỏi sổ địa chỉ
+
     /// </summary>
+
     [HttpPost]
+
     [Route("account/addresses/delete/{id}")]
+
     [ValidateAntiForgeryToken]
+
     public async Task<IActionResult> DeleteAddress(int id)
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         var address = await _context.CustomerAddresses.FirstOrDefaultAsync(a => a.AddressId == id && a.UserId == user.UserId);
+
         if (address != null)
+
         {
+
             bool wasDefault = address.IsDefault;
+
             _context.CustomerAddresses.Remove(address);
+
             await _context.SaveChangesAsync();
 
             if (wasDefault)
+
             {
+
                 var nextAddress = await _context.CustomerAddresses.Where(a => a.UserId == user.UserId).OrderByDescending(a => a.AddressId).FirstOrDefaultAsync();
+
                 if (nextAddress != null)
+
                 {
+
                     nextAddress.IsDefault = true;
+
                     await _context.SaveChangesAsync();
+
                 }
+
             }
 
             TempData["SuccessMessage"] = "Đã xóa địa chỉ thành công!";
+
         }
 
         return RedirectToAction(nameof(Addresses));
+
     }
 
     /// <summary>
+
     /// Hủy đơn hàng — chỉ cho phép khi trạng thái đơn là Pending
+
     /// </summary>
+
     [HttpPost]
+
     [Route("account/order/{orderCode}/cancel")]
+
     [ValidateAntiForgeryToken]
+
     public async Task<IActionResult> CancelOrder(string orderCode)
+
     {
+
+        if (User.IsStaffOrAdmin())
+
+        {
+
+            return RedirectToAction("Index", "Profile", new { area = "Admin" });
+
+        }
+
         var user = await GetCurrentUserAsync();
+
         if (user == null) return RedirectToAction("Login", "Auth");
 
         var order = await _context.Orders
+
             .Include(o => o.OrderDetails)
+
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
 
         if (order == null) return NotFound();
 
         // Kiểm tra quyền sở hữu đơn hàng
+
         bool isOwner = order.UserId == user.UserId || (order.CustomerEmail == user.Email && !string.IsNullOrEmpty(user.Email));
+
         if (!isOwner)
+
         {
+
             return Forbid();
+
         }
 
         // Chỉ cho phép hủy khi đơn hàng ở trạng thái Pending
+
         if (order.OrderStatus != "Pending")
+
         {
+
             TempData["ErrorMessage"] = "Không thể hủy đơn hàng đã được xử lý. Vui lòng liên hệ tổng đài 1800 6868 để được hỗ trợ.";
+
             return RedirectToAction(nameof(OrderDetail), new { orderCode });
+
         }
 
         // Hoàn lại tồn kho cho các sản phẩm trong đơn
+
         foreach (var detail in order.OrderDetails)
+
         {
+
             var variant = await _context.ProductVariants.FindAsync(detail.VariantId);
+
             if (variant != null)
+
             {
+
                 variant.StockQuantity += detail.Quantity;
+
             }
+
         }
 
         // Hoàn lại lượt sử dụng coupon (nếu có)
+
         if (order.CouponId.HasValue)
+
         {
+
             var coupon = await _context.Coupons.FindAsync(order.CouponId.Value);
+
             if (coupon != null && coupon.UsageCount > 0)
+
             {
+
                 coupon.UsageCount--;
+
             }
+
         }
 
         // Cập nhật trạng thái đơn hàng
+
         string previousStatus = order.OrderStatus;
+
         order.OrderStatus = "Cancelled";
+
         order.PaymentStatus = order.PaymentStatus == "Paid" ? "Refunded" : "Failed";
+
         order.UpdatedAt = DateTime.UtcNow;
 
         // Ghi nhận lịch sử trạng thái
+
         await _context.OrderStatusHistories.AddAsync(new TechStore.Core.Entities.OrderStatusHistory
+
         {
+
             OrderId = order.OrderId,
+
             PreviousStatus = previousStatus,
+
             NewStatus = "Cancelled",
+
             Note = "Khách hàng tự hủy đơn hàng",
+
             ChangedBy = user.UserId,
+
             ChangedAt = DateTime.UtcNow
+
         });
 
         await _context.SaveChangesAsync();
 
         TempData["SuccessMessage"] = $"Đã hủy đơn hàng #{orderCode} thành công.";
+
         return RedirectToAction(nameof(Orders));
+
     }
 
     private async Task<User?> GetCurrentUserAsync()
+
     {
+
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
         if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+
         {
+
             return null;
+
         }
 
         return await _context.Users
+
             .Include(u => u.UserRoles)
+
                 .ThenInclude(ur => ur.Role)
+
             .FirstOrDefaultAsync(u => u.UserId == userId);
+
     }
 
     private async Task RefreshSignInAsync(User user)
+
     {
+
         var claims = new List<Claim>
+
         {
+
             new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+
             new(ClaimTypes.Name, user.Username),
+
             new("FullName", user.FullName),
+
             new(ClaimTypes.Email, user.Email)
+
         };
 
-        foreach (var ur in user.UserRoles)
+        if (!string.IsNullOrEmpty(user.AvatarUrl))
+
         {
+
+            claims.Add(new Claim("AvatarUrl", user.AvatarUrl));
+
+        }
+
+        foreach (var ur in user.UserRoles)
+
+        {
+
             claims.Add(new Claim(ClaimTypes.Role, ur.Role.RoleName));
+
         }
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
         var principal = new ClaimsPrincipal(identity);
 
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties
+
         {
+
             IsPersistent = true,
+
             ExpiresUtc = DateTime.UtcNow.AddDays(14)
+
         });
+
     }
+
 }
 

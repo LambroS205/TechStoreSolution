@@ -247,6 +247,15 @@ public class ProductController : Controller
         return View(viewModel);
     }
 
+    [HttpPost]
+    [Route("product/{slug}")]
+    [IgnoreAntiforgeryToken]
+    public IActionResult SafeProductDetailPost(string slug) => RedirectToAction(nameof(Detail), new { slug });
+
+    [HttpGet]
+    [Route("product/{slug}/review")]
+    public IActionResult SafeReviewGet(string slug) => RedirectToAction(nameof(Detail), new { slug });
+
     /// <summary>
     /// Tiếp nhận đánh giá sao và nhận xét của khách hàng cho sản phẩm
     /// </summary>
@@ -308,4 +317,4 @@ public class ProductController : Controller
 
         return RedirectToAction(nameof(Detail), new { slug });
     }
-}
+}

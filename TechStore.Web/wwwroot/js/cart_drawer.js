@@ -1,4 +1,4 @@
-// Quản lý Giỏ hàng LocalStorage & Giao tiếp Web API cho TechStore
+﻿// Quản lý Giỏ hàng LocalStorage & Giao tiếp Web API cho TechStore
 const CART_STORAGE_KEY = 'techstore_cart';
 const COUPON_STORAGE_KEY = 'techstore_coupon';
 const FREE_SHIPPING_THRESHOLD = 1000000; // 1.000.000đ

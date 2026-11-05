@@ -1,4 +1,4 @@
-@model List<TechStore.Core.Entities.ProductReview>
+﻿@model List<TechStore.Core.Entities.ProductReview>
 @{
     ViewData["Title"] = "Quản Lý Đánh Giá Sản Phẩm";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -8,12 +8,12 @@
     int totalPages = ViewBag.TotalPages ?? 1;
 }
 
-<div class="space-y-6">
+<div class="p-6 space-y-6">
     <!-- Header & Breadcrumb -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
-                <a href="/Admin/Dashboard" class="hover:text-blue-600">Tổng quan</a>
+                <a href="/Admin" class="hover:text-blue-600">Tổng quan</a>
                 <span>/</span>
                 <span class="text-slate-600">Đánh giá sản phẩm</span>
             </div>
@@ -25,7 +25,7 @@
     <!-- Alert Messages -->
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs">
+        <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm">
             <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <span>@TempData["SuccessMessage"]</span>
         </div>
@@ -33,7 +33,7 @@
 
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs">
+        <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-2xl flex items-center gap-2 shadow-sm">
             <svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <span>@TempData["ErrorMessage"]</span>
         </div>
@@ -42,13 +42,13 @@
     <!-- Stat Badges & Filter Tabs -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center gap-2 text-xs font-semibold overflow-x-auto pb-1 no-scrollbar">
-            <a href="/Admin/Review?status=All&q=@searchQuery" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentStatus == "All" ? "bg-bestbuy-blue text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+            <a href="/Admin/Review?status=All&q=@searchQuery" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentStatus == "All" ? "bg-blue-600 text-white shadow-sm" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
                 Tất Cả (@ViewBag.TotalAll)
             </a>
-            <a href="/Admin/Review?status=Approved&q=@searchQuery" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentStatus == "Approved" ? "bg-emerald-600 text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+            <a href="/Admin/Review?status=Approved&q=@searchQuery" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentStatus == "Approved" ? "bg-emerald-600 text-white shadow-sm" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
                 Đã Duyệt (@ViewBag.TotalApproved)
             </a>
-            <a href="/Admin/Review?status=Pending&q=@searchQuery" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentStatus == "Pending" ? "bg-amber-600 text-white shadow-xs" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
+            <a href="/Admin/Review?status=Pending&q=@searchQuery" class="px-4 py-2 rounded-xl transition-colors whitespace-nowrap @(currentStatus == "Pending" ? "bg-amber-600 text-white shadow-sm" : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200")">
                 Chờ Duyệt / Đã Ẩn (@ViewBag.TotalPending)
             </a>
         </div>
@@ -56,13 +56,13 @@
         <!-- Search input -->
         <form method="get" action="/Admin/Review" class="relative max-w-xs w-full">
             <input type="hidden" name="status" value="@currentStatus" />
-            <input type="text" name="q" value="@searchQuery" placeholder="Tìm tên SP, khách hàng, nội dung..." class="w-full bg-white text-slate-800 text-xs rounded-xl pl-9 pr-4 py-2.5 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600 shadow-xs" />
+            <input type="text" name="q" value="@searchQuery" placeholder="Tìm tên SP, khách hàng, nội dung..." class="w-full bg-white text-slate-800 text-xs rounded-xl pl-9 pr-4 py-2.5 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-600 shadow-sm" />
             <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
         </form>
     </div>
 
     <!-- Review Table -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-600 divide-y divide-slate-100">
                 <thead class="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">

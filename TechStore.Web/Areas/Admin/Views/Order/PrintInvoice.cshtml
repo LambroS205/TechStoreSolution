@@ -1,4 +1,4 @@
-@model TechStore.Core.Entities.Order
+﻿@model TechStore.Core.Entities.Order
 @{
     Layout = null;
     int stt = 1;
@@ -164,7 +164,14 @@
                 }
                 <div class="flex justify-between">
                     <span>Phí vận chuyển:</span>
-                    <strong class="text-emerald-600">Miễn phí</strong>
+                    @if (Model.ShippingFee > 0)
+                    {
+                        <strong class="text-slate-900 font-bold">@Model.ShippingFee.ToString("N0") đ</strong>
+                    }
+                    else
+                    {
+                        <strong class="text-emerald-600">Miễn phí</strong>
+                    }
                 </div>
                 <div class="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-200">
                     <span>TỔNG CỘNG:</span>

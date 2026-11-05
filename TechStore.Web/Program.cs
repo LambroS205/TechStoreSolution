@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -14,7 +14,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TechStore.Core.Interfaces;
 using TechStore.Infrastructure.Data;
-using TechStore.Infrastructure.Repositories;
 using TechStore.Infrastructure.Services;
 using TechStore.Web.Security;
 
@@ -45,10 +44,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISiteSettingsService, SiteSettingsService>();
-
-// Đăng ký Repository & Unit of Work pattern (Clean Architecture)
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ICacheInvalidationService, CacheInvalidationService>();
 
 // 4. Cấu hình Xác thực bằng Cookie (Cookie Authentication)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -59,7 +55,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromDays(14);
         options.LoginPath = "/auth/login";
         options.LogoutPath = "/auth/logout";
-        options.AccessDeniedPath = "/auth/login";
+        options.AccessDeniedPath = "/Admin/AccessDenied";
         options.SlidingExpiration = true;
     });
 
@@ -82,17 +78,9 @@ builder.Services.AddRateLimiter(options =>
                 AutoReplenishment = true
             }));
 
-    // Policy nghiêm ngặt cho Auth endpoints: 10 request/phút mỗi IP
+    // Demo Mode: Bỏ giới hạn traffic cho Auth Policy để người dùng trải nghiệm & demo thoải mái
     options.AddPolicy("AuthPolicy", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 10,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0,
-                AutoReplenishment = true
-            }));
+        RateLimitPartition.GetNoLimiter(partitionKey: "anonymous"));
 
     // Policy cho API endpoints: 60 request/phút mỗi IP
     options.AddPolicy("ApiPolicy", context =>
@@ -205,4 +193,7 @@ app.MapControllerRoute(
 // Map các Web API Controllers
 app.MapControllers();
 
-app.Run();
+app.Run();
+
+
+public partial class Program { }

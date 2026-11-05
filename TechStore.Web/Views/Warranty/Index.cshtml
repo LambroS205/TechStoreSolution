@@ -1,0 +1,196 @@
+@model TechStore.Web.Controllers.WarrantyLookupViewModel
+@{
+    ViewData["Title"] = "Tra Cứu Bảo Hành Điện Tử & Hạn Bảo Hành";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="max-w-5xl mx-auto px-4 py-8 space-y-8">
+    <!-- Header & Hero Search -->
+    <div class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 sm:p-10 text-white shadow-xl relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="max-w-2xl mx-auto text-center space-y-3 relative z-10">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-bold uppercase tracking-wider">
+                <span>🛡️ TechStore Care e-Warranty</span>
+            </div>
+            <h1 class="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
+                Tra Cứu Bảo Hành Điện Tử
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+                Kiểm tra thông tin kích hoạt, hạn bảo hành chính hãng và số serial/IMEI của các thiết bị công nghệ bạn đã mua tại hệ thống TechStore.
+            </p>
+
+            <!-- Search Form -->
+            <form method="get" action="/warranty-check" class="pt-4">
+                <div class="flex flex-col sm:flex-row gap-2 bg-white/10 backdrop-blur-md p-1.5 rounded-2xl border border-white/20 shadow-2xl">
+                    <input type="text" name="query" value="@Model.Query" required
+                           placeholder="Nhập số điện thoại (0909123456) hoặc mã đơn hàng (ORD...)..."
+                           class="flex-1 px-4 py-3 bg-white text-slate-900 placeholder-slate-400 text-xs sm:text-sm font-semibold rounded-xl outline-none focus:ring-2 focus:ring-blue-500 shadow-inner" />
+                    <button type="submit" class="px-6 py-3 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition shadow-md active:scale-95 shrink-0 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        <span>TRA CỨU NGAY</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Demo Quick Click Chips -->
+            <div class="flex items-center justify-center flex-wrap gap-2 pt-2 text-xs">
+                <span class="text-slate-400 font-medium">Thử nhanh demo:</span>
+                <a href="/warranty-check?query=0909123456" class="px-3 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-yellow-300 font-bold border border-white/10 transition">
+                    📱 SĐT Khách VIP: 0909123456
+                </a>
+                <a href="/warranty-check?query=0988112233" class="px-3 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white font-medium border border-white/10 transition">
+                    📱 SĐT: 0988112233
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Results Section -->
+    @if (Model.HasSearched)
+    {
+        if (Model.Results.Any())
+        {
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900 flex items-center gap-2">
+                            <span>Thiết Bị Tìm Thấy (@Model.Results.Count)</span>
+                            <span class="px-2 py-0.5 text-xs bg-emerald-100 text-emerald-800 font-bold rounded-full">Chính Hãng</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Khách hàng: <strong class="text-slate-800">@Model.Results.First().CustomerName</strong> (@Model.Results.First().CustomerPhone)</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    @foreach (var item in Model.Results)
+                    {
+                        bool isActive = item.Status == "Active";
+                        bool isExpiring = item.Status == "ExpiringSoon";
+                        string statusBadge = isActive 
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                            : isExpiring 
+                            ? "bg-amber-50 text-amber-700 border-amber-200" 
+                            : "bg-slate-100 text-slate-600 border-slate-200";
+
+                        <div class="bg-white rounded-3xl border border-slate-200 hover:border-blue-300 hover:shadow-xl transition-all p-6 flex flex-col justify-between space-y-4 relative overflow-hidden">
+                            <div class="flex items-start gap-4">
+                                <img src="@item.ProductImage" alt="@item.ProductName" class="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-2xl bg-slate-50 p-2 border border-slate-100 shrink-0" onerror="this.src='/assets/images/placeholder.png'" />
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="px-2 py-0.5 text-[10px] font-black uppercase rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                                            @item.BrandName
+                                        </span>
+                                        <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full border @statusBadge">
+                                            @(isActive ? $"Còn {item.DaysRemaining} ngày" : isExpiring ? $"Sắp hết ({item.DaysRemaining} ngày)" : "Hết hạn bảo hành")
+                                        </span>
+                                    </div>
+                                    <h3 class="font-black text-slate-900 text-sm sm:text-base line-clamp-2 leading-snug">
+                                        @item.ProductName
+                                    </h3>
+                                    <p class="text-xs text-slate-500 mt-0.5 font-medium">Phiên bản: <strong class="text-slate-700">@item.VariantName</strong></p>
+                                    <p class="text-[11px] text-slate-400 font-mono mt-0.5">Serial: <span class="font-bold text-slate-600">@item.SerialNumber</span></p>
+                                </div>
+                            </div>
+
+                            <!-- Warranty Progress Bar -->
+                            <div class="space-y-1.5 pt-2 border-t border-slate-100">
+                                <div class="flex justify-between text-xs font-semibold">
+                                    <span class="text-slate-500">Tiến trình bảo hành:</span>
+                                    <span class="@(isActive ? "text-emerald-600" : isExpiring ? "text-amber-600" : "text-slate-400")">
+                                        @(isActive ? $"Còn {item.ProgressPercent}% thời hạn" : isExpiring ? "Sắp đến ngày hết hạn" : "Đã hết thời gian bảo hành")
+                                    </span>
+                                </div>
+                                <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                                    <div class="h-full rounded-full transition-all duration-500 @(isActive ? "bg-emerald-500" : isExpiring ? "bg-amber-500" : "bg-slate-300")" 
+                                         style="width: @item.ProgressPercent%"></div>
+                                </div>
+                                <div class="flex justify-between text-[11px] text-slate-400 pt-0.5">
+                                    <span>Mua: @item.PurchaseDate.ToString("dd/MM/yyyy")</span>
+                                    <span>Hết hạn: @item.ExpireDate.ToString("dd/MM/yyyy")</span>
+                                </div>
+                            </div>
+
+                            <!-- Certificate Details & Actions -->
+                            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-600 space-y-1">
+                                <div class="flex justify-between">
+                                    <span>Mã đơn hàng:</span>
+                                    <a href="/tracking?orderCode=@item.OrderCode" class="font-bold text-blue-600 hover:underline">#@item.OrderCode</a>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Gói bảo hành:</span>
+                                    <strong class="text-slate-800 font-bold">@item.WarrantyMonths tháng chính hãng toàn quốc</strong>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Đơn vị ủy quyền:</span>
+                                    <span class="text-slate-700">TechStore Care & AASP Việt Nam</span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-1">
+                                <a href="/product/@item.ProductSlug" class="flex-1 py-2 text-center text-xs font-bold text-slate-700 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-xl transition">
+                                    Xem Sản Phẩm
+                                </a>
+                                <button type="button" onclick="alert('Yêu cầu hỗ trợ bảo hành cho thiết bị ' + '@item.ProductName' + ' đã được tiếp nhận. Tổng đài viên TechStore Care (1800 6868) sẽ liên hệ bạn trong 15 phút!')" 
+                                        class="flex-1 py-2 text-center text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm">
+                                    Yêu Cầu Hỗ Trợ
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="bg-white rounded-3xl border border-slate-200 p-8 text-center max-w-md mx-auto space-y-4">
+                <div class="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl">
+                    🔍
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Không Tìm Thấy Thông Tin</h3>
+                    <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Không có dữ liệu thiết bị nào khớp với từ khóa "<strong class="text-slate-800">@Model.Query</strong>". Vui lòng kiểm tra lại số điện thoại hoặc mã đơn hàng.
+                    </p>
+                </div>
+                <div class="pt-2">
+                    <a href="/warranty-check?query=0909123456" class="px-4 py-2 bg-blue-50 text-blue-600 font-bold text-xs rounded-xl hover:bg-blue-100 transition inline-block">
+                        Thử với tài khoản mẫu VIP: 0909123456
+                    </a>
+                </div>
+            </div>
+        }
+    }
+
+    <!-- FAQ Accordion -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6">
+        <div class="text-center space-y-1">
+            <h3 class="text-lg font-black text-slate-900">Chính Sách Bảo Hành Tại TechStore</h3>
+            <p class="text-xs text-slate-500">Mọi thắc mắc vui lòng liên hệ tổng đài miễn phí 1800 6868 (8:00 - 21:30 hàng ngày)</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">1</div>
+                <h4 class="font-bold text-slate-900 text-xs sm:text-sm">Bảo Hành Điện Tử Tự Động</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Hệ thống tự động kích hoạt bảo hành điện tử theo Serial/IMEI ngay khi bạn nhận hàng thành công, không cần giữ lại hóa đơn giấy.
+                </p>
+            </div>
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm">2</div>
+                <h4 class="font-bold text-slate-900 text-xs sm:text-sm">1 Đổi 1 Trong 30 Ngày</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Đổi mới thiết bị tương đương 1:1 trong 30 ngày đầu tiên nếu máy phát sinh lỗi phần cứng từ nhà sản xuất.
+                </p>
+            </div>
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-sm">3</div>
+                <h4 class="font-bold text-slate-900 text-xs sm:text-sm">Hỗ Trợ Gửi Hãng Miễn Phí</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    TechStore tiếp nhận máy tận nhà hoặc tại chuỗi cửa hàng, chuyển trực tiếp đến Trung tâm Ủy quyền chính hãng (AASP, Samsung Care).
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+

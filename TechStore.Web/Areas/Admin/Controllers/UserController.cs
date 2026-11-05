@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -21,18 +21,20 @@ public class UserController : Controller
 {
     private readonly TechStoreDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICacheInvalidationService _cacheInvalidation;
     private readonly PasswordHasher<User> _passwordHasher;
 
-    public UserController(TechStoreDbContext context, IAuditLogService auditLogService)
+    public UserController(TechStoreDbContext context, IAuditLogService auditLogService, ICacheInvalidationService cacheInvalidation)
     {
         _context = context;
+        _cacheInvalidation = cacheInvalidation;
         _auditLogService = auditLogService;
         _passwordHasher = new PasswordHasher<User>();
     }
 
     [HttpGet]
     [HasPermission("Users.View")]
-    public async Task<IActionResult> Index(string? search, string? role, int page = 1, int pageSize = 15)
+    public async Task<IActionResult> Index(string? search, string? role, string? tab = "all", int page = 1, int pageSize = 15)
     {
         if (page < 1) page = 1;
 
@@ -48,6 +50,17 @@ public class UserController : Controller
         var lockedCount = await _context.Users.CountAsync(u => !u.IsActive || (u.LockoutEnd != null && u.LockoutEnd > DateTime.UtcNow));
 
         var query = baseQuery;
+
+        // Phân loại theo Tab
+        string currentTab = (tab ?? "all").ToLowerInvariant();
+        if (currentTab == "customers")
+        {
+            query = query.Where(u => u.UserRoles.Any(r => r.Role.NormalizedName == "CUSTOMER"));
+        }
+        else if (currentTab == "staff")
+        {
+            query = query.Where(u => u.UserRoles.Any(r => r.Role.NormalizedName != "CUSTOMER"));
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -83,6 +96,7 @@ public class UserController : Controller
             CustomerCount = customerCount,
             StaffCount = staffCount,
             LockedCount = lockedCount,
+            CurrentTab = currentTab,
             CurrentSearch = search,
             CurrentRole = role,
             PageNumber = page,
@@ -114,20 +128,72 @@ public class UserController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        // Lấy lịch sử đơn hàng của khách hàng này
-        var orders = await _context.Orders
-            .Include(o => o.OrderDetails)
-            .Include(o => o.PaymentTransactions)
-            .Where(o => o.UserId == id || (user.PhoneNumber != null && o.CustomerPhone == user.PhoneNumber) || (user.Email != null && o.CustomerEmail == user.Email))
-            .OrderByDescending(o => o.CreatedAt)
-            .ToListAsync();
+        bool isStaff = user.IsStaffOrAdmin();
+        int auditLogsCount = 0;
+        int ordersHandledCount = 0;
+        int inventoryTxCount = 0;
+        int blogPostsCount = 0;
+        var permissionsByModule = new Dictionary<string, List<Permission>>();
+        var recentAuditLogs = new List<AuditLog>();
 
-        var totalSpent = orders
-            .Where(o => o.OrderStatus == "Delivered" || o.PaymentStatus == "Paid")
-            .Sum(o => o.TotalAmount);
+        // Chỉ nạp dữ liệu mua sắm nếu là Khách hàng
+        var orders = new List<Order>();
+        decimal totalSpent = 0;
+        int completedOrders = 0;
+        int cancelledOrders = 0;
 
-        var completedOrders = orders.Count(o => o.OrderStatus == "Delivered");
-        var cancelledOrders = orders.Count(o => o.OrderStatus == "Cancelled");
+        if (isStaff)
+        {
+            auditLogsCount = await _context.AuditLogs.AsNoTracking().CountAsync(a => a.UserId == id);
+            ordersHandledCount = await _context.OrderStatusHistories.AsNoTracking().CountAsync(h => h.ChangedBy == id);
+            inventoryTxCount = await _context.InventoryTransactions.AsNoTracking().CountAsync(t => t.CreatedBy == id);
+            blogPostsCount = await _context.BlogPosts.AsNoTracking().CountAsync(b => b.AuthorId == id);
+            recentAuditLogs = await _context.AuditLogs.AsNoTracking().Where(a => a.UserId == id).OrderByDescending(a => a.CreatedAt).Take(15).ToListAsync();
+
+            bool isSuperAdmin = user.UserRoles.Any(ur => ur.Role.NormalizedName == "SUPERADMIN");
+            var allPerms = await _context.Permissions.AsNoTracking().OrderBy(p => p.Module).ThenBy(p => p.Action).ToListAsync();
+            if (isSuperAdmin)
+            {
+                permissionsByModule = allPerms.GroupBy(p => p.Module ?? "Chung").ToDictionary(g => g.Key, g => g.ToList());
+            }
+            else
+            {
+                var roleIds = user.UserRoles.Select(ur => ur.RoleId).ToList();
+                var inheritedPermIds = await _context.RolePermissions
+                    .AsNoTracking()
+                    .Where(rp => roleIds.Contains(rp.RoleId))
+                    .Select(rp => rp.PermissionId)
+                    .ToListAsync();
+
+                var customPerms = await _context.UserCustomPermissions
+                    .AsNoTracking()
+                    .Where(cp => cp.UserId == id)
+                    .ToListAsync();
+
+                var grantedCustom = customPerms.Where(cp => cp.IsGranted).Select(cp => cp.PermissionId).ToHashSet();
+                var deniedCustom = customPerms.Where(cp => !cp.IsGranted).Select(cp => cp.PermissionId).ToHashSet();
+
+                var effectivePermIds = inheritedPermIds.Union(grantedCustom).Except(deniedCustom).ToHashSet();
+                var userPerms = allPerms.Where(p => effectivePermIds.Contains(p.PermissionId)).ToList();
+                permissionsByModule = userPerms.GroupBy(p => p.Module ?? "Chung").ToDictionary(g => g.Key, g => g.ToList());
+            }
+        }
+        else
+        {
+            orders = await _context.Orders
+                .Include(o => o.OrderDetails)
+                .Include(o => o.PaymentTransactions)
+                .Where(o => o.UserId == id || (user.PhoneNumber != null && o.CustomerPhone == user.PhoneNumber) || (user.Email != null && o.CustomerEmail == user.Email))
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
+
+            totalSpent = orders
+                .Where(o => o.OrderStatus == "Delivered" || o.PaymentStatus == "Paid")
+                .Sum(o => o.TotalAmount);
+
+            completedOrders = orders.Count(o => o.OrderStatus == "Delivered");
+            cancelledOrders = orders.Count(o => o.OrderStatus == "Cancelled");
+        }
 
         var allRoles = await _context.Roles.AsNoTracking().OrderBy(r => r.RoleName).ToListAsync();
         var userRoleIds = user.UserRoles.Select(ur => ur.RoleId).ToList();
@@ -135,6 +201,13 @@ public class UserController : Controller
         var model = new UserDetailViewModel
         {
             User = user,
+            IsStaffAccount = isStaff,
+            AuditLogsCount = auditLogsCount,
+            OrdersHandledCount = ordersHandledCount,
+            InventoryTxCount = inventoryTxCount,
+            BlogPostsCount = blogPostsCount,
+            EffectivePermissionsByModule = permissionsByModule,
+            RecentAuditLogs = recentAuditLogs,
             Orders = orders,
             TotalSpent = totalSpent,
             TotalOrders = orders.Count,
@@ -147,9 +220,27 @@ public class UserController : Controller
         return View(model);
     }
 
+    /// <summary>
+    /// Điều hướng an toàn khi truy cập trực tiếp bằng phương thức GET (tránh lỗi 405 Method Not Allowed)
+    /// </summary>
+    [HttpGet]
+    [Route("Admin/User/ToggleLock/{id?}")]
+    [Route("Admin/User/ResetPassword/{id?}")]
+    [Route("Admin/User/UpdateRoles/{id?}")]
+    public IActionResult SafeUserPostRedirect(int? id) => id.HasValue ? RedirectToAction(nameof(Detail), new { id }) : RedirectToAction(nameof(Index));
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [HasPermission("Users.Edit")]
+    [HttpGet]
+    public IActionResult ToggleLock() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult ResetPassword() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult UpdateRoles() => RedirectToAction(nameof(Index));
+
     public async Task<IActionResult> ToggleLock(int id)
     {
         var currentUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -180,6 +271,7 @@ public class UserController : Controller
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+        _cacheInvalidation.InvalidateUserPermissionsCache(id);
 
         await _auditLogService.LogAsync(
             action: user.IsActive ? "UnlockUser" : "LockUser",
@@ -219,6 +311,7 @@ public class UserController : Controller
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+        _cacheInvalidation.InvalidateUserPermissionsCache(id);
 
         await _auditLogService.LogAsync(
             action: "ResetPassword",
@@ -272,6 +365,7 @@ public class UserController : Controller
 
         user.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+        _cacheInvalidation.InvalidateUserPermissionsCache(id);
 
         var newRoles = string.Join(",", roleIds);
 

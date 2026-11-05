@@ -1,10 +1,12 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Core.Entities;
+using TechStore.Core.Interfaces;
 using TechStore.Infrastructure.Data;
 using TechStore.Web.Security;
 
@@ -16,10 +18,14 @@ namespace TechStore.Web.Areas.Admin.Controllers;
 public class BannerController : Controller
 {
     private readonly TechStoreDbContext _context;
+    private readonly IFileStorageService _fileStorageService;
+    private readonly ICacheInvalidationService _cacheInvalidation;
 
-    public BannerController(TechStoreDbContext context)
+    public BannerController(TechStoreDbContext context, IFileStorageService fileStorageService, ICacheInvalidationService cacheInvalidation)
     {
         _context = context;
+        _fileStorageService = fileStorageService;
+        _cacheInvalidation = cacheInvalidation;
     }
 
     /// <summary>
@@ -44,13 +50,34 @@ public class BannerController : Controller
         return View(banners);
     }
 
+    [HttpGet]
+    public IActionResult Save() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult ToggleStatus() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult Delete() => RedirectToAction(nameof(Index));
+
     /// <summary>
-    /// Thêm mới hoặc cập nhật Banner
+    /// Thêm mới hoặc cập nhật Banner kèm upload file ảnh
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Save(Banner banner)
+    public async Task<IActionResult> Save(Banner banner, IFormFile? imageFile, IFormFile? mobileImageFile)
     {
+        if (imageFile != null && imageFile.Length > 0)
+        {
+            using var stream = imageFile.OpenReadStream();
+            banner.ImageUrl = await _fileStorageService.SaveFileAsync(stream, imageFile.FileName, "banners");
+        }
+
+        if (mobileImageFile != null && mobileImageFile.Length > 0)
+        {
+            using var stream = mobileImageFile.OpenReadStream();
+            banner.MobileImageUrl = await _fileStorageService.SaveFileAsync(stream, mobileImageFile.FileName, "banners");
+        }
+
         if (string.IsNullOrWhiteSpace(banner.Title) || string.IsNullOrWhiteSpace(banner.ImageUrl))
         {
             TempData["ErrorMessage"] = "Tiêu đề và đường dẫn ảnh Banner không được để trống!";
@@ -71,7 +98,8 @@ public class BannerController : Controller
             existing.Title = banner.Title;
             existing.Subtitle = banner.Subtitle;
             existing.ImageUrl = banner.ImageUrl;
-            existing.MobileImageUrl = banner.MobileImageUrl;
+            if (!string.IsNullOrWhiteSpace(banner.MobileImageUrl))
+                existing.MobileImageUrl = banner.MobileImageUrl;
             existing.TargetUrl = banner.TargetUrl;
             existing.Position = banner.Position;
             existing.DisplayOrder = banner.DisplayOrder;
@@ -83,6 +111,7 @@ public class BannerController : Controller
         }
 
         await _context.SaveChangesAsync();
+        _cacheInvalidation.InvalidateHomePageCache();
         return RedirectToAction(nameof(Index));
     }
 
@@ -97,6 +126,7 @@ public class BannerController : Controller
 
         banner.IsActive = !banner.IsActive;
         await _context.SaveChangesAsync();
+        _cacheInvalidation.InvalidateHomePageCache();
 
         return Json(new { success = true, isActive = banner.IsActive });
     }
@@ -113,6 +143,7 @@ public class BannerController : Controller
         {
             _context.Banners.Remove(banner);
             await _context.SaveChangesAsync();
+            _cacheInvalidation.InvalidateHomePageCache();
             TempData["SuccessMessage"] = "Đã xóa Banner thành công!";
         }
 

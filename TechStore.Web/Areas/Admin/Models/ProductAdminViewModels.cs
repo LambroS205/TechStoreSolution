@@ -22,6 +22,8 @@ public class ProductCreateViewModel
     [Required(ErrorMessage = "Vui lòng chọn thương hiệu")]
     public int BrandId { get; set; }
 
+    public int? SupplierId { get; set; }
+
     public string? FeaturedImage { get; set; }
 
     [Range(0, 120, ErrorMessage = "Thời gian bảo hành từ 0 đến 120 tháng")]
@@ -29,6 +31,7 @@ public class ProductCreateViewModel
 
     public string? ShortDescription { get; set; }
     public string? FullDescription { get; set; }
+    public string? SpecificationsJson { get; set; }
     public bool IsFeatured { get; set; } = false;
     public bool IsActive { get; set; } = true;
 
@@ -56,10 +59,12 @@ public class ProductEditViewModel
     public string Slug { get; set; } = string.Empty;
     public int CategoryId { get; set; }
     public int BrandId { get; set; }
+    public int? SupplierId { get; set; }
     public string? FeaturedImage { get; set; }
     public int WarrantyMonths { get; set; }
     public string? ShortDescription { get; set; }
     public string? FullDescription { get; set; }
+    public string? SpecificationsJson { get; set; }
     public bool IsFeatured { get; set; }
     public bool IsActive { get; set; }
 

@@ -59,6 +59,15 @@ public class CouponController : Controller
         return View(coupons);
     }
 
+    [HttpGet]
+    public IActionResult Save() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult ToggleStatus() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult Delete() => RedirectToAction(nameof(Index));
+
     /// <summary>
     /// Thêm mới hoặc cập nhật mã giảm giá
     /// </summary>

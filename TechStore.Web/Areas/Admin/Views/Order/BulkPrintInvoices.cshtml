@@ -1,0 +1,187 @@
+@model List<TechStore.Core.Entities.Order>
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>In Phiếu Giao Hàng Hàng Loạt (@Model.Count đơn) - TechStore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #0f172a;
+        }
+        @@media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                padding: 0 !important;
+            }
+            .page-break {
+                page-break-after: always;
+                break-after: page;
+            }
+            .print-container {
+                box-shadow: none !important;
+                border: none !important;
+                max-width: 100% !important;
+                padding: 1.5rem !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 p-6 min-h-screen">
+    <!-- Action Bar -->
+    <div class="max-w-3xl mx-auto mb-4 flex items-center justify-between no-print">
+        <div class="flex items-center gap-2">
+            <a href="javascript:window.close()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition">
+                &larr; Đóng cửa sổ
+            </a>
+            <span class="text-xs font-semibold text-slate-600">Đang chuẩn bị in: <strong>@Model.Count đơn hàng</strong></span>
+        </div>
+        <button onclick="window.print()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+            <span>Bắt Đầu In (@Model.Count Phiếu)</span>
+        </button>
+    </div>
+
+    <!-- Orders Loop -->
+    @foreach (var order in Model)
+    {
+        int stt = 1;
+        <div class="print-container max-w-3xl mx-auto bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6 mb-8 page-break">
+            <!-- Header -->
+            <div class="flex items-start justify-between border-b-2 border-slate-900 pb-5">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-xl bg-blue-600 text-yellow-300 font-black text-lg flex items-center justify-center">T</span>
+                        <span class="text-xl font-black text-slate-900 tracking-tight">TechStore</span>
+                    </div>
+                    <p class="text-xs font-bold text-slate-600 mt-1">HỆ THỐNG BÁN LẺ THIẾT BỊ CÔNG NGHỆ CHÍNH HÃNG</p>
+                    <p class="text-[11px] text-slate-500">Website: https://techstore.vn &bull; Hotline hỗ trợ: 1800 6868</p>
+                </div>
+                <div class="text-right space-y-0.5">
+                    <h1 class="text-base font-black text-slate-900 uppercase">PHIẾU ĐÓNG GÓI & GIAO HÀNG</h1>
+                    <p class="text-xs font-mono font-bold text-blue-600">#@order.OrderCode</p>
+                    <p class="text-[11px] text-slate-400">Ngày đặt: @order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                    <p class="text-[11px] text-slate-400">Ngày in: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+            </div>
+
+            <!-- Sender & Recipient Box -->
+            <div class="grid grid-cols-2 gap-4 text-xs">
+                <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <p class="font-extrabold uppercase text-slate-500 tracking-wider text-[10px]">BÊN GỬI (KHO HÀNG)</p>
+                    <p class="font-bold text-slate-900">TechStore Logistics Hub</p>
+                    <p class="text-slate-600">Số 123 Đường Điện Biên Phủ, Phường Đa Kao, Quận 1, TP. HCM</p>
+                    <p class="text-slate-600">Hotline điều phối: <strong class="text-slate-900">1800 6868</strong></p>
+                </div>
+                <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <p class="font-extrabold uppercase text-slate-500 tracking-wider text-[10px]">BÊN NHẬN (KHÁCH HÀNG)</p>
+                    <p class="font-bold text-slate-900">@order.CustomerName</p>
+                    <p class="text-slate-600">Số điện thoại: <strong class="text-slate-900">@order.CustomerPhone</strong></p>
+                    <p class="text-slate-600">Địa chỉ nhận hàng: <strong>@order.ShippingAddress</strong></p>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <table class="w-full text-xs text-left border border-slate-200">
+                <thead class="bg-slate-100 text-slate-700 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th class="p-2.5 text-center w-10 border-r border-slate-200">STT</th>
+                        <th class="p-2.5 border-r border-slate-200">Tên Sản Phẩm / Biến Thể</th>
+                        <th class="p-2.5 text-center w-24 border-r border-slate-200">Mã SKU</th>
+                        <th class="p-2.5 text-center w-14 border-r border-slate-200">SL</th>
+                        <th class="p-2.5 text-right w-28 border-r border-slate-200">Đơn Giá</th>
+                        <th class="p-2.5 text-right w-32">Thành Tiền</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 text-slate-800">
+                    @foreach (var d in order.OrderDetails)
+                    {
+                        <tr>
+                            <td class="p-2.5 text-center border-r border-slate-200">@(stt++)</td>
+                            <td class="p-2.5 border-r border-slate-200 font-medium">
+                                <div>@d.ProductName</div>
+                                @if (!string.IsNullOrWhiteSpace(d.VariantName))
+                                {
+                                    <div class="text-[11px] text-slate-500 font-normal">Phiên bản: @d.VariantName</div>
+                                }
+                            </td>
+                            <td class="p-2.5 text-center font-mono text-[11px] text-slate-600 border-r border-slate-200">@d.SKU</td>
+                            <td class="p-2.5 text-center font-bold border-r border-slate-200">@d.Quantity</td>
+                            <td class="p-2.5 text-right font-medium border-r border-slate-200">@d.UnitPrice.ToString("N0") đ</td>
+                            <td class="p-2.5 text-right font-bold">@((d.UnitPrice * d.Quantity).ToString("N0")) đ</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <!-- Financial Summary & COD Amount -->
+            <div class="grid grid-cols-2 gap-4 pt-2">
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+                    <p class="font-bold text-slate-700">Hình thức thanh toán: <strong class="text-slate-900">@order.PaymentMethod</strong></p>
+                    <p class="font-bold text-slate-700">Trạng thái thanh toán: 
+                        <span class="font-bold @(order.PaymentStatus == "Paid" ? "text-emerald-600" : "text-amber-600")">
+                            @(order.PaymentStatus == "Paid" ? "ĐÃ THANH TOÁN" : "CHƯA THANH TOÁN (THU COD)")
+                        </span>
+                    </p>
+                    @if (!string.IsNullOrWhiteSpace(order.OrderNotes))
+                    {
+                        <p class="text-slate-500 text-[11px] pt-1">Ghi chú: @order.OrderNotes</p>
+                    }
+                </div>
+
+                <div class="text-xs space-y-1.5 text-slate-600">
+                    <div class="flex justify-between">
+                        <span>Tạm tính tiền hàng:</span>
+                        <strong class="text-slate-900 font-bold">@order.SubTotal.ToString("N0") đ</strong>
+                    </div>
+                    @if (order.DiscountAmount > 0)
+                    {
+                        <div class="flex justify-between text-emerald-600">
+                            <span>Giảm giá / Voucher:</span>
+                            <strong class="font-bold">-@order.DiscountAmount.ToString("N0") đ</strong>
+                        </div>
+                    }
+                    <div class="flex justify-between">
+                        <span>Phí vận chuyển:</span>
+                        <strong class="text-slate-900 font-bold">@(order.ShippingFee == 0 ? "Miễn phí" : $"{order.ShippingFee:N0} đ")</strong>
+                    </div>
+                    <div class="flex justify-between items-center text-sm pt-2 border-t-2 border-slate-900">
+                        <strong class="text-slate-900 font-black">TỔNG THU (COD):</strong>
+                        <strong class="text-lg font-black text-rose-600">
+                            @(order.PaymentStatus == "Paid" ? "0 đ (Đã thanh toán)" : $"{order.TotalAmount:N0} đ")
+                        </strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signatures -->
+            <div class="grid grid-cols-3 gap-4 pt-6 text-center text-xs text-slate-600">
+                <div class="space-y-12">
+                    <p class="font-bold">Người Lập Phiếu</p>
+                    <p class="text-[11px] text-slate-400">(Ký, ghi rõ họ tên)</p>
+                </div>
+                <div class="space-y-12">
+                    <p class="font-bold">Nhân Viên Giao Hàng</p>
+                    <p class="text-[11px] text-slate-400">(Ký, ghi rõ họ tên)</p>
+                </div>
+                <div class="space-y-12">
+                    <p class="font-bold">Người Nhận Hàng</p>
+                    <p class="text-[11px] text-slate-400">(Xác nhận máy nguyên vẹn seal)</p>
+                </div>
+            </div>
+        </div>
+    }
+</body>
+</html>
+

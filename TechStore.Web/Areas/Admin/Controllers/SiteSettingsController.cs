@@ -84,6 +84,9 @@ public class SiteSettingsController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [HttpGet]
+    public IActionResult Update() => RedirectToAction(nameof(Index));
+
     public async Task<IActionResult> Update(
         SiteSettingsViewModel model,
         IFormFile? logoFile,

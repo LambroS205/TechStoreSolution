@@ -113,6 +113,18 @@ public class BlogController : Controller
             ModelState.AddModelError("BlogCategoryId", "Vui lòng chọn danh mục bài viết!");
         }
 
+                ModelState.Remove("Category");
+        ModelState.Remove("Author");
+        ModelState.Remove("Slug");
+        ModelState.Remove("Summary");
+        ModelState.Remove("ThumbnailUrl");
+
+        if (string.IsNullOrWhiteSpace(model.Summary) && !string.IsNullOrWhiteSpace(model.Content))
+        {
+            var cleanText = System.Text.RegularExpressions.Regex.Replace(model.Content, "<.*?>", string.Empty);
+            model.Summary = cleanText.Length > 200 ? cleanText.Substring(0, 197) + "..." : cleanText;
+        }
+
         if (!ModelState.IsValid)
         {
             await LoadCategoriesAsync();
@@ -220,6 +232,18 @@ public class BlogController : Controller
             ModelState.AddModelError("Content", "Nội dung bài viết không được để trống!");
         }
 
+                ModelState.Remove("Category");
+        ModelState.Remove("Author");
+        ModelState.Remove("Slug");
+        ModelState.Remove("Summary");
+        ModelState.Remove("ThumbnailUrl");
+
+        if (string.IsNullOrWhiteSpace(model.Summary) && !string.IsNullOrWhiteSpace(model.Content))
+        {
+            var cleanText = System.Text.RegularExpressions.Regex.Replace(model.Content, "<.*?>", string.Empty);
+            model.Summary = cleanText.Length > 200 ? cleanText.Substring(0, 197) + "..." : cleanText;
+        }
+
         if (!ModelState.IsValid)
         {
             await LoadCategoriesAsync();
@@ -266,6 +290,12 @@ public class BlogController : Controller
         TempData["SuccessMessage"] = $"Đã cập nhật bài viết \"{post.Title}\"!";
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpGet]
+    public IActionResult Delete() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult TogglePublish() => RedirectToAction(nameof(Index));
 
     /// <summary>
     /// Xóa bài viết
@@ -366,6 +396,12 @@ public class BlogController : Controller
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Categories));
     }
+
+    [HttpGet]
+    public IActionResult SaveCategory() => RedirectToAction(nameof(Categories));
+
+    [HttpGet]
+    public IActionResult DeleteCategory() => RedirectToAction(nameof(Categories));
 
     /// <summary>
     /// Xóa danh mục bài viết

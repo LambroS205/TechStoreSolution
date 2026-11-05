@@ -79,6 +79,12 @@ public class ReviewController : Controller
         return View(reviews);
     }
 
+    [HttpGet]
+    public IActionResult ToggleStatus() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult Delete() => RedirectToAction(nameof(Index));
+
     /// <summary>
     /// Bật/Tắt trạng thái kiểm duyệt đánh giá (Duyệt hoặc Ẩn)
     /// </summary>

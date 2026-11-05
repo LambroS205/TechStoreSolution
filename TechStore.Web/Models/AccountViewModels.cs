@@ -19,6 +19,49 @@ public class ProfileViewModel
     public decimal TotalSpent { get; set; }
     public int ActiveOrdersCount { get; set; }
     public string RoleName { get; set; } = string.Empty;
+
+    // VIP TechMember Tiers: Member (<10M), Silver (10M-30M), Gold (30M-70M), Diamond (>=70M)
+    public string VipTier => TotalSpent switch
+    {
+        >= 70_000_000m => "Diamond",
+        >= 30_000_000m => "Gold",
+        >= 10_000_000m => "Silver",
+        _ => "Member"
+    };
+
+    public string VipTierDisplayName => VipTier switch
+    {
+        "Diamond" => "TechMember Diamond 💎",
+        "Gold" => "TechMember Gold 🥇",
+        "Silver" => "TechMember Silver 🥈",
+        _ => "TechMember Standard ⭐"
+    };
+
+    public decimal NextTierThreshold => VipTier switch
+    {
+        "Member" => 10_000_000m,
+        "Silver" => 30_000_000m,
+        "Gold" => 70_000_000m,
+        _ => 70_000_000m
+    };
+
+    public string NextTierName => VipTier switch
+    {
+        "Member" => "Hạng Bạc (Silver)",
+        "Silver" => "Hạng Vàng (Gold)",
+        "Gold" => "Hạng Kim Cương (Diamond)",
+        _ => "Hạng Cao Nhất (VIP Max)"
+    };
+
+    public int TierProgressPercent => VipTier switch
+    {
+        "Diamond" => 100,
+        "Gold" => (int)Math.Min(100, Math.Max(0, (TotalSpent - 30_000_000m) / 40_000_000m * 100)),
+        "Silver" => (int)Math.Min(100, Math.Max(0, (TotalSpent - 10_000_000m) / 20_000_000m * 100)),
+        _ => (int)Math.Min(100, Math.Max(0, TotalSpent / 10_000_000m * 100))
+    };
+
+    public decimal AmountNeededForNextTier => VipTier == "Diamond" ? 0m : Math.Max(0m, NextTierThreshold - TotalSpent);
 }
 
 /// <summary>

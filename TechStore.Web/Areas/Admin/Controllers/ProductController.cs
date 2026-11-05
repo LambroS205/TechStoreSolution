@@ -25,16 +25,19 @@ public class ProductController : Controller
     private readonly TechStoreDbContext _context;
     private readonly IFileStorageService _fileStorageService;
     private readonly IAuditLogService _auditLogService;
+    private readonly ICacheInvalidationService _cacheInvalidation;
     private readonly HtmlSanitizer _sanitizer;
 
     public ProductController(
         TechStoreDbContext context,
         IFileStorageService fileStorageService,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        ICacheInvalidationService cacheInvalidation)
     {
         _context = context;
         _fileStorageService = fileStorageService;
         _auditLogService = auditLogService;
+        _cacheInvalidation = cacheInvalidation;
         _sanitizer = new HtmlSanitizer();
     }
 
@@ -202,12 +205,14 @@ public class ProductController : Controller
         {
             CategoryId = model.CategoryId,
             BrandId = model.BrandId,
+            SupplierId = model.SupplierId,
             Name = model.Name.Trim(),
             Slug = slug,
             FeaturedImage = featuredImageUrl,
             WarrantyMonths = model.WarrantyMonths,
             ShortDescription = model.ShortDescription?.Trim(),
             FullDescription = string.IsNullOrWhiteSpace(model.FullDescription) ? null : _sanitizer.Sanitize(model.FullDescription),
+            SpecificationsJson = string.IsNullOrWhiteSpace(model.SpecificationsJson) ? null : model.SpecificationsJson.Trim(),
             IsFeatured = model.IsFeatured,
             IsActive = model.IsActive,
             CreatedAt = DateTime.UtcNow,
@@ -268,12 +273,14 @@ public class ProductController : Controller
             ProductId = product.ProductId,
             CategoryId = product.CategoryId,
             BrandId = product.BrandId,
+            SupplierId = product.SupplierId,
             Name = product.Name,
             Slug = product.Slug,
             FeaturedImage = product.FeaturedImage,
             WarrantyMonths = product.WarrantyMonths,
             ShortDescription = product.ShortDescription,
             FullDescription = product.FullDescription,
+            SpecificationsJson = product.SpecificationsJson,
             IsFeatured = product.IsFeatured,
             IsActive = product.IsActive,
             Variants = product.Variants.OrderBy(v => v.VariantId).ToList(),
@@ -340,9 +347,11 @@ public class ProductController : Controller
         product.Slug = slug;
         product.CategoryId = model.CategoryId;
         product.BrandId = model.BrandId;
+        product.SupplierId = model.SupplierId;
         product.WarrantyMonths = model.WarrantyMonths;
         product.ShortDescription = model.ShortDescription?.Trim();
         product.FullDescription = string.IsNullOrWhiteSpace(model.FullDescription) ? null : _sanitizer.Sanitize(model.FullDescription);
+        product.SpecificationsJson = string.IsNullOrWhiteSpace(model.SpecificationsJson) ? null : model.SpecificationsJson.Trim();
         product.IsFeatured = model.IsFeatured;
         product.IsActive = model.IsActive;
         product.UpdatedAt = DateTime.UtcNow;
@@ -367,6 +376,24 @@ public class ProductController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [HasPermission("Products.Edit")]
+    [HttpGet]
+    public IActionResult SaveVariant() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult DeleteVariant() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult ToggleActive() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult ToggleFeatured() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult Delete() => RedirectToAction(nameof(Index));
+
+    [HttpGet]
+    public IActionResult DeleteGalleryImage() => RedirectToAction(nameof(Index));
+
     public async Task<IActionResult> SaveVariant([FromForm] SaveVariantDto dto, IFormFile? variantImageFile)
     {
         if (dto.ProductId <= 0 || string.IsNullOrWhiteSpace(dto.SKU) || string.IsNullOrWhiteSpace(dto.VariantName))
@@ -587,9 +614,11 @@ public class ProductController : Controller
     {
         var categories = await _context.Categories.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
         var brands = await _context.Brands.AsNoTracking().Where(b => b.IsActive).OrderBy(b => b.Name).ToListAsync();
+        var suppliers = await _context.Suppliers.AsNoTracking().Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync();
 
         ViewBag.CategoryList = new SelectList(categories, "CategoryId", "Name");
         ViewBag.BrandList = new SelectList(brands, "BrandId", "Name");
+        ViewBag.SupplierList = new SelectList(suppliers, "SupplierId", "Name");
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -286,6 +286,21 @@ namespace TechStore.Web.Areas.Admin.Controllers
             if (await _context.Users.AnyAsync(u => u.NormalizedUsername == normalizedUsername))
             {
                 TempData["ErrorMessage"] = $"Tên đăng nhập '{dto.Username}' đã tồn tại trong hệ thống!";
+                return RedirectToAction(nameof(Matrix), new { tab = "user" });
+            }
+
+            string targetEmail = string.IsNullOrWhiteSpace(dto.Email) ? $"{dto.Username.Trim()}@techstore.vn" : dto.Email.Trim();
+            string normalizedEmail = targetEmail.ToUpperInvariant();
+            if (await _context.Users.AnyAsync(u => u.NormalizedEmail == normalizedEmail))
+            {
+                TempData["ErrorMessage"] = $"Email '{targetEmail}' đã được sử dụng bởi tài khoản khác!";
+                return RedirectToAction(nameof(Matrix), new { tab = "user" });
+            }
+
+            var superAdminRole = await _context.Roles.FirstOrDefaultAsync(r => r.NormalizedName == "SUPERADMIN");
+            if (dto.RoleId == superAdminRole?.RoleId && !User.IsInRole("SuperAdmin"))
+            {
+                TempData["ErrorMessage"] = "Chỉ SuperAdmin mới có quyền tạo thêm tài khoản SuperAdmin!";
                 return RedirectToAction(nameof(Matrix), new { tab = "user" });
             }
 

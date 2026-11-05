@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
@@ -38,7 +38,7 @@ public class EmailService : IEmailService
             string htmlContent = await GenerateOrderHtmlAsync(order);
 
             // 1. Luôn lưu bản sao Email HTML cục bộ vào wwwroot/uploads/emails/ để kiểm tra offline
-            string emailDir = Path.Combine(_env.WebRootPath, "uploads", "emails");
+            string emailDir = Path.Combine(_env.ContentRootPath, "App_Data", "Emails");
             if (!Directory.Exists(emailDir))
             {
                 Directory.CreateDirectory(emailDir);
@@ -268,7 +268,7 @@ public class EmailService : IEmailService
 </html>";
 
             // Lưu bản sao cục bộ
-            string emailDir = Path.Combine(_env.WebRootPath, "uploads", "emails");
+            string emailDir = Path.Combine(_env.ContentRootPath, "App_Data", "Emails");
             if (!Directory.Exists(emailDir))
             {
                 Directory.CreateDirectory(emailDir);

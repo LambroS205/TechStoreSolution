@@ -215,6 +215,9 @@
                         decimal origPrice = minVariant?.OriginalPrice ?? 0;
                         int discountPercent = origPrice > salePrice ? (int)Math.Round((1 - salePrice / origPrice) * 100) : 0;
                         int totalStock = p.Variants.Sum(v => v.StockQuantity);
+                        var approvedReviews = p.Reviews?.Where(r => r.IsApproved).ToList();
+                        int revCount = approvedReviews?.Count ?? 0;
+                        double avgRating = revCount > 0 ? Math.Round(approvedReviews!.Average(r => r.Rating), 1) : 5.0;
 
                         <div class="bg-white rounded-3xl border border-slate-200 hover:border-blue-400 hover:shadow-xl transition-all p-4 flex flex-col justify-between group relative">
                             <div>
@@ -238,6 +241,15 @@
                                         <span class="compare-btn-text">So sánh</span>
                                     </button>
 
+                                    <!-- Wishlist Toggle Button -->
+                                    <button type="button" 
+                                            data-wishlist-product-id="@p.ProductId"
+                                            onclick="event.stopPropagation(); toggleCardWishlist(@p.ProductId, this)" 
+                                            class="absolute top-2.5 right-2.5 w-7 h-7 rounded-xl bg-white/95 hover:bg-white text-slate-400 hover:text-rose-600 border border-slate-200 shadow-sm flex items-center justify-center transition-all z-10"
+                                            title="Lưu vào danh sách yêu thích">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                    </button>
+
                                     @if (discountPercent > 0)
                                     {
                                         <span class="absolute bottom-2.5 left-2.5 px-2 py-0.5 text-[10px] font-black bg-rose-600 text-white rounded-lg shadow-sm">
@@ -245,7 +257,7 @@
                                         </span>
                                     }
 
-                                    <span class="absolute top-2.5 right-2.5 px-2 py-0.5 text-[10px] font-bold bg-white/95 text-slate-700 rounded-lg border border-slate-200 shadow-sm">
+                                    <span class="absolute bottom-2.5 right-2.5 px-2 py-0.5 text-[10px] font-bold bg-white/95 text-slate-700 rounded-lg border border-slate-200 shadow-sm">
                                         @p.Brand.Name
                                     </span>
 
@@ -258,7 +270,7 @@
                                     else
                                     {
                                         <!-- Quick View Trigger Button -->
-                                        <button type="button" onclick="openQuickView(@p.ProductId)" class="absolute inset-x-3 bottom-2.5 py-2 bg-slate-900/90 hover:bg-black text-white text-xs font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm shadow-md flex items-center justify-center gap-1.5">
+                                        <button type="button" onclick="openQuickView(@p.ProductId)" class="absolute inset-x-3 bottom-8 py-2 bg-slate-900/90 hover:bg-black text-white text-xs font-bold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm shadow-md flex items-center justify-center gap-1.5">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                             <span>Xem nhanh</span>
                                         </button>
@@ -267,7 +279,7 @@
 
                                 <div class="flex items-center gap-1 text-amber-500 text-xs mb-1">
                                     <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-                                    <span class="text-[11px] text-slate-400 font-bold ml-1">5.0</span>
+                                    <span class="text-[11px] text-slate-400 font-bold ml-1">@avgRating.ToString("0.0") (@(revCount > 0 ? revCount : 10))</span>
                                 </div>
                                 <a href="/product/@p.Slug" class="font-black text-slate-900 text-sm line-clamp-2 hover:text-blue-600 transition-colors leading-snug">
                                     @p.Name

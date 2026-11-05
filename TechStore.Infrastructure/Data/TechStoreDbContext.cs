@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore;
 using TechStore.Core.Entities;
 
@@ -240,6 +240,11 @@ public class TechStoreDbContext : DbContext
             entity.HasOne(e => e.Brand)
                   .WithMany(b => b.Products)
                   .HasForeignKey(e => e.BrandId);
+
+            entity.HasOne(e => e.Supplier)
+                  .WithMany(s => s.Products)
+                  .HasForeignKey(e => e.SupplierId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         // 12. Cấu hình bảng ProductVariants

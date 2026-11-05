@@ -26,6 +26,7 @@ public class WishlistApiController : ControllerBase
     /// <summary>
     /// Bật/Tắt lưu sản phẩm vào danh sách yêu thích
     /// </summary>
+    [HttpGet("toggle")]
     [HttpPost("toggle")]
     public async Task<IActionResult> Toggle([FromQuery] int productId)
     {

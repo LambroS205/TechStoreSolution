@@ -1,3 +1,4 @@
+@using System.Text.Encodings.Web
 @model List<TechStore.Core.Entities.CustomerAddress>
 @{
     ViewData["Title"] = "Sổ Địa Chỉ Nhận Hàng";
@@ -82,7 +83,7 @@
 
                     <!-- Actions -->
                     <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                        <div>
+                        <div class="flex items-center gap-3">
                             @if (!addr.IsDefault)
                             {
                                 <form method="post" action="/account/addresses/set-default/@addr.AddressId" class="inline">
@@ -96,9 +97,16 @@
                             {
                                 <span class="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                    Địa chỉ nhận hàng chính
+                                    Địa chỉ chính
                                 </span>
                             }
+
+                            <button type="button" 
+                                    onclick="openEditAddressModal({ id: @addr.AddressId, recipientName: '@Html.Raw(JavaScriptEncoder.Default.Encode(addr.RecipientName))', phoneNumber: '@Html.Raw(JavaScriptEncoder.Default.Encode(addr.PhoneNumber))', province: '@Html.Raw(JavaScriptEncoder.Default.Encode(addr.Province))', district: '@Html.Raw(JavaScriptEncoder.Default.Encode(addr.District))', ward: '@Html.Raw(JavaScriptEncoder.Default.Encode(addr.Ward))', streetAddress: '@Html.Raw(JavaScriptEncoder.Default.Encode(addr.StreetAddress))', isDefault: @(addr.IsDefault ? "true" : "false") })" 
+                                    class="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                <span>Sửa</span>
+                            </button>
                         </div>
 
                         <form method="post" action="/account/addresses/delete/@addr.AddressId" onsubmit="return confirm('Bạn có chắc chắn muốn xóa địa chỉ này?');" class="inline">
@@ -191,11 +199,87 @@
     </div>
 </div>
 
+<!-- Edit Address Modal -->
+<div id="editAddressModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-100">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="text-base font-black text-slate-900">Cập Nhật Địa Chỉ Nhận Hàng</h3>
+            <button type="button" onclick="closeEditAddressModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-lg">&times;</button>
+        </div>
+
+        <form method="post" action="/account/addresses/edit" class="space-y-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="editAddressId" name="AddressId" />
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Họ Tên Người Nhận <span class="text-rose-500">*</span></label>
+                    <input type="text" id="editRecipientName" name="RecipientName" required placeholder="VD: Nguyễn Văn A" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Số Điện Thoại <span class="text-rose-500">*</span></label>
+                    <input type="tel" id="editPhoneNumber" name="PhoneNumber" required placeholder="VD: 0909123456" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tỉnh / TP <span class="text-rose-500">*</span></label>
+                    <input type="text" id="editProvince" name="Province" required placeholder="Hồ Chí Minh" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Quận / Huyện <span class="text-rose-500">*</span></label>
+                    <input type="text" id="editDistrict" name="District" required placeholder="Quận 1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Phường / Xã <span class="text-rose-500">*</span></label>
+                    <input type="text" id="editWard" name="Ward" required placeholder="Bến Nghé" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Địa Chỉ Chi Tiết (Số nhà, Tên đường) <span class="text-rose-500">*</span></label>
+                <input type="text" id="editStreetAddress" name="StreetAddress" required placeholder="VD: 123 Đường Lê Lợi" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-600 focus:outline-none" />
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+                <input type="checkbox" id="editIsDefault" name="IsDefault" value="true" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300" />
+                <label for="editIsDefault" class="text-xs font-semibold text-slate-700">
+                    Đặt làm địa chỉ nhận hàng mặc định cho các đơn mua tiếp theo
+                </label>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeEditAddressModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+                    Hủy
+                </button>
+                <button type="submit" class="px-5 py-2 bg-bestbuy-blue hover:bg-bestbuy-darkblue text-white text-xs font-bold rounded-xl transition-colors">
+                    Cập Nhật
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     function openAddressModal() {
         document.getElementById('addressModal').classList.remove('hidden');
     }
     function closeAddressModal() {
         document.getElementById('addressModal').classList.add('hidden');
+    }
+    function openEditAddressModal(data) {
+        document.getElementById('editAddressId').value = data.id;
+        document.getElementById('editRecipientName').value = data.recipientName;
+        document.getElementById('editPhoneNumber').value = data.phoneNumber;
+        document.getElementById('editProvince').value = data.province;
+        document.getElementById('editDistrict').value = data.district;
+        document.getElementById('editWard').value = data.ward;
+        document.getElementById('editStreetAddress').value = data.streetAddress;
+        document.getElementById('editIsDefault').checked = data.isDefault;
+        document.getElementById('editAddressModal').classList.remove('hidden');
+    }
+    function closeEditAddressModal() {
+        document.getElementById('editAddressModal').classList.add('hidden');
     }
 </script>
